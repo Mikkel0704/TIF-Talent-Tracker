@@ -187,7 +187,10 @@ let selectedStepByPlayer = {};
 function getKey(stepIndex, ex){ return `s${stepIndex}_${ex}`; }
 function migratePlayer(p){
   if(!p.passed) p.passed = {};
-  if(p.progress){
+  // Legacy migration from older versions:
+  // Only convert old progress data if no new passed-data exists yet.
+  // Otherwise old progress would keep re-marking a step as passed after you try to undo it.
+  if(p.progress && Object.keys(p.passed).length === 0){
     exercises.forEach(ex=>{
       [1,2,3].forEach(l=>{
         const m = p.progress[ex]?.[l];
@@ -200,6 +203,8 @@ function migratePlayer(p){
       });
     });
   }
+  // Remove legacy field after migration, so earlier registrations can be edited.
+  if(p.progress) delete p.progress;
   return p;
 }
 data.players = (data.players||[]).map(migratePlayer);
