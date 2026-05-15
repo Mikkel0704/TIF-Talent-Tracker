@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f5132" />
-  <title>TIF Talent Tracker v9 Login</title>
+  <title>TIF Talent Tracker v10 Migration</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -65,7 +65,7 @@
 <header>
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
-  <div id="syncStatus" class="syncstatus">v9 · starter login...</div>
+  <div id="syncStatus" class="syncstatus">v10 · starter login...</div>
 </header>
 
 <nav id="mainNav" class="hidden">
@@ -150,6 +150,8 @@
   <div class="card">
     <h2>Admin</h2>
     <p class="small">Kun admin kan tildele trænere adgang til årgange. Trænere skal først være oprettet i Firebase Authentication og have logget ind én gang.</p>
+    <button class="btn secondary" onclick="migrateOldPlayers()">Migrér gamle spillere fra sharedState</button>
+    <p class="small">Brug kun knappen én gang. Den flytter gamle spillere fra tifTalentTracker/sharedState til players collection og sætter årgang ud fra note-feltet, fx U9.</p>
     <div id="adminArea"></div>
   </div>
 </section>
@@ -163,7 +165,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v9 Login · Firebase Authentication + adgang pr. årgang.</div>
+<div class="footer-note">TIF Talent Tracker v10 · login, årgangsadgang og migrering af gamle spillere.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -222,7 +224,14 @@ function allowedYears(){ return isAdmin() ? years : (currentUserDoc?.years || []
 function canAccessYear(y){ return isAdmin() || allowedYears().includes(y); }
 function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s])); }
 function getKey(stepIndex, ex){ return `s${stepIndex}_${ex}`; }
-function migratePlayer(p){ if(!p.passed) p.passed = {}; if(!p.year) p.year = "U9"; return p; }
+function inferYearFromNote(note){
+  const match = String(note || "").match(/U\d{1,2}/i);
+  return match ? match[0].toUpperCase() : "U9";
+}
+function cleanNote(note){
+  return String(note || "").replace(/U\d{1,2}/i, "").replace(/^[-·,\s]+/, "").trim();
+}
+function migratePlayer(p){ if(!p.passed) p.passed = {}; if(!p.year) p.year = inferYearFromNote(p.note); return p; }
 function countPassed(p, si){ return exercises.filter(ex=>p.passed?.[getKey(si,ex)]).length; }
 function isStepComplete(p, si){ return countPassed(p, si) === exercises.length; }
 function currentStepIndex(p){ for(let i=0;i<steps.length;i++){ if(!isStepComplete(p,i)) return i; } return steps.length; }
@@ -243,7 +252,7 @@ onAuthStateChanged(auth, async (user)=>{
   if(!user){
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
-    setSyncStatus("v9 · ikke logget ind");
+    setSyncStatus("v10 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -266,9 +275,9 @@ function startListeners(){
   if(unsubPlayers) unsubPlayers();
   unsubPlayers = onSnapshot(collection(db, "players"), (snap)=>{
     players = snap.docs.map(d=>migratePlayer({id:d.id, ...d.data()})).filter(p=>canAccessYear(p.year));
-    setSyncStatus("v9 · live database aktiv");
+    setSyncStatus("v10 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v9 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v10 · databasefejl: " + e.code));
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
     unsubUsers = onSnapshot(collection(db, "users"), (snap)=>{
@@ -409,10 +418,46 @@ async function editCoach(uid){
   const y=(yearText||"").split(",").map(x=>x.trim()).filter(Boolean);
   await setDoc(doc(db,"users",uid), {email:u.email, role, years:y, updatedAt:serverTimestamp()}, {merge:true});
 }
+
+async function migrateOldPlayers(){
+  if(!isAdmin()) return alert("Kun admin kan migrere gamle spillere.");
+  if(!confirm("Migrér gamle spillere fra sharedState til players collection? Brug kun én gang.")) return;
+  try{
+    const oldRef = doc(db, "tifTalentTracker", "sharedState");
+    const oldSnap = await getDoc(oldRef);
+    if(!oldSnap.exists()) return alert("Fandt ikke tifTalentTracker/sharedState.");
+    const old = oldSnap.data();
+    const oldPlayers = old.players || [];
+    if(!oldPlayers.length) return alert("Der er ingen gamle spillere i sharedState.");
+    let count = 0;
+    for(const oldPlayer of oldPlayers){
+      const id = String(oldPlayer.id || Date.now() + "_" + count);
+      const year = oldPlayer.year || inferYearFromNote(oldPlayer.note);
+      const note = oldPlayer.year ? (oldPlayer.note || "") : cleanNote(oldPlayer.note);
+      const newPlayer = {
+        name: oldPlayer.name || "Ukendt spiller",
+        year,
+        note,
+        passed: oldPlayer.passed || {},
+        migratedFromSharedState: true,
+        updatedAt: serverTimestamp()
+      };
+      await setDoc(doc(db, "players", id), newPlayer, {merge:true});
+      count++;
+    }
+    alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
+    setSyncStatus("v10 · migrering færdig");
+  }catch(e){
+    console.error(e);
+    alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
+    setSyncStatus("v10 · migrering fejlede");
+  }
+}
+
 function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); }
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,forceReload});
+Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,forceReload,migrateOldPlayers});
 </script>
 </body>
 </html>
