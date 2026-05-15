@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v13</title>
+  <title>TIF Talent Tracker v14</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -76,6 +76,7 @@
     .historyitem:first-child{border-top:0}
     .dangernote{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px;color:#7c2d12}
     .backupgrid{display:grid;grid-template-columns:1fr;gap:10px}
+    .createcoach{border:1px solid var(--line);border-radius:14px;background:white;padding:10px;margin:10px 0}
     .mutedbox{background:white;border:1px solid var(--line);border-radius:12px;padding:10px}
     .yearchecks{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
     .checkpill{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;background:white;padding:9px;font-weight:700}
@@ -87,7 +88,7 @@
 <header>
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
-  <div id="syncStatus" class="syncstatus">v13 · starter login...</div>
+  <div id="syncStatus" class="syncstatus">v14 · starter login...</div>
 </header>
 
 <nav id="mainNav" class="hidden">
@@ -184,7 +185,16 @@
   <div class="card">
     <h2>Admin</h2>
     <p class="small">Kun admin kan tildele trænere adgang til årgange. Trænere skal først være oprettet i Firebase Authentication og have logget ind én gang.</p>
+    <div class="createcoach">
+      <h3>Tilføj ny træner</h3>
+      <p class="small">Opretter både Firebase-login og adgang i appen. Træneren bør skifte password efter første login.</p>
+      <label>Email</label><input id="newCoachEmail" placeholder="traener@email.dk">
+      <label>Midlertidigt password</label><input id="newCoachPassword" type="password" placeholder="Min. 6 tegn">
+      <div class="yearchecks" id="newCoachYears"></div>
+      <button class="btn" onclick="createCoachFromAdmin()">Opret træner</button>
+    </div>
     <button class="btn secondary" onclick="migrateOldPlayers()">Migrér gamle spillere fra sharedState</button>
+    <button class="btn secondary" onclick="migrateYearsToBirthYears()">Migrér årgange til årstal</button>
     <p class="small">Brug kun knappen én gang. Den flytter gamle spillere fra tifTalentTracker/sharedState til players collection og sætter årgang ud fra note-feltet, fx U9.</p>
     <div id="adminArea"></div>
     <div id="adminEditArea"></div>
@@ -212,11 +222,11 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v13 · login, årgangsadgang og migrering af gamle spillere.</div>
+<div class="footer-note">TIF Talent Tracker v14 · login, årgangsadgang og migrering af gamle spillere.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -230,9 +240,27 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const secondaryAppForUserCreation = initializeApp(firebaseConfig, "SecondaryUserCreation");
+const secondaryAuth = getAuth(secondaryAppForUserCreation);
 const db = getFirestore(app);
 
-const years = ["U8","U9","U10","U11","U12","U13","U14","U15"];
+const years = ["2018","2017","2016","2015","2014","2013","2012","2011"];
+
+function normalizeYearValue(value){
+  const v = String(value || "").trim().toUpperCase();
+  const m = v.match(/^U(\d{1,2})$/);
+  if(m) return String(2026 - Number(m[1])); // 2026 season: U9 = 2017
+  return v;
+}
+function normalizeYearsList(list){
+  return Array.from(new Set((list || []).map(normalizeYearValue).filter(Boolean)));
+}
+function legacyYearValues(list){
+  const out = new Set();
+  (list || []).forEach(y => { out.add(y); out.add(normalizeYearValue(y)); });
+  return Array.from(out);
+}
+function yearLabel(value){ return normalizeYearValue(value); }
 const exercises = ["Jonglering","Præcision","Modtag & Afslut","Finter","Kontrol"];
 const medalOrder = ["Bronze","Sølv","Guld"];
 const steps = [
@@ -273,12 +301,12 @@ function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, s=>({"&":"&
 function getKey(stepIndex, ex){ return `s${stepIndex}_${ex}`; }
 function inferYearFromNote(note){
   const match = String(note || "").match(/U\d{1,2}/i);
-  return match ? match[0].toUpperCase() : "U9";
+  return match ? normalizeYearValue(match[0].toUpperCase()) : "2017";
 }
 function cleanNote(note){
   return String(note || "").replace(/U\d{1,2}/i, "").replace(/^[-·,\s]+/, "").trim();
 }
-function migratePlayer(p){ if(!p.passed) p.passed = {}; if(!p.year) p.year = inferYearFromNote(p.note); return p; }
+function migratePlayer(p){ if(!p.passed) p.passed = {}; if(!p.year) p.year = inferYearFromNote(p.note); p.year = normalizeYearValue(p.year); return p; }
 function countPassed(p, si){ return exercises.filter(ex=>p.passed?.[getKey(si,ex)]).length; }
 function isStepComplete(p, si){ return countPassed(p, si) === exercises.length; }
 function currentStepIndex(p){ for(let i=0;i<steps.length;i++){ if(!isStepComplete(p,i)) return i; } return steps.length; }
@@ -299,7 +327,7 @@ onAuthStateChanged(auth, async (user)=>{
   if(!user){
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
-    setSyncStatus("v13 · ikke logget ind");
+    setSyncStatus("v14 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -322,9 +350,9 @@ function startListeners(){
   if(unsubPlayers) unsubPlayers();
   unsubPlayers = onSnapshot(collection(db, "players"), (snap)=>{
     players = snap.docs.map(d=>migratePlayer({id:d.id, ...d.data()})).filter(p=>canAccessYear(p.year));
-    setSyncStatus("v13 · live database aktiv");
+    setSyncStatus("v14 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v13 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v14 · databasefejl: " + e.code));
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
     unsubUsers = onSnapshot(collection(db, "users"), (snap)=>{
@@ -389,7 +417,7 @@ function renderPlayers(){
   el.innerHTML = list.map(p=>{
     const si = currentStepIndex(p);
     const status = si >= steps.length ? "Alle niveauer gennemført" : `${steps[si].label} · ${countPassed(p,si)}/5`;
-    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(p.year)} · ${escapeHtml(p.note)} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button>`:""}</div>`;
+    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(yearLabel(p.year))} · ${escapeHtml(p.note)} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button>`:""}</div>`;
   }).join("");
 }
 function renderSelects(){
@@ -480,6 +508,10 @@ function renderExerciseInfo(){
  }).join("");
 }
 function renderAdmin(){
+  const newYears=document.getElementById("newCoachYears");
+  if(newYears && isAdmin()){
+    newYears.innerHTML = years.map(y=>`<label class="checkpill"><input type="checkbox" class="newCoachYear" value="${y}"> ${y}</label>`).join("");
+  }
   const area=document.getElementById("adminArea");
   if(!area || !isAdmin()) return;
   area.innerHTML = users.map(u=>`<div class="coachrow"><div><b>${escapeHtml(u.email)}</b><div class="small">UID: ${u.uid}<br>Rolle: ${u.role || "coach"} · Årgange: ${(u.years||[]).join(", ") || "ingen"}</div></div><button class="btn secondary smallbtn" onclick="editCoach('${u.uid}')">Rediger</button></div>`).join("");
@@ -546,14 +578,71 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v13 · migrering færdig");
+    setSyncStatus("v14 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v13 · migrering fejlede");
+    setSyncStatus("v14 · migrering fejlede");
   }
 }
 
+
+
+async function createCoachFromAdmin(){
+  if(!isAdmin()) return alert("Kun admin kan oprette trænere.");
+  const email = document.getElementById("newCoachEmail").value.trim();
+  const password = document.getElementById("newCoachPassword").value;
+  const selectedYears = Array.from(document.querySelectorAll(".newCoachYear:checked")).map(x=>x.value);
+  if(!email) return alert("Skriv trænerens email.");
+  if(!password || password.length < 6) return alert("Password skal være mindst 6 tegn.");
+  if(!selectedYears.length) return alert("Vælg mindst én årgang.");
+  try{
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    await setDoc(doc(db, "users", cred.user.uid), {
+      email,
+      role: "coach",
+      years: selectedYears,
+      active: true,
+      createdBy: currentUser?.email || "",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }, {merge:true});
+    await signOut(secondaryAuth);
+    document.getElementById("newCoachEmail").value = "";
+    document.getElementById("newCoachPassword").value = "";
+    alert("Træner oprettet: " + email);
+  }catch(e){
+    console.error(e);
+    alert("Kunne ikke oprette træner: " + e.message);
+  }
+}
+
+async function migrateYearsToBirthYears(){
+  if(!isAdmin()) return alert("Kun admin kan migrere årgange.");
+  if(!confirm("Konverter årgange fra U-format til årstal? Fx U9 → 2017. Brug kun én gang.")) return;
+  try{
+    let playerCount = 0;
+    for(const p of players){
+      const ny = normalizeYearValue(p.year);
+      if(ny && ny !== p.year){
+        await setDoc(doc(db,"players",p.id), {year: ny, updatedAt: serverTimestamp()}, {merge:true});
+        playerCount++;
+      }
+    }
+    let userCount = 0;
+    for(const u of users){
+      const newYears = normalizeYearsList(u.years || []);
+      if(JSON.stringify(newYears) !== JSON.stringify(u.years || [])){
+        await setDoc(doc(db,"users",u.uid), {years: newYears, updatedAt: serverTimestamp()}, {merge:true});
+        userCount++;
+      }
+    }
+    alert(`Årgange migreret. Spillere opdateret: ${playerCount}. Brugere opdateret: ${userCount}.`);
+  }catch(e){
+    console.error(e);
+    alert("Migrering af årgange fejlede: " + e.message);
+  }
+}
 
 let selectedProfilePlayerId = null;
 
@@ -589,7 +678,7 @@ function renderPlayerProfile(){
     <div class="profilegrid">
       <div class="profilebox">
         <h3>${escapeHtml(p.name)}</h3>
-        <p class="small">Årgang: ${escapeHtml(p.year)}<br>Note: ${escapeHtml(p.note || "")}<br>Status: ${escapeHtml(currentText)}</p>
+        <p class="small">Årgang: ${escapeHtml(yearLabel(p.year))}<br>Note: ${escapeHtml(p.note || "")}<br>Status: ${escapeHtml(currentText)}</p>
         <button class="btn secondary" onclick="selectProfileForTracking('${p.id}')">Åbn i registrering</button>
       </div>
       <div class="profilebox">
@@ -640,7 +729,7 @@ function exportBackupCsv(){
 function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); renderPlayerProfile(); }
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv});
+Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears});
 </script>
 </body>
 </html>
