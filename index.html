@@ -23,10 +23,10 @@
     h2{font-size:20px;margin:0 0 10px} h3{font-size:16px;margin:14px 0 8px}
     label{font-size:13px;font-weight:700;display:block;margin:8px 0 5px}
     input,select,textarea{width:100%;font-size:16px;border:1px solid #d6ccb8;border-radius:12px;padding:11px;background:white;color:var(--text)}
-    textarea{min-height:70px}
+    textarea{min-height:90px}
     .row{display:grid;grid-template-columns:1fr;gap:10px}
     @media(min-width:700px){.row.two{grid-template-columns:1fr 1fr}.row.three{grid-template-columns:1fr 1fr 1fr}}
-    .btn{border:0;border-radius:12px;padding:11px 13px;font-weight:800;background:var(--green);color:white;font-size:15px}
+    .btn{border:0;border-radius:12px;padding:11px 13px;font-weight:800;background:var(--green);color:white;font-size:15px;margin:4px 4px 4px 0}
     .btn.secondary{background:white;color:var(--green);border:1px solid var(--green)}
     .btn.danger{background:#b42318;color:white}
     .player{display:flex;justify-content:space-between;gap:10px;align-items:center;border-top:1px solid var(--line);padding:10px 0}
@@ -34,18 +34,20 @@
     .small{font-size:13px;color:var(--muted)}
     .pill{display:inline-block;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:800;margin:2px;background:#eee}
     .guld{background:var(--gold);color:#4b3600}.sølv{background:var(--silver);color:#263238}.bronze{background:var(--bronze);color:white}.none{background:#e5e7eb;color:#555}
-    table{width:100%;border-collapse:collapse;font-size:14px;overflow:hidden;border-radius:12px}
+    table{width:100%;border-collapse:collapse;font-size:14px;overflow:hidden;border-radius:12px;background:white}
     th,td{border-bottom:1px solid var(--line);padding:9px;text-align:left;vertical-align:top}
     th{background:#efe5cf}
     .exercise-block{border:1px solid var(--line);border-radius:14px;padding:10px;margin:10px 0;background:white}
     .hidden{display:none!important}
     .footer-note{font-size:12px;color:var(--muted);padding:10px;text-align:center}
+    ul{margin:6px 0 0;padding-left:20px}
+    li{margin:3px 0}
   </style>
 </head>
 <body>
 <header>
   <h1>TIF Talent Tracker</h1>
-  <p>5 øvelser · 3 niveauer · bronze, sølv og guld</p>
+  <p>Teknik · Mod · Glæde</p>
 </header>
 
 <nav>
@@ -53,6 +55,7 @@
   <button onclick="showPage('track')" id="tab-track">Registrering</button>
   <button onclick="showPage('overview')" id="tab-overview">Overblik</button>
   <button onclick="showPage('criteria')" id="tab-criteria">Kriterier</button>
+  <button onclick="showPage('guide')" id="tab-guide">Guide</button>
   <button onclick="showPage('settings')" id="tab-settings">Indstillinger</button>
 </nav>
 
@@ -62,7 +65,7 @@
     <h2>Tilføj spiller</h2>
     <div class="row two">
       <div><label>Navn</label><input id="playerName" placeholder="Fx Oscar" /></div>
-      <div><label>Årgang / note</label><input id="playerNote" placeholder="Fx U9, venstrebenet..." /></div>
+      <div><label>Årgang / note</label><input id="playerNote" placeholder="Fx U9, niveau 1..." /></div>
     </div>
     <p><button class="btn" onclick="addPlayer()">Tilføj spiller</button></p>
   </div>
@@ -98,6 +101,20 @@
   </div>
 </section>
 
+<section id="guide" class="page hidden">
+  <div class="card">
+    <h2>Vejledning om niveau</h2>
+    <p><b>Målet er:</b> succesoplevelser, passende udfordring og lyst til at udvikle sig.</p>
+    <p><b>Grundprincip:</b> Spilleren starter på det niveau, hvor det er realistisk at mestre 2-3 øvelser på bronze ved koncentreret indsats over 6-8 uger.</p>
+    <p><b>Næste niveau:</b> Spilleren kan skifte fra 1 til 2 og fra 2 til 3, når alle øvelser på guld på foregående niveau er gennemført.</p>
+    <p class="small">En spiller forventes ikke at gennemføre flere niveauer på én sæson. Det er også OK kun at udvikle sig inden for bronze, sølv og guld på samme niveau.</p>
+  </div>
+  <div class="card">
+    <h2>Øvelser</h2>
+    <div id="exerciseInfo"></div>
+  </div>
+</section>
+
 <section id="settings" class="page hidden">
   <div class="card">
     <h2>Indstillinger</h2>
@@ -112,16 +129,70 @@
 <div class="footer-note">Tip: Åbn siden i Safari og vælg Del → Føj til hjemmeskærm.</div>
 
 <script>
-const exercises = ["Boldkontrol","Dribling","Pasning","Afslutning","1v1 / spilforståelse"];
+const exercises = ["Jonglering","Præcision","Modtag & Afslut","Finter","Kontrol"];
 const medals = ["Ikke startet","Bronze","Sølv","Guld"];
-const criteria = {};
-exercises.forEach(ex => {
-  criteria[ex] = {
-    1: {Bronze:"Klarer basisudgaven med ro og forståelse.", Sølv:"Klarer øvelsen stabilt flere gange i træk.", Guld:"Klarer øvelsen sikkert med tempo og god teknik."},
-    2: {Bronze:"Klarer øvelsen med lidt højere sværhedsgrad.", Sølv:"Klarer øvelsen stabilt under let pres.", Guld:"Klarer øvelsen hurtigt, kontrolleret og med få fejl."},
-    3: {Bronze:"Klarer øvelsen i avanceret udgave.", Sølv:"Klarer øvelsen stabilt under pres og med gode valg.", Guld:"Klarer øvelsen på højt niveau med tempo, kvalitet og selvstændige beslutninger."}
-  }
-});
+
+const exerciseDescriptions = {
+ "Jonglering": {
+  "Formål":"Udvikle boldkontrol, koordination og føling med bolden.",
+  "Opsætning":["Spiller står frit med en bold.","Fladt underlag."],
+  "Udførsel":["Spilleren jonglerer bolden uden at den rammer jorden.","Bolden må spilles med begge fødder, lår og hoved."],
+  "Trænerfokus":["Roligt tempo.","Små, kontrollerede berøringer.","Kropsposition og balance."]
+ },
+ "Præcision": {
+  "Formål":"Udvikle præcision, afslutningsteknik og brug af begge ben.",
+  "Opsætning":["Bronze: 5-mandsmål, målzoner 70 cm fra hver stolpe, afstand 8 m.","Sølv: 8-mandsmål, 4 målzoner, afstand 10 m.","Guld: 11-mandsmål, samme 4 målzoner som sølv, afstand 12 m."],
+  "Udførsel":["Spilleren skyder 10 bolde mod målzonerne som frispark."],
+  "Trænerfokus":["Teknik frem for kraft.","Bevidst sigte.","Ro før hvert skud."]
+ },
+ "Modtag & Afslut": {
+  "Formål":"Udvikle retningsbestemt tæmning, timing og afslutning i fart.",
+  "Opsætning":["Bronze: 5-mandsmål og to 3-mandsmål udenfor hver stolpe som målzoner. Startkegle ca. 12 m fra målstregen.","Sølv: 8-mandsmål med målzoner i bund og top. Startkegle ca. 14 m fra målstregen.","Guld: 11-mandsmål, samme 4 målzoner som sølv. Afstand 16 m."],
+  "Udførsel":["Spilleren starter ved keglen og løber mod mål.","Modtager aflevering fra træner.","Førsteberøring skal være retningsbestemt mod mål.","Afslutning før 8 m (bronze), 10 m (sølv) og 12 m (guld)."],
+  "Trænerfokus":["Timing af løb.","Førsteberøring fremad.","Hurtig beslutning før afslutning."]
+ },
+ "Finter": {
+  "Formål":"Udvikle driblefærdigheder, kropsfinter og evnen til at vende fra modstander.",
+  "Opsætning":["Spiller starter med bold 5-8 m fra træner/modstander.","Træner står ca. 12-14 m fra mål.","5- eller 8-mandsmål.","Målzoner i bund og top."],
+  "Udførsel":["Spilleren dribler mod træneren.","Udfører finte eller vending.","Kommer forbi træneren.","Afslutter mod mål før 8 m (bronze), 10 m (sølv) og 12 m (guld)."],
+  "Trænerfokus":["Mod i driblingen.","Timing af finte.","Balance og kropskontrol."]
+ },
+ "Kontrol": {
+  "Formål":"Udvikle førsteberøring, boldkontrol og orientering.",
+  "Opsætning":["Bronze: firkant 2x2 m, træner 3-5 m fra zonen.","Sølv/Guld: firkant 1,5x1,5 m, træner 3-5 m fra zonen."],
+  "Udførsel":["Træneren laver 10 afleveringer: 5 langs jorden og 5 kastet ind med underhånd.","Spilleren tæmmer bolden så den ligger død i firkanten."],
+  "Trænerfokus":["Blød førsteberøring.","Retning på tæmning.","Hurtig reaktion."]
+ }
+};
+
+const criteria = {
+ "Jonglering": {
+  1: {Bronze:["10 jongleringer"], Sølv:["20 jongleringer"], Guld:["35 jongleringer"]},
+  2: {Bronze:["25 jongleringer"], Sølv:["40 jongleringer","begge ben"], Guld:["75 jongleringer","begge ben",">10 med dårligt ben"]},
+  3: {Bronze:["40 jongleringer","begge ben"], Sølv:["75 jongleringer","begge ben",">10 med dårligt ben"], Guld:["150 jongleringer","begge ben","lår & hoved",">25 med dårligt ben"]}
+ },
+ "Præcision": {
+  1: {Bronze:["4 ud af 10"], Sølv:["5 ud af 10","+ 1 hver side"], Guld:["6 ud af 10","+ 1 hver side","+ 1 dårligt ben"]},
+  2: {Bronze:["5 ud af 10","+ 1 hver side","+ 1 dårligt ben"], Sølv:["6 ud af 10","+ 1 hver side","+ 2 dårligt ben"], Guld:["7 ud af 10","+ 2 hver side","+ 3 dårligt ben","+ 1 top"]},
+  3: {Bronze:["6 ud af 10","+ 2 hver side","+ 2 med dårligt ben","+ 1 top"], Sølv:["7 ud af 10","+ 2 hver side","+ 3 med dårligt ben","+ 2 top"], Guld:["8 ud af 10","+ 3 hver side","+ 4 dårligt ben","+ 4 i top"]}
+ },
+ "Modtag & Afslut": {
+  1: {Bronze:["4 ud af 10","+ maks 2 berøringer"], Sølv:["5 ud af 10","+ maks 2 berøringer"], Guld:["7 ud af 10","+ maks 2 berøringer","+ 1 dårligt ben"]},
+  2: {Bronze:["5 ud af 10","+ maks 2 berøringer","+ 1 dårligt ben"], Sølv:["6 ud af 10","+ maks 1 berøring","+ 2 dårligt ben"], Guld:["7 ud af 10","+ maks 1 berøring","+ 2 dårligt ben","+ 1 lår"]},
+  3: {Bronze:["7 ud af 10","+ maks 2 berøringer","+ 2 dårligt ben","+ 1 lår"], Sølv:["8 ud af 10","+ maks 1 berøring","+ 3 dårligt ben","+ 2 lår"], Guld:["9 ud af 10","+ maks 1 berøring","+ 4 dårligt ben","+ 3 lår","+ 1 bryst"]}
+ },
+ "Finter": {
+  1: {Bronze:["”Step over” finte","5 ud af 10","+ 1 til hver side","+ maks 3 berøringer før afslutning"], Sølv:["”Step over” finte","6 ud af 10","+ 2 til hver side","+ maks 3 berøringer før afslutning"], Guld:["”Step over” finte","7 ud af 10","+ 3 til hver side","+ maks 3 berøringer før afslutning"]},
+  2: {Bronze:["”Step over” finte","5 ud af 10 i glidende tempo","+ mindst 2 til hver side","+ maks 2 berøringer efter dribling før afslutning"], Sølv:["”Dobbelt Step over” finte","6 ud af 10 forbi i glidende tempo","+ 2 til hver side","+ 2 berøringer efter dribling før afslutning"], Guld:["”Laudrup Finte”","7 ud af 10","+ 2 til hver side","+ 2 berøringer efter dribling før afslutning","+ 1 i top"]},
+  3: {Bronze:["”Step over” finte","6 ud af 10 i glidende tempo","+ mindst 3 til hver side","+ maks 1 berøring efter dribling før afslutning"], Sølv:["”Dobbelt Step over” finte","7 ud af 10 forbi i glidende tempo","+ 3 til hver side","+ 1 berøring efter dribling før afslutning","+ 1 scoring i top"], Guld:["”Laudrup Finte”","8 ud af 10","+ 3 til hver side","+ 1 berøring efter dribling før afslutning","+ 2 i top"]}
+ },
+ "Kontrol": {
+  1: {Bronze:["5 ud af 10","+ maks 3 berøringer"], Sølv:["6 ud af 10","+ maks 2 berøringer"], Guld:["7 ud af 10","+ maks 2 berøringer"]},
+  2: {Bronze:["5 ud af 10","+ maks 2 berøringer","+ 1 dårligt ben"], Sølv:["6 ud af 10","+ maks 2 berøringer","+ 2 dårligt ben"], Guld:["7 ud af 10","+ 3 til hver side","+ inderside og yderside","+ 2 berøringer efter vending før afslutning"]},
+  3: {Bronze:["6 ud af 10","+ maks 1 berøring","+ 2 med dårligt ben","+ 1 top"], Sølv:["7 ud af 10","+ maks 1 berøring","+ 3 med dårligt ben","+ 2 top"], Guld:["8 ud af 10","+ maks 1 berøring","+ 3 med dårligt ben","+ 4 top"]}
+ }
+};
+
 let data = JSON.parse(localStorage.getItem("tifTalentData") || '{"players":[]}');
 
 function save(){ localStorage.setItem("tifTalentData", JSON.stringify(data)); renderAll(); }
@@ -153,15 +224,20 @@ function renderPlayers(){
 }
 function renderSelects(){
   const tp = document.getElementById("trackPlayer");
+  const selected = tp.value;
   tp.innerHTML = data.players.map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
+  if(selected) tp.value = selected;
   const ce = document.getElementById("criteriaExercise");
+  const selectedEx = ce.value;
   ce.innerHTML = exercises.map(e=>`<option>${e}</option>`).join("");
+  if(selectedEx) ce.value = selectedEx;
 }
 function renderTracking(){
   const id = document.getElementById("trackPlayer").value;
   const p = data.players.find(x=>x.id===id);
   const area = document.getElementById("trackingArea");
   if(!p){ area.innerHTML='<p class="small">Tilføj først en spiller.</p>'; return; }
+  exercises.forEach(ex => { if(!p.progress[ex]) p.progress[ex] = {1:"Ikke startet",2:"Ikke startet",3:"Ikke startet"}; });
   area.innerHTML = exercises.map(ex => `<div class="exercise-block"><h3>${ex}</h3>
     <div class="row three">${[1,2,3].map(l=>`<div><label>Niveau ${l}</label><select onchange="setMedal('${p.id}','${ex}',${l},this.value)">${medals.map(m=>`<option ${p.progress[ex][l]===m?'selected':''}>${m}</option>`).join("")}</select></div>`).join("")}</div>
   </div>`).join("");
@@ -171,24 +247,32 @@ function renderOverview(){
   const area=document.getElementById("overviewArea");
   if(!data.players.length){ area.innerHTML='<p class="small">Ingen spillere endnu.</p>'; return; }
   area.innerHTML = `<table><thead><tr><th>Spiller</th><th>Status</th></tr></thead><tbody>` + data.players.map(p=>{
-    let pills=[]; exercises.forEach(ex=>[1,2,3].forEach(l=>{ const m=p.progress[ex][l]; if(m!=="Ikke startet") pills.push(`<span class="pill ${medalClass(m)}">${m}</span>`); }));
+    let pills=[]; exercises.forEach(ex=>[1,2,3].forEach(l=>{ const m=(p.progress[ex]||{})[l] || "Ikke startet"; if(m!=="Ikke startet") pills.push(`<span class="pill ${medalClass(m)}">N${l} ${ex}: ${m}</span>`); }));
     return `<tr><td><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(p.note||"")}</div></td><td>${pills.length?pills.join(" "):'<span class="pill none">Ingen medaljer</span>'}</td></tr>`;
   }).join("") + `</tbody></table>`;
 }
+function listItems(arr){ return "<ul>"+arr.map(x=>`<li>${escapeHtml(x)}</li>`).join("")+"</ul>"; }
 function renderCriteria(){
   const ex=document.getElementById("criteriaExercise").value || exercises[0];
   const level=document.getElementById("criteriaLevel").value || "1";
   const c=criteria[ex][level];
-  document.getElementById("criteriaArea").innerHTML = `<h3>${ex} · Niveau ${level}</h3><table><tr><th>Medalje</th><th>Kriterie</th></tr>
-  <tr><td><span class="pill bronze">Bronze</span></td><td>${c.Bronze}</td></tr>
-  <tr><td><span class="pill sølv">Sølv</span></td><td>${c.Sølv}</td></tr>
-  <tr><td><span class="pill guld">Guld</span></td><td>${c.Guld}</td></tr></table>`;
+  document.getElementById("criteriaArea").innerHTML = `<h3>${ex} · Niveau ${level}</h3><table><tr><th>Medalje</th><th>Kriterier</th></tr>
+  <tr><td><span class="pill bronze">Bronze</span></td><td>${listItems(c.Bronze)}</td></tr>
+  <tr><td><span class="pill sølv">Sølv</span></td><td>${listItems(c.Sølv)}</td></tr>
+  <tr><td><span class="pill guld">Guld</span></td><td>${listItems(c.Guld)}</td></tr></table>`;
+}
+function renderExerciseInfo(){
+ const area=document.getElementById("exerciseInfo");
+ area.innerHTML = exercises.map(ex=>{
+  const d=exerciseDescriptions[ex];
+  return `<div class="exercise-block"><h3>${ex}</h3><p><b>Formål:</b> ${escapeHtml(d.Formål)}</p><p><b>Opsætning:</b>${listItems(d.Opsætning)}</p><p><b>Udførsel:</b>${listItems(d.Udførsel)}</p><p><b>Trænerfokus:</b>${listItems(d.Trænerfokus)}</p></div>`;
+ }).join("");
 }
 function exportData(){ document.getElementById("dataBox").value = JSON.stringify(data,null,2); }
 function importPrompt(){ try{ const v=document.getElementById("dataBox").value; if(!v) return alert("Indsæt data i feltet først"); data=JSON.parse(v); save(); alert("Data importeret"); }catch(e){ alert("Kunne ikke importere data"); } }
 function resetData(){ if(confirm("Vil du slette alle spillere og registreringer?")){ data={players:[]}; save(); } }
 function escapeHtml(str){ return String(str).replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s])); }
-function renderAll(){ renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); }
+function renderAll(){ renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); }
 renderAll();
 </script>
 </body>
