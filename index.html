@@ -4,7 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f5132" />
-  <title>TIF Talent Tracker v12</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="TIF Talent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <title>TIF Talent Tracker v13</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -61,6 +67,16 @@
     .status-done{background:#ecfdf5}.status-progress{background:#fffbeb}.status-none{background:#f8fafc}
 
     .filterbar{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 10px}
+
+    .linkbtn{border:0;background:transparent;color:var(--text);font-weight:900;font-size:16px;text-align:left;padding:0}
+    .profilegrid{display:grid;grid-template-columns:1fr;gap:10px}
+    @media(min-width:700px){.profilegrid{grid-template-columns:1fr 1fr}}
+    .profilebox{border:1px solid var(--line);border-radius:14px;background:white;padding:10px}
+    .historyitem{border-top:1px solid var(--line);padding:8px 0}
+    .historyitem:first-child{border-top:0}
+    .dangernote{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px;color:#7c2d12}
+    .backupgrid{display:grid;grid-template-columns:1fr;gap:10px}
+    .mutedbox{background:white;border:1px solid var(--line);border-radius:12px;padding:10px}
     .yearchecks{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
     .checkpill{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;background:white;padding:9px;font-weight:700}
     .checkpill input{width:auto}
@@ -71,13 +87,14 @@
 <header>
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
-  <div id="syncStatus" class="syncstatus">v12 · starter login...</div>
+  <div id="syncStatus" class="syncstatus">v13 · starter login...</div>
 </header>
 
 <nav id="mainNav" class="hidden">
   <button onclick="showPage('players')" id="tab-players" class="active">Spillere</button>
   <button onclick="showPage('track')" id="tab-track">Registrering</button>
   <button onclick="showPage('overview')" id="tab-overview">Overblik</button>
+  <button onclick="showPage('profile')" id="tab-profile" class="hidden">Spillerprofil</button>
   <button onclick="showPage('criteria')" id="tab-criteria">Kriterier</button>
   <button onclick="showPage('guide')" id="tab-guide">Guide</button>
   <button onclick="showPage('admin')" id="tab-admin">Admin</button>
@@ -134,6 +151,14 @@
   </div>
 </section>
 
+
+<section id="profile" class="page hidden">
+  <div class="card">
+    <h2>Spillerprofil</h2>
+    <div id="profileArea"></div>
+  </div>
+</section>
+
 <section id="criteria" class="page hidden">
   <div class="card">
     <h2>Kriterier</h2>
@@ -170,12 +195,24 @@
   <div class="card">
     <h2>Indstillinger</h2>
     <p id="userInfo" class="small"></p>
-    <button class="btn secondary" onclick="forceReload()">Genindlæs data</button>
-    <button class="btn danger" onclick="logout()">Log ud</button>
+    <div class="backupgrid">
+      <div class="mutedbox">
+        <h3>Backup</h3>
+        <p class="small">Kopier data ud som JSON eller CSV. JSON kan bruges som fuld backup. CSV er nemmere at åbne i Excel.</p>
+        <button class="btn secondary" onclick="exportBackupJson()">Eksportér JSON</button>
+        <button class="btn secondary" onclick="exportBackupCsv()">Eksportér CSV</button>
+        <textarea id="backupBox" placeholder="Backup vises her"></textarea>
+      </div>
+      <div class="mutedbox">
+        <h3>App</h3>
+        <button class="btn secondary" onclick="forceReload()">Genindlæs data</button>
+        <button class="btn danger" onclick="logout()">Log ud</button>
+      </div>
+    </div>
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v12 · login, årgangsadgang og migrering af gamle spillere.</div>
+<div class="footer-note">TIF Talent Tracker v13 · login, årgangsadgang og migrering af gamle spillere.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -262,7 +299,7 @@ onAuthStateChanged(auth, async (user)=>{
   if(!user){
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
-    setSyncStatus("v12 · ikke logget ind");
+    setSyncStatus("v13 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -285,9 +322,9 @@ function startListeners(){
   if(unsubPlayers) unsubPlayers();
   unsubPlayers = onSnapshot(collection(db, "players"), (snap)=>{
     players = snap.docs.map(d=>migratePlayer({id:d.id, ...d.data()})).filter(p=>canAccessYear(p.year));
-    setSyncStatus("v12 · live database aktiv");
+    setSyncStatus("v13 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v12 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v13 · databasefejl: " + e.code));
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
     unsubUsers = onSnapshot(collection(db, "users"), (snap)=>{
@@ -331,10 +368,15 @@ async function addPlayer(){
   if(!name) return alert("Skriv spillerens navn");
   if(!canAccessYear(year)) return alert("Du har ikke adgang til denne årgang");
   const id = Date.now().toString();
-  await setDoc(doc(db,"players",id), {name, year, note, passed:{}, createdAt:serverTimestamp(), updatedAt:serverTimestamp()});
+  await setDoc(doc(db,"players",id), {
+    name, year, note, passed:{},
+    history:[{type:"created", text:"Spiller oprettet", by: currentUser?.email || "", at: new Date().toISOString()}],
+    createdAt:serverTimestamp(), updatedAt:serverTimestamp()
+  });
   document.getElementById("playerName").value=""; document.getElementById("playerNote").value="";
 }
 async function deletePlayer(id){
+  if(!isAdmin()) return alert("Kun admin kan slette spillere.");
   const p=players.find(x=>x.id===id);
   if(!p || !canAccessYear(p.year)) return alert("Ingen adgang");
   if(confirm("Slet spilleren?")) await deleteDoc(doc(db,"players",id));
@@ -347,7 +389,7 @@ function renderPlayers(){
   el.innerHTML = list.map(p=>{
     const si = currentStepIndex(p);
     const status = si >= steps.length ? "Alle niveauer gennemført" : `${steps[si].label} · ${countPassed(p,si)}/5`;
-    return `<div class="player"><div><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(p.year)} · ${escapeHtml(p.note)} · ${status}</div></div><button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button></div>`;
+    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(p.year)} · ${escapeHtml(p.note)} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button>`:""}</div>`;
   }).join("");
 }
 function renderSelects(){
@@ -396,8 +438,17 @@ async function togglePassed(pid, si, ex){
   if(!p || !canAccessYear(p.year)) return alert("Ingen adgang");
   const passed = {...(p.passed||{})};
   const key=getKey(si,ex);
-  passed[key]=!passed[key];
-  await setDoc(doc(db,"players",pid), {...p, passed, updatedAt:serverTimestamp()}, {merge:true});
+  const newValue = !passed[key];
+  passed[key]=newValue;
+  const step = steps[si];
+  const history = [...(p.history || [])];
+  history.unshift({
+    type:"progress",
+    text:`${ex} · Niveau ${step.level} ${step.medal}: ${newValue ? "Bestået" : "Fjernet"}`,
+    by: currentUser?.email || "",
+    at: new Date().toISOString()
+  });
+  await setDoc(doc(db,"players",pid), {passed, history: history.slice(0,100), updatedAt:serverTimestamp()}, {merge:true});
 }
 function renderOverview(){
   const area=document.getElementById("overviewArea");
@@ -443,6 +494,7 @@ function editCoach(uid){
     <p><b>${escapeHtml(u.email)}</b></p>
     <label>Rolle</label>
     <select id="editRole"><option value="coach">coach</option><option value="admin">admin</option></select>
+    <label class="checkpill"><input type="checkbox" id="editActive"> Aktiv træner</label>
     <div class="yearchecks">
       ${years.map(y=>`<label class="checkpill"><input type="checkbox" class="editYear" value="${y}" ${selected.has(y) ? "checked" : ""}> ${y}</label>`).join("")}
     </div>
@@ -450,6 +502,7 @@ function editCoach(uid){
     <button class="btn secondary" onclick="cancelCoachEdit()">Annuller</button>
   </div>`;
   document.getElementById("editRole").value = u.role || "coach";
+  document.getElementById("editActive").checked = u.active !== false;
   area.scrollIntoView({behavior:"smooth", block:"nearest"});
 }
 function cancelCoachEdit(){
@@ -460,7 +513,8 @@ async function saveCoachAccess(uid){
   const u=users.find(x=>x.uid===uid);
   const role=document.getElementById("editRole").value;
   const y=Array.from(document.querySelectorAll(".editYear:checked")).map(x=>x.value);
-  await setDoc(doc(db,"users",uid), {email:u.email, role, years:y, updatedAt:serverTimestamp()}, {merge:true});
+  const active = document.getElementById("editActive").checked;
+  await setDoc(doc(db,"users",uid), {email:u.email, role, years:y, active, updatedAt:serverTimestamp()}, {merge:true});
   cancelCoachEdit();
 }
 
@@ -484,6 +538,7 @@ async function migrateOldPlayers(){
         year,
         note,
         passed: oldPlayer.passed || {},
+        history: oldPlayer.history || [{type:"migration", text:"Migreret fra gammel sharedState", by: currentUser?.email || "", at: new Date().toISOString()}],
         migratedFromSharedState: true,
         updatedAt: serverTimestamp()
       };
@@ -491,18 +546,101 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v12 · migrering færdig");
+    setSyncStatus("v13 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v12 · migrering fejlede");
+    setSyncStatus("v13 · migrering fejlede");
   }
 }
 
-function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); }
+
+let selectedProfilePlayerId = null;
+
+function openPlayerProfile(pid){
+  selectedProfilePlayerId = pid;
+  const tab = document.getElementById("tab-profile");
+  if(tab) tab.classList.remove("hidden");
+  showPage("profile");
+}
+
+function renderPlayerProfile(){
+  const area = document.getElementById("profileArea");
+  if(!area) return;
+  const p = players.find(x=>x.id===selectedProfilePlayerId) || players[0];
+  if(!p){
+    area.innerHTML = '<p class="small">Vælg en spiller fra spillerlisten.</p>';
+    return;
+  }
+  selectedProfilePlayerId = p.id;
+  const current = currentStepIndex(p);
+  const currentText = current >= steps.length ? "Alle niveauer gennemført" : `${steps[current].label} · ${countPassed(p,current)}/5`;
+  const stepSummary = steps.map((s,i)=>{
+    const cnt = countPassed(p,i);
+    const cls = cnt === 5 ? "greenpill" : cnt > 0 ? "guld" : "none";
+    return `<span class="pill ${cls}">N${s.level} ${s.medal}: ${cnt}/5</span>`;
+  }).join("");
+  const history = (p.history || []).slice(0,25).map(h=>{
+    const date = h.at ? new Date(h.at).toLocaleString("da-DK") : "";
+    return `<div class="historyitem"><b>${escapeHtml(h.text || h.type || "Ændring")}</b><div class="small">${escapeHtml(date)} · ${escapeHtml(h.by || "")}</div></div>`;
+  }).join("") || '<p class="small">Ingen historik endnu.</p>';
+
+  area.innerHTML = `
+    <div class="profilegrid">
+      <div class="profilebox">
+        <h3>${escapeHtml(p.name)}</h3>
+        <p class="small">Årgang: ${escapeHtml(p.year)}<br>Note: ${escapeHtml(p.note || "")}<br>Status: ${escapeHtml(currentText)}</p>
+        <button class="btn secondary" onclick="selectProfileForTracking('${p.id}')">Åbn i registrering</button>
+      </div>
+      <div class="profilebox">
+        <h3>Niveauer</h3>
+        ${stepSummary}
+      </div>
+    </div>
+    <div class="profilebox" style="margin-top:10px">
+      <h3>Historik</h3>
+      ${history}
+    </div>
+  `;
+}
+
+function selectProfileForTracking(pid){
+  const sel = document.getElementById("trackPlayer");
+  if(sel) sel.value = pid;
+  showPage("track");
+  renderTracking();
+}
+
+function exportBackupJson(){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    exportedBy: currentUser?.email || "",
+    users: isAdmin() ? users : [],
+    players
+  };
+  document.getElementById("backupBox").value = JSON.stringify(payload, null, 2);
+}
+
+function csvEscape(value){
+  const s = String(value ?? "");
+  return `"${s.replaceAll('"','""')}"`;
+}
+
+function exportBackupCsv(){
+  const rows = [["name","year","note","current_step","created_or_updated","history_count"]];
+  players.forEach(p=>{
+    const si = currentStepIndex(p);
+    const status = si >= steps.length ? "Done" : `${steps[si].label} ${countPassed(p,si)}/5`;
+    rows.push([p.name, p.year, p.note || "", status, p.updatedAt?.toDate ? p.updatedAt.toDate().toISOString() : "", (p.history || []).length]);
+  });
+  document.getElementById("backupBox").value = rows.map(r=>r.map(csvEscape).join(",")).join("\n");
+}
+
+
+function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); renderPlayerProfile(); }
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers});
+Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv});
 </script>
 </body>
 </html>
