@@ -42,7 +42,7 @@
     .exercise-block{border:1px solid var(--line);border-radius:14px;padding:10px;margin:10px 0;background:white}
     .hidden{display:none!important}
     .footer-note{font-size:12px;color:var(--muted);padding:10px;text-align:center}
-    .syncstatus{display:inline-block;font-size:12px;color:#064e3b;background:#d1fae5;margin-top:8px;padding:4px 8px;border-radius:999px;font-weight:800}
+    .syncstatus{font-size:12px;color:#d1fae5;margin-top:6px}
     ul{margin:6px 0 0;padding-left:20px}
     li{margin:3px 0}
     .stepbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 0 12px}
@@ -148,7 +148,6 @@
   <div class="card">
     <h2>Indstillinger</h2>
     <p class="small">Data gemmes lokalt på den telefon/browser, hvor appen bruges.</p>
-    <button class="btn secondary" onclick="forceFirebaseSave()">Gem manuelt online</button>
     <button class="btn secondary" onclick="exportData()">Eksportér data</button>
     <button class="btn secondary" onclick="importPrompt()">Importér data</button>
     <button class="btn danger" onclick="resetData()">Nulstil alt</button>
@@ -156,7 +155,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">Tip: v7 Firebase · data deles mellem trænere, når status viser live database.</div>
+<div class="footer-note">Tip: Åbn siden i Safari og vælg Del → Føj til hjemmeskærm.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -401,40 +400,8 @@ function importPrompt(){ try{ const v=document.getElementById("dataBox").value; 
 function resetData(){ if(confirm("Vil du slette alle spillere og registreringer?")){ data={players:[]}; save(); } }
 function escapeHtml(str){ return String(str).replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s])); }
 function renderAll(){ renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); }
-
-// Make functions available to inline onclick handlers when using type="module"
-Object.assign(window, {
-  showPage,
-  addPlayer,
-  deletePlayer,
-  renderTracking,
-  renderOverview,
-  renderCriteria,
-  selectStep,
-  togglePassed,
-  undoLast,
-  exportData,
-  importPrompt,
-  resetData,
-  forceFirebaseSave
-});
-
-async function forceFirebaseSave(){
-  try {
-    await setDoc(stateRef, {
-      players: data.players || [],
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-    setSyncStatus("Gemt manuelt online");
-  } catch(e) {
-    console.error(e);
-    alert("Kunne ikke gemme online. Tjek Firestore rules.");
-    setSyncStatus("Fejl ved manuel online-gemning");
-  }
-}
-
 renderAll();
-setSyncStatus("v7 · forbinder til fælles database...");
+setSyncStatus("Forbinder til fælles database...");
 onSnapshot(stateRef, async (snap) => {
   firebaseReady = true;
   applyingRemoteUpdate = true;
