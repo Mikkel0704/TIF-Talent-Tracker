@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.1</title>
+  <title>TIF Talent Tracker v15.3</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -89,7 +89,7 @@
 <header>
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
-  <div id="syncStatus" class="syncstatus">v15.1 · starter login...</div>
+  <div id="syncStatus" class="syncstatus">v15.3 · starter login...</div>
 </header>
 
 <nav id="mainNav" class="hidden">
@@ -230,7 +230,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.1 · login, årgangsadgang og migrering af gamle spillere.</div>
+<div class="footer-note">TIF Talent Tracker v15.3 · login, årgangsadgang og migrering af gamle spillere.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -253,6 +253,11 @@ const secondaryAuth = getAuth(secondaryAppForUserCreation);
 const db = getFirestore(app);
 
 let availableYears = ["2018","2017","2016","2015","2014","2013","2012","2011"];
+
+function getAvailableYears(){
+  return availableYears.map(normalizeYearValue).filter(Boolean).sort((a,b)=>Number(b)-Number(a));
+}
+
 
 function normalizeYearValue(value){
   const v = String(value || "").trim().toUpperCase();
@@ -303,6 +308,13 @@ let unsubUsers = null;
 
 function setSyncStatus(text){ document.getElementById("syncStatus").textContent = text; }
 function isAdmin(){ return currentUserDoc?.role === "admin"; }
+function allowedYearsForQuery(){
+  const out = new Set();
+  allowedYears().forEach(y => out.add(y));
+  (currentUserProfile?.years || []).forEach(y => out.add(String(y)));
+  return Array.from(out);
+}
+
 function allowedYears(){ return isAdmin() ? years : (currentUserDoc?.years || []); }
 function canAccessYear(y){ return isAdmin() || allowedYears().includes(y); }
 function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s])); }
@@ -330,30 +342,12 @@ async function login(){
 }
 async function logout(){ await signOut(auth); location.reload(); }
 
-
-let unsubscribeYears = null;
-function startYearsListener(){
-  if(unsubscribeYears) return;
-  unsubscribeYears = onSnapshot(yearsRef, (snap)=>{
-    if(snap.exists()){
-      const ys = snap.data().years || [];
-      availableYears = normalizeYearsList(ys).sort((a,b)=>Number(b)-Number(a));
-    } else if(isAdmin()){
-      setDoc(yearsRef, {years: availableYears, updatedAt: serverTimestamp()}, {merge:true});
-    }
-    renderAll();
-  }, (error)=>{
-    console.error(error);
-    // Do not block login if settings/years is not readable yet.
-    renderAll();
-  });
-}
 onAuthStateChanged(auth, async (user)=>{
   currentUser = user;
   if(!user){
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
-    setSyncStatus("v15.1 · ikke logget ind");
+    setSyncStatus("v15.3 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -376,10 +370,10 @@ function startListeners(){
   if(unsubPlayers) unsubPlayers();
   unsubPlayers = onSnapshot(collection(db, "players"), (snap)=>{
     players = snap.docs.map(d=>migratePlayer({id:d.id, ...d.data()})).filter(p=>canAccessYear(p.year));
-    setSyncStatus("v15.1 · live database aktiv");
+    setSyncStatus("v15.3 · live database aktiv");
     startYearsListener();
     renderAll();
-  }, (e)=>setSyncStatus("v15.1 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.3 · databasefejl: " + e.code));
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
     unsubUsers = onSnapshot(collection(db, "users"), (snap)=>{
@@ -398,7 +392,7 @@ function showPage(id){
 }
 
 function renderYearOptions(){
-  const ay = allowedYears().filter(y => availableYears.includes(y));
+  const ay = allowedYears();
   const opts = ay.map(y=>`<option value="${y}">${y}</option>`).join("");
   ["playerYear","overviewYear"].forEach(id=>{
     const el=document.getElementById(id);
@@ -420,15 +414,12 @@ function renderPlayers(){
   const el = document.getElementById("playerList");
   if(!el) return;
   const selectedYear = document.getElementById("playerListYear")?.value || "all";
-  const list = players.filter(p => {
-    const py = normalizeYearValue(p.year);
-    return selectedYear === "all" || py === selectedYear;
-  });
+  const list = players.filter(p => selectedYear === "all" || normalizeYearValue(p.year) === selectedYear);
   if(!list.length){ el.innerHTML='<p class="small">Ingen spillere i den valgte årgang.</p>'; return; }
   el.innerHTML = list.map(p=>{
     const si = currentStepIndex(p);
     const status = si >= steps.length ? "Alle niveauer gennemført" : `${steps[si].label} · ${countPassed(p,si)}/5`;
-    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(yearLabel(p.year))} · ${escapeHtml(p.note)} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button>`:""}</div>`;
+    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(yearLabel(p.year))} · ${escapeHtml(p.note||"")} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button>`:""}</div>`;
   }).join("");
 }
 
@@ -519,6 +510,40 @@ function renderExerciseInfo(){
   return `<div class="exercise-block"><h3>${ex}</h3><p><b>Formål:</b> ${escapeHtml(d.Formål)}</p><p><b>Opsætning:</b>${listItems(d.Opsætning)}</p><p><b>Udførsel:</b>${listItems(d.Udførsel)}</p><p><b>Trænerfokus:</b>${listItems(d.Trænerfokus)}</p></div>`;
  }).join("");
 }
+function renderYearAdmin(){
+  const list = document.getElementById("yearAdminList");
+  if(!list || !isAdmin()) return;
+  list.innerHTML = getAvailableYears().map(y=>`<span class="pill greenpill">${y}</span> <button class="btn danger smallbtn" onclick="removeAvailableYear('${y}')">Fjern</button>`).join("<br>");
+}
+
+async function saveAvailableYears(){
+  availableYears = Array.from(new Set(availableYears.map(normalizeYearValue))).filter(Boolean).sort((a,b)=>Number(b)-Number(a));
+  await setDoc(yearsRef, {years: availableYears, updatedAt: serverTimestamp()}, {merge:true});
+  renderAll();
+}
+
+async function addAvailableYear(){
+  if(!isAdmin()) return alert("Kun admin kan oprette årgange.");
+  const input = document.getElementById("newYearValue");
+  const y = normalizeYearValue(input.value);
+  if(!/^\d{4}$/.test(y)) return alert("Skriv årgang som årstal, fx 2019.");
+  if(!availableYears.includes(y)) availableYears.push(y);
+  input.value = "";
+  await saveAvailableYears();
+}
+
+async function removeAvailableYear(y){
+  if(!isAdmin()) return alert("Kun admin kan fjerne årgange.");
+  if(players.some(p => normalizeYearValue(p.year) === y)) return alert("Årgangen kan ikke fjernes, fordi der findes spillere på årgangen.");
+  if(!confirm("Fjern årgang " + y + "?")) return;
+  availableYears = availableYears.filter(x => x !== y);
+  for(const u of users){
+    const ny = normalizeYearsList(u.years || []).filter(x => x !== y);
+    await setDoc(doc(db,"users",u.uid), {years: ny, updatedAt: serverTimestamp()}, {merge:true});
+  }
+  await saveAvailableYears();
+}
+
 function renderAdmin(){
   renderYearAdmin();
   const newYears=document.getElementById("newCoachYears");
@@ -591,52 +616,15 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.1 · migrering færdig");
+    setSyncStatus("v15.3 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.1 · migrering fejlede");
+    setSyncStatus("v15.3 · migrering fejlede");
   }
 }
 
 
-
-
-function renderYearAdmin(){
-  const list = document.getElementById("yearAdminList");
-  if(!list || !isAdmin()) return;
-  list.innerHTML = availableYears.map(y=>`<span class="pill greenpill">${y}</span> <button class="btn danger smallbtn" onclick="removeAvailableYear('${y}')">Fjern</button>`).join("<br>");
-}
-
-async function saveAvailableYears(){
-  const sorted = Array.from(new Set(availableYears.map(normalizeYearValue))).sort((a,b)=>Number(b)-Number(a));
-  availableYears = sorted;
-  await setDoc(yearsRef, {years: availableYears, updatedAt: serverTimestamp()}, {merge:true});
-  renderAll();
-}
-
-async function addAvailableYear(){
-  if(!isAdmin()) return alert("Kun admin kan oprette årgange.");
-  const input = document.getElementById("newYearValue");
-  const y = normalizeYearValue(input.value);
-  if(!/^\d{4}$/.test(y)) return alert("Skriv årgang som årstal, fx 2019.");
-  if(!availableYears.includes(y)) availableYears.push(y);
-  input.value = "";
-  await saveAvailableYears();
-}
-
-async function removeAvailableYear(y){
-  if(!isAdmin()) return alert("Kun admin kan fjerne årgange.");
-  const hasPlayers = players.some(p => normalizeYearValue(p.year) === y);
-  if(hasPlayers) return alert("Årgangen kan ikke fjernes, fordi der findes spillere på årgangen.");
-  if(!confirm("Fjern årgang " + y + "?")) return;
-  availableYears = availableYears.filter(x => x !== y);
-  for(const u of users){
-    const ny = normalizeYearsList(u.years || []).filter(x => x !== y);
-    await setDoc(doc(db,"users",u.uid), {years: ny, updatedAt: serverTimestamp()}, {merge:true});
-  }
-  await saveAvailableYears();
-}
 
 async function createCoachFromAdmin(){
   if(!isAdmin()) return alert("Kun admin kan oprette trænere.");
