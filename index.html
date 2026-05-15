@@ -42,6 +42,7 @@
     .exercise-block{border:1px solid var(--line);border-radius:14px;padding:10px;margin:10px 0;background:white}
     .hidden{display:none!important}
     .footer-note{font-size:12px;color:var(--muted);padding:10px;text-align:center}
+    .syncstatus{font-size:12px;color:#d1fae5;margin-top:6px}
     ul{margin:6px 0 0;padding-left:20px}
     li{margin:3px 0}
     .stepbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 0 12px}
@@ -72,7 +73,7 @@
 <body>
 <header>
   <h1>TIF Talent Tracker</h1>
-  <p>Teknik · Mod · Glæde</p>
+  <p>Teknik · Mod · Glæde</p><div id="syncStatus" class="syncstatus">Forbinder til fælles database...</div>
 </header>
 
 <nav>
@@ -156,7 +157,26 @@
 </main>
 <div class="footer-note">Tip: Åbn siden i Safari og vælg Del → Føj til hjemmeskærm.</div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getFirestore, doc, onSnapshot, setDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD-nsf6aP_l9fSA_kGRIAAHiHSvtgmDOlI",
+  authDomain: "tif-talent-tracker.firebaseapp.com",
+  projectId: "tif-talent-tracker",
+  storageBucket: "tif-talent-tracker.firebasestorage.app",
+  messagingSenderId: "727656181039",
+  appId: "1:727656181039:web:3be0054db82f85f415c5da"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const stateRef = doc(db, "tifTalentTracker", "sharedState");
+let firebaseReady = false;
+let applyingRemoteUpdate = false;
+try { enableIndexedDbPersistence(db); } catch(e) {}
+
 const exercises = ["Jonglering","Præcision","Modtag & Afslut","Finter","Kontrol"];
 const medalOrder = ["Bronze","Sølv","Guld"];
 const steps = [
@@ -181,7 +201,13 @@ const criteria = {
  "Kontrol": {1:{Bronze:["5 ud af 10","+ maks 3 berøringer"],Sølv:["6 ud af 10","+ maks 2 berøringer"],Guld:["7 ud af 10","+ maks 2 berøringer"]},2:{Bronze:["5 ud af 10","+ maks 2 berøringer","+ 1 dårligt ben"],Sølv:["6 ud af 10","+ maks 2 berøringer","+ 2 dårligt ben"],Guld:["7 ud af 10","+ 3 til hver side","+ inderside og yderside","+ 2 berøringer efter vending før afslutning"]},3:{Bronze:["6 ud af 10","+ maks 1 berøring","+ 2 med dårligt ben","+ 1 top"],Sølv:["7 ud af 10","+ maks 1 berøring","+ 3 med dårligt ben","+ 2 top"],Guld:["8 ud af 10","+ maks 1 berøring","+ 3 med dårligt ben","+ 4 top"]}}
 };
 
-let data = JSON.parse(localStorage.getItem("tifTalentData") || '{"players":[]}');
+let data = {players:[]};
+try {
+  const localBackup = localStorage.getItem("tifTalentData");
+  if(localBackup) data = JSON.parse(localBackup);
+} catch(e) {
+  data = {players:[]};
+}
 let selectedStepByPlayer = {};
 
 function getKey(stepIndex, ex){ return `s${stepIndex}_${ex}`; }
@@ -209,7 +235,26 @@ function migratePlayer(p){
 }
 data.players = (data.players||[]).map(migratePlayer);
 
-function save(){ localStorage.setItem("tifTalentData", JSON.stringify(data)); renderAll(); }
+async function save(){
+  localStorage.setItem("tifTalentData", JSON.stringify(data));
+  renderAll();
+  if(firebaseReady && !applyingRemoteUpdate){
+    try {
+      await setDoc(stateRef, {
+        players: data.players || [],
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      setSyncStatus("Synkroniseret med fælles database");
+    } catch(e) {
+      console.error(e);
+      setSyncStatus("Kunne ikke gemme online - gemt lokalt");
+    }
+  }
+}
+function setSyncStatus(text){
+  const el = document.getElementById("syncStatus");
+  if(el) el.textContent = text;
+}
 function showPage(id){
   document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
@@ -356,7 +401,31 @@ function resetData(){ if(confirm("Vil du slette alle spillere og registreringer?
 function escapeHtml(str){ return String(str).replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s])); }
 function renderAll(){ renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); }
 renderAll();
-save();
+setSyncStatus("Forbinder til fælles database...");
+onSnapshot(stateRef, async (snap) => {
+  firebaseReady = true;
+  applyingRemoteUpdate = true;
+  if(snap.exists()){
+    const remote = snap.data();
+    data = { players: (remote.players || []).map(migratePlayer) };
+    localStorage.setItem("tifTalentData", JSON.stringify(data));
+    setSyncStatus("Live fælles database aktiv");
+  } else {
+    data.players = (data.players || []).map(migratePlayer);
+    await setDoc(stateRef, {
+      players: data.players || [],
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    setSyncStatus("Fælles database oprettet");
+  }
+  applyingRemoteUpdate = false;
+  renderAll();
+}, (error) => {
+  console.error(error);
+  firebaseReady = false;
+  setSyncStatus("Database ikke aktiv - tjek Firestore setup/rules");
+  renderAll();
+});
 </script>
 </body>
 </html>
