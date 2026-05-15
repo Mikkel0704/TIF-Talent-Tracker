@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v14</title>
+  <title>TIF Talent Tracker v14.1</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -88,7 +88,7 @@
 <header>
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
-  <div id="syncStatus" class="syncstatus">v14 · starter login...</div>
+  <div id="syncStatus" class="syncstatus">v14.1 · starter login...</div>
 </header>
 
 <nav id="mainNav" class="hidden">
@@ -222,7 +222,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v14 · login, årgangsadgang og migrering af gamle spillere.</div>
+<div class="footer-note">TIF Talent Tracker v14.1 · filterfix på spillerlisten.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -327,7 +327,7 @@ onAuthStateChanged(auth, async (user)=>{
   if(!user){
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
-    setSyncStatus("v14 · ikke logget ind");
+    setSyncStatus("v14.1 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -350,9 +350,9 @@ function startListeners(){
   if(unsubPlayers) unsubPlayers();
   unsubPlayers = onSnapshot(collection(db, "players"), (snap)=>{
     players = snap.docs.map(d=>migratePlayer({id:d.id, ...d.data()})).filter(p=>canAccessYear(p.year));
-    setSyncStatus("v14 · live database aktiv");
+    setSyncStatus("v14.1 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v14 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v14.1 · databasefejl: " + e.code));
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
     unsubUsers = onSnapshot(collection(db, "users"), (snap)=>{
@@ -412,7 +412,7 @@ async function deletePlayer(id){
 function renderPlayers(){
   const el = document.getElementById("playerList");
   const selectedYear = document.getElementById("playerListYear")?.value || "all";
-  const list = selectedYear === "all" ? players : players.filter(p=>p.year === selectedYear);
+  const list = selectedYear === "all" ? players : players.filter(p=>normalizeYearValue(p.year) === normalizeYearValue(selectedYear));
   if(!list.length){ el.innerHTML='<p class="small">Ingen spillere i den valgte årgang.</p>'; return; }
   el.innerHTML = list.map(p=>{
     const si = currentStepIndex(p);
@@ -578,11 +578,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v14 · migrering færdig");
+    setSyncStatus("v14.1 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v14 · migrering fejlede");
+    setSyncStatus("v14.1 · migrering fejlede");
   }
 }
 
