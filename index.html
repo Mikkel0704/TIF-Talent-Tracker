@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f5132" />
-  <title>TIF Talent Tracker v8 Firebase</title>
+  <title>TIF Talent Tracker v9 Login</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -16,6 +16,7 @@
     header{position:sticky;top:0;z-index:2;background:var(--green);color:white;padding:14px 16px 10px}
     header h1{font-size:20px;margin:0 0 4px}
     header p{margin:0;font-size:13px;opacity:.9}
+    .syncstatus{display:inline-block;font-size:12px;color:#064e3b;background:#d1fae5;margin-top:8px;padding:4px 8px;border-radius:999px;font-weight:800}
     nav{display:flex;gap:8px;overflow-x:auto;padding:10px 12px;background:#e9dfc8;border-bottom:1px solid var(--line)}
     nav button{border:0;border-radius:999px;padding:10px 13px;background:white;color:var(--green);font-weight:700;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.08)}
     nav button.active{background:var(--green2);color:white}
@@ -31,8 +32,8 @@
     .btn.secondary{background:white;color:var(--green);border:1px solid var(--green)}
     .btn.danger{background:#b42318;color:white}
     .btn.smallbtn{padding:7px 9px;font-size:12px;border-radius:999px}
-    .player{display:flex;justify-content:space-between;gap:10px;align-items:center;border-top:1px solid var(--line);padding:10px 0}
-    .player:first-child{border-top:0}
+    .player,.coachrow{display:flex;justify-content:space-between;gap:10px;align-items:center;border-top:1px solid var(--line);padding:10px 0}
+    .player:first-child,.coachrow:first-child{border-top:0}
     .small{font-size:13px;color:var(--muted)}
     .pill{display:inline-block;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:800;margin:2px;background:#eee;white-space:nowrap}
     .guld{background:var(--gold);color:#4b3600}.sølv{background:var(--silver);color:#263238}.bronze{background:var(--bronze);color:white}.none{background:#e5e7eb;color:#555}.greenpill{background:#d1fae5;color:#065f46}
@@ -42,7 +43,6 @@
     .exercise-block{border:1px solid var(--line);border-radius:14px;padding:10px;margin:10px 0;background:white}
     .hidden{display:none!important}
     .footer-note{font-size:12px;color:var(--muted);padding:10px;text-align:center}
-    .syncstatus{display:inline-block;font-size:12px;color:#064e3b;background:#d1fae5;margin-top:8px;padding:4px 8px;border-radius:999px;font-weight:800}
     ul{margin:6px 0 0;padding-left:20px}
     li{margin:3px 0}
     .stepbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 0 12px}
@@ -54,44 +54,49 @@
     .checkrow:last-child{border-bottom:0}
     .toggle{border:0;border-radius:999px;padding:9px 13px;font-weight:800;background:var(--not);color:#333;min-width:92px}
     .toggle.on{background:var(--ok);color:white}
-    .compact-table{font-size:12px}
-    .compact-table th,.compact-table td{padding:6px 5px;text-align:center}
-    .compact-table th:first-child,.compact-table td:first-child{text-align:left;position:sticky;left:0;background:white;z-index:1}
-    .compact-table th:first-child{background:#efe5cf}
     .tablewrap{overflow-x:auto;border-radius:12px;border:1px solid var(--line)}
-    .dot{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:900;font-size:12px;background:#eee;color:#555}
-    .dot.done{background:#d1fae5;color:#065f46}
-    .dot.current{background:var(--green2);color:white}
     .statuscards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
     .statuscard{border:1px solid var(--line);border-radius:12px;padding:10px;background:white;font-size:12px}
     .statuscard b{display:block;margin-bottom:4px}
     .status-done{background:#ecfdf5}.status-progress{background:#fffbeb}.status-none{background:#f8fafc}
-    .overview-table th,.overview-table td{text-align:left}
-    .overview-table td:last-child,.overview-table th:last-child{text-align:right}
   </style>
 </head>
 <body>
 <header>
   <h1>TIF Talent Tracker</h1>
-  <p>Teknik · Mod · Glæde</p><div id="syncStatus" class="syncstatus">v8 · starter Firebase...</div>
+  <p>Teknik · Mod · Glæde</p>
+  <div id="syncStatus" class="syncstatus">v9 · starter login...</div>
 </header>
 
-<nav>
+<nav id="mainNav" class="hidden">
   <button onclick="showPage('players')" id="tab-players" class="active">Spillere</button>
   <button onclick="showPage('track')" id="tab-track">Registrering</button>
   <button onclick="showPage('overview')" id="tab-overview">Overblik</button>
   <button onclick="showPage('criteria')" id="tab-criteria">Kriterier</button>
   <button onclick="showPage('guide')" id="tab-guide">Guide</button>
+  <button onclick="showPage('admin')" id="tab-admin">Admin</button>
   <button onclick="showPage('settings')" id="tab-settings">Indstillinger</button>
 </nav>
 
 <main>
-<section id="players" class="page">
+<section id="login" class="page">
+  <div class="card">
+    <h2>Log ind</h2>
+    <p class="small">Trænere skal logge ind for at se spillere og registrere talentmærker.</p>
+    <label>Email</label><input id="loginEmail" type="email" placeholder="træner@email.dk" />
+    <label>Password</label><input id="loginPassword" type="password" placeholder="Password" />
+    <button class="btn" onclick="login()">Log ind</button>
+    <p class="small">Første gang skal brugeren være oprettet i Firebase Authentication.</p>
+  </div>
+</section>
+
+<section id="players" class="page hidden">
   <div class="card">
     <h2>Tilføj spiller</h2>
-    <div class="row two">
+    <div class="row three">
       <div><label>Navn</label><input id="playerName" placeholder="Fx Oscar" /></div>
-      <div><label>Årgang / note</label><input id="playerNote" placeholder="Fx U9, niveau 1..." /></div>
+      <div><label>Årgang</label><select id="playerYear"></select></div>
+      <div><label>Note</label><input id="playerNote" placeholder="Fx venstrebenet..." /></div>
     </div>
     <p><button class="btn" onclick="addPlayer()">Tilføj spiller</button></p>
   </div>
@@ -112,9 +117,10 @@
 <section id="overview" class="page hidden">
   <div class="card">
     <h2>Holdoverblik</h2>
-    <p class="small">Vælg niveau for at se spillernes status på det valgte trin.</p>
-    <label>Vælg niveau</label>
-    <select id="overviewStep" onchange="renderOverview()"></select>
+    <div class="row two">
+      <div><label>Vælg årgang</label><select id="overviewYear" onchange="renderOverview()"></select></div>
+      <div><label>Vælg niveau</label><select id="overviewStep" onchange="renderOverview()"></select></div>
+    </div>
     <div id="overviewArea"></div>
   </div>
 </section>
@@ -136,31 +142,33 @@
     <p><b>Målet er:</b> succesoplevelser, passende udfordring og lyst til at udvikle sig.</p>
     <p><b>Grundprincip:</b> Spilleren starter på det niveau, hvor det er realistisk at mestre 2-3 øvelser på bronze ved koncentreret indsats over 6-8 uger.</p>
     <p><b>Næste niveau:</b> Spilleren kan skifte fra 1 til 2 og fra 2 til 3, når alle øvelser på guld på foregående niveau er gennemført.</p>
-    <p class="small">En spiller forventes ikke at gennemføre flere niveauer på én sæson. Det er også OK kun at udvikle sig inden for bronze, sølv og guld på samme niveau.</p>
   </div>
+  <div class="card"><h2>Øvelser</h2><div id="exerciseInfo"></div></div>
+</section>
+
+<section id="admin" class="page hidden">
   <div class="card">
-    <h2>Øvelser</h2>
-    <div id="exerciseInfo"></div>
+    <h2>Admin</h2>
+    <p class="small">Kun admin kan tildele trænere adgang til årgange. Trænere skal først være oprettet i Firebase Authentication og have logget ind én gang.</p>
+    <div id="adminArea"></div>
   </div>
 </section>
 
 <section id="settings" class="page hidden">
   <div class="card">
     <h2>Indstillinger</h2>
-    <p class="small">Data gemmes i Firebase, så flere trænere kan bruge samme data. Der gemmes også en lokal backup på enheden.</p>
-    <button class="btn secondary" onclick="forceFirebaseSave()">Gem manuelt online</button>
-    <button class="btn secondary" onclick="exportData()">Eksportér data</button>
-    <button class="btn secondary" onclick="importPrompt()">Importér data</button>
-    <button class="btn danger" onclick="resetData()">Nulstil alt</button>
-    <textarea id="dataBox" placeholder="Eksport/import vises her"></textarea>
+    <p id="userInfo" class="small"></p>
+    <button class="btn secondary" onclick="forceReload()">Genindlæs data</button>
+    <button class="btn danger" onclick="logout()">Log ud</button>
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v8 Firebase · data deles mellem trænere, når status viser live database.</div>
+<div class="footer-note">TIF Talent Tracker v9 Login · Firebase Authentication + adgang pr. årgang.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getFirestore, doc, onSnapshot, setDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD-nsf6aP_l9fSA_kGRIAAHiHSvtgmDOlI",
@@ -172,12 +180,10 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getFirestore(app);
-const stateRef = doc(db, "tifTalentTracker", "sharedState");
-let firebaseReady = false;
-let applyingRemoteUpdate = false;
-try { enableIndexedDbPersistence(db); } catch(e) {}
 
+const years = ["U8","U9","U10","U11","U12","U13","U14","U15"];
 const exercises = ["Jonglering","Præcision","Modtag & Afslut","Finter","Kontrol"];
 const medalOrder = ["Bronze","Sølv","Guld"];
 const steps = [
@@ -189,8 +195,8 @@ const steps = [
 const exerciseDescriptions = {
  "Jonglering": {"Formål":"Udvikle boldkontrol, koordination og føling med bolden.","Opsætning":["Spiller står frit med en bold.","Fladt underlag."],"Udførsel":["Spilleren jonglerer bolden uden at den rammer jorden.","Bolden må spilles med begge fødder, lår og hoved."],"Trænerfokus":["Roligt tempo.","Små, kontrollerede berøringer.","Kropsposition og balance."]},
  "Præcision": {"Formål":"Udvikle præcision, afslutningsteknik og brug af begge ben.","Opsætning":["Bronze: 5-mandsmål, målzoner 70 cm fra hver stolpe, afstand 8 m.","Sølv: 8-mandsmål, 4 målzoner, afstand 10 m.","Guld: 11-mandsmål, samme 4 målzoner som sølv, afstand 12 m."],"Udførsel":["Spilleren skyder 10 bolde mod målzonerne som frispark."],"Trænerfokus":["Teknik frem for kraft.","Bevidst sigte.","Ro før hvert skud."]},
- "Modtag & Afslut": {"Formål":"Udvikle retningsbestemt tæmning, timing og afslutning i fart.","Opsætning":["Bronze: 5-mandsmål og to 3-mandsmål udenfor hver stolpe som målzoner. Startkegle ca. 12 m fra målstregen.","Sølv: 8-mandsmål med målzoner i bund og top. Startkegle ca. 14 m fra målstregen.","Guld: 11-mandsmål, samme 4 målzoner som sølv. Afstand 16 m."],"Udførsel":["Spilleren starter ved keglen og løber mod mål.","Modtager aflevering fra træner.","Førsteberøring skal være retningsbestemt mod mål.","Afslutning før 8 m (bronze), 10 m (sølv) og 12 m (guld)."],"Trænerfokus":["Timing af løb.","Førsteberøring fremad.","Hurtig beslutning før afslutning."]},
- "Finter": {"Formål":"Udvikle driblefærdigheder, kropsfinter og evnen til at vende fra modstander.","Opsætning":["Spiller starter med bold 5-8 m fra træner/modstander.","Træner står ca. 12-14 m fra mål.","5- eller 8-mandsmål.","Målzoner i bund og top."],"Udførsel":["Spilleren dribler mod træneren.","Udfører finte eller vending.","Kommer forbi træneren.","Afslutter mod mål før 8 m (bronze), 10 m (sølv) og 12 m (guld)."],"Trænerfokus":["Mod i driblingen.","Timing af finte.","Balance og kropskontrol."]},
+ "Modtag & Afslut": {"Formål":"Udvikle retningsbestemt tæmning, timing og afslutning i fart.","Opsætning":["Bronze: 5-mandsmål og to 3-mandsmål udenfor hver stolpe som målzoner. Startkegle ca. 12 m fra målstregen.","Sølv: 8-mandsmål med målzoner i bund og top. Startkegle ca. 14 m fra målstregen.","Guld: 11-mandsmål, samme 4 målzoner som sølv. Afstand 16 m."],"Udførsel":["Spilleren starter ved keglen og løber mod mål.","Modtager aflevering fra træner.","Førsteberøring skal være retningsbestemt mod mål.","Afslutning før 8 m, 10 m og 12 m."],"Trænerfokus":["Timing af løb.","Førsteberøring fremad.","Hurtig beslutning før afslutning."]},
+ "Finter": {"Formål":"Udvikle driblefærdigheder, kropsfinter og evnen til at vende fra modstander.","Opsætning":["Spiller starter med bold 5-8 m fra træner/modstander.","Træner står ca. 12-14 m fra mål.","5- eller 8-mandsmål.","Målzoner i bund og top."],"Udførsel":["Spilleren dribler mod træneren.","Udfører finte eller vending.","Kommer forbi træneren.","Afslutter mod mål."],"Trænerfokus":["Mod i driblingen.","Timing af finte.","Balance og kropskontrol."]},
  "Kontrol": {"Formål":"Udvikle førsteberøring, boldkontrol og orientering.","Opsætning":["Bronze: firkant 2x2 m, træner 3-5 m fra zonen.","Sølv/Guld: firkant 1,5x1,5 m, træner 3-5 m fra zonen."],"Udførsel":["Træneren laver 10 afleveringer: 5 langs jorden og 5 kastet ind med underhånd.","Spilleren tæmmer bolden så den ligger død i firkanten."],"Trænerfokus":["Blød førsteberøring.","Retning på tæmning.","Hurtig reaktion."]}
 };
 
@@ -202,263 +208,211 @@ const criteria = {
  "Kontrol": {1:{Bronze:["5 ud af 10","+ maks 3 berøringer"],Sølv:["6 ud af 10","+ maks 2 berøringer"],Guld:["7 ud af 10","+ maks 2 berøringer"]},2:{Bronze:["5 ud af 10","+ maks 2 berøringer","+ 1 dårligt ben"],Sølv:["6 ud af 10","+ maks 2 berøringer","+ 2 dårligt ben"],Guld:["7 ud af 10","+ 3 til hver side","+ inderside og yderside","+ 2 berøringer efter vending før afslutning"]},3:{Bronze:["6 ud af 10","+ maks 1 berøring","+ 2 med dårligt ben","+ 1 top"],Sølv:["7 ud af 10","+ maks 1 berøring","+ 3 med dårligt ben","+ 2 top"],Guld:["8 ud af 10","+ maks 1 berøring","+ 3 med dårligt ben","+ 4 top"]}}
 };
 
-let data = {players:[]};
-try {
-  const localBackup = localStorage.getItem("tifTalentData");
-  if(localBackup) data = JSON.parse(localBackup);
-} catch(e) {
-  data = {players:[]};
-}
+let currentUser = null;
+let currentUserDoc = null;
+let players = [];
+let users = [];
 let selectedStepByPlayer = {};
+let unsubPlayers = null;
+let unsubUsers = null;
 
+function setSyncStatus(text){ document.getElementById("syncStatus").textContent = text; }
+function isAdmin(){ return currentUserDoc?.role === "admin"; }
+function allowedYears(){ return isAdmin() ? years : (currentUserDoc?.years || []); }
+function canAccessYear(y){ return isAdmin() || allowedYears().includes(y); }
+function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s])); }
 function getKey(stepIndex, ex){ return `s${stepIndex}_${ex}`; }
-function migratePlayer(p){
-  if(!p.passed) p.passed = {};
-  // Legacy migration from older versions:
-  // Only convert old progress data if no new passed-data exists yet.
-  // Otherwise old progress would keep re-marking a step as passed after you try to undo it.
-  if(p.progress && Object.keys(p.passed).length === 0){
-    exercises.forEach(ex=>{
-      [1,2,3].forEach(l=>{
-        const m = p.progress[ex]?.[l];
-        if(!m || m==="Ikke startet") return;
-        const medalsToMark = medalOrder.slice(0, medalOrder.indexOf(m)+1);
-        medalsToMark.forEach(med=>{
-          const si = steps.findIndex(s=>s.level==l && s.medal==med);
-          if(si>=0) p.passed[getKey(si,ex)] = true;
-        });
-      });
+function migratePlayer(p){ if(!p.passed) p.passed = {}; if(!p.year) p.year = "U9"; return p; }
+function countPassed(p, si){ return exercises.filter(ex=>p.passed?.[getKey(si,ex)]).length; }
+function isStepComplete(p, si){ return countPassed(p, si) === exercises.length; }
+function currentStepIndex(p){ for(let i=0;i<steps.length;i++){ if(!isStepComplete(p,i)) return i; } return steps.length; }
+
+async function login(){
+  try{
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    await signInWithEmailAndPassword(auth, email, password);
+  }catch(e){
+    alert("Login fejlede: " + e.message);
+  }
+}
+async function logout(){ await signOut(auth); location.reload(); }
+
+onAuthStateChanged(auth, async (user)=>{
+  currentUser = user;
+  if(!user){
+    document.getElementById("login").classList.remove("hidden");
+    document.getElementById("mainNav").classList.add("hidden");
+    setSyncStatus("v9 · ikke logget ind");
+    return;
+  }
+  const uref = doc(db, "users", user.uid);
+  const usnap = await getDoc(uref);
+  if(!usnap.exists()){
+    await setDoc(uref, {email:user.email, role:"coach", years:[], createdAt:serverTimestamp()}, {merge:true});
+    currentUserDoc = {email:user.email, role:"coach", years:[]};
+  } else {
+    currentUserDoc = usnap.data();
+  }
+  document.getElementById("login").classList.add("hidden");
+  document.getElementById("mainNav").classList.remove("hidden");
+  document.getElementById("tab-admin").style.display = isAdmin() ? "" : "none";
+  document.getElementById("userInfo").textContent = `${user.email} · ${currentUserDoc.role || "coach"} · adgang: ${allowedYears().join(", ") || "ingen årgange endnu"}`;
+  showPage("players");
+  startListeners();
+});
+
+function startListeners(){
+  if(unsubPlayers) unsubPlayers();
+  unsubPlayers = onSnapshot(collection(db, "players"), (snap)=>{
+    players = snap.docs.map(d=>migratePlayer({id:d.id, ...d.data()})).filter(p=>canAccessYear(p.year));
+    setSyncStatus("v9 · live database aktiv");
+    renderAll();
+  }, (e)=>setSyncStatus("v9 · databasefejl: " + e.code));
+  if(isAdmin()){
+    if(unsubUsers) unsubUsers();
+    unsubUsers = onSnapshot(collection(db, "users"), (snap)=>{
+      users = snap.docs.map(d=>({uid:d.id, ...d.data()}));
+      renderAdmin();
     });
   }
-  // Remove legacy field after migration, so earlier registrations can be edited.
-  if(p.progress) delete p.progress;
-  return p;
 }
-data.players = (data.players||[]).map(migratePlayer);
 
-async function save(){
-  localStorage.setItem("tifTalentData", JSON.stringify(data));
-  renderAll();
-  if(firebaseReady && !applyingRemoteUpdate){
-    try {
-      await setDoc(stateRef, {
-        players: data.players || [],
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-      setSyncStatus("v8 · synkroniseret med fælles database");
-    } catch(e) {
-      console.error(e);
-      setSyncStatus("v8 · kunne ikke gemme online - gemt lokalt");
-    }
-  }
-}
-function setSyncStatus(text){
-  const el = document.getElementById("syncStatus");
-  if(el) el.textContent = text;
-}
 function showPage(id){
   document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
   document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
-  document.getElementById("tab-"+id).classList.add("active");
+  document.getElementById("tab-"+id)?.classList.add("active");
   renderAll();
 }
-function addPlayer(){
-  const name = document.getElementById("playerName").value.trim();
-  const note = document.getElementById("playerNote").value.trim();
-  if(!name){ alert("Skriv spillerens navn"); return; }
-  data.players.push({id:Date.now().toString(), name, note, passed:{}});
-  document.getElementById("playerName").value=""; document.getElementById("playerNote").value="";
-  save();
+
+function renderYearOptions(){
+  const opts = allowedYears().map(y=>`<option>${y}</option>`).join("");
+  ["playerYear","overviewYear"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ const old=el.value; el.innerHTML = opts; if(old) el.value=old; }
+  });
 }
-function deletePlayer(id){ if(confirm("Slet spilleren?")){ data.players = data.players.filter(p=>p.id!==id); save(); } }
+
+async function addPlayer(){
+  const name = document.getElementById("playerName").value.trim();
+  const year = document.getElementById("playerYear").value;
+  const note = document.getElementById("playerNote").value.trim();
+  if(!name) return alert("Skriv spillerens navn");
+  if(!canAccessYear(year)) return alert("Du har ikke adgang til denne årgang");
+  const id = Date.now().toString();
+  await setDoc(doc(db,"players",id), {name, year, note, passed:{}, createdAt:serverTimestamp(), updatedAt:serverTimestamp()});
+  document.getElementById("playerName").value=""; document.getElementById("playerNote").value="";
+}
+async function deletePlayer(id){
+  const p=players.find(x=>x.id===id);
+  if(!p || !canAccessYear(p.year)) return alert("Ingen adgang");
+  if(confirm("Slet spilleren?")) await deleteDoc(doc(db,"players",id));
+}
 function renderPlayers(){
   const el = document.getElementById("playerList");
-  if(!data.players.length){ el.innerHTML='<p class="small">Ingen spillere endnu.</p>'; return; }
-  el.innerHTML = data.players.map(p=>{
+  if(!players.length){ el.innerHTML='<p class="small">Ingen spillere i dine årgange.</p>'; return; }
+  el.innerHTML = players.map(p=>{
     const si = currentStepIndex(p);
     const status = si >= steps.length ? "Alle niveauer gennemført" : `${steps[si].label} · ${countPassed(p,si)}/5`;
-    return `<div class="player"><div><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(p.note||"")} · ${status}</div></div><button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button></div>`;
+    return `<div class="player"><div><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(p.year)} · ${escapeHtml(p.note)} · ${status}</div></div><button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button></div>`;
   }).join("");
 }
 function renderSelects(){
   const tp = document.getElementById("trackPlayer");
   const selected = tp.value;
-  tp.innerHTML = data.players.map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
-  if(selected) tp.value = selected;
+  tp.innerHTML = players.map(p=>`<option value="${p.id}">${escapeHtml(p.name)} (${p.year})</option>`).join("");
+  if(selected) tp.value=selected;
   const ce = document.getElementById("criteriaExercise");
   const selectedEx = ce.value;
   ce.innerHTML = exercises.map(e=>`<option>${e}</option>`).join("");
-  if(selectedEx) ce.value = selectedEx;
+  if(selectedEx) ce.value=selectedEx;
   const os = document.getElementById("overviewStep");
-  if(os){
-    const selectedOs = os.value || "0";
-    os.innerHTML = steps.map((s,i)=>`<option value="${i}">Niveau ${s.level} · ${s.medal}</option>`).join("");
-    os.value = selectedOs;
-  }
-}
-function countPassed(p, si){ return exercises.filter(ex=>p.passed[getKey(si,ex)]).length; }
-function isStepComplete(p, si){ return countPassed(p, si) === exercises.length; }
-function currentStepIndex(p){
-  for(let i=0;i<steps.length;i++){ if(!isStepComplete(p,i)) return i; }
-  return steps.length;
+  const selectedOs = os.value || "0";
+  os.innerHTML = steps.map((s,i)=>`<option value="${i}">Niveau ${s.level} · ${s.medal}</option>`).join("");
+  os.value=selectedOs;
 }
 function renderStepbar(p){
   const current = currentStepIndex(p);
-  const selected = selectedStepByPlayer[p.id] ?? current;
+  const selected = selectedStepByPlayer[p.id] ?? Math.min(current, steps.length-1);
   return `<div class="stepbar">${steps.map((s,i)=>{
     const cls = (i<current ? "done" : i===current ? "current" : "") + (i===selected ? " selected" : "");
     const txt = i<current ? "✓" : `${countPassed(p,i)}/5`;
     return `<button type="button" class="step ${cls}" onclick="selectStep('${p.id}',${i})">N${s.level} ${s.medal}<br>${txt}</button>`;
   }).join("")}</div>`;
 }
-function selectStep(pid, si){
-  selectedStepByPlayer[pid] = si;
-  renderTracking();
-}
+function selectStep(pid, si){ selectedStepByPlayer[pid]=si; renderTracking(); }
 function renderTracking(){
   const id = document.getElementById("trackPlayer").value;
-  const p = data.players.find(x=>x.id===id);
+  const p = players.find(x=>x.id===id);
   const area = document.getElementById("trackingArea");
-  if(!p){ area.innerHTML='<p class="small">Tilføj først en spiller.</p>'; return; }
-  migratePlayer(p);
+  if(!p){ area.innerHTML='<p class="small">Ingen spiller valgt.</p>'; return; }
   const current = currentStepIndex(p);
   if(selectedStepByPlayer[p.id] === undefined) selectedStepByPlayer[p.id] = Math.min(current, steps.length-1);
   const selected = Math.min(selectedStepByPlayer[p.id], steps.length-1);
-  const s = steps[selected];
-  const isCurrent = selected === current;
-  const isPast = selected < current;
-  const isFuture = selected > current;
-  area.innerHTML = `
-    ${renderStepbar(p)}
-    <div class="exercise-block">
-      <h3>${isCurrent ? "Aktuelt trin" : isPast ? "Rediger tidligere trin" : "Kommende trin"}: Niveau ${s.level} · ${s.medal}</h3>
-      <p class="small">${isFuture ? "Dette trin åbner først, når de tidligere trin er bestået. Du kan stadig se kriterierne her." : "Marker de øvelser spilleren har bestået på dette trin. Du kan også redigere et tidligere bestået trin."}</p>
-      ${exercises.map(ex=>{
-        const on = !!p.passed[getKey(selected,ex)];
-        const disabled = isFuture ? "disabled" : "";
-        return `<div class="checkrow"><div><b>${ex}</b><div class="small">${criteria[ex][s.level][s.medal].join(" · ")}</div></div><button class="toggle ${on?'on':''}" ${disabled} onclick="togglePassed('${p.id}',${selected},'${ex}')">${on?'Bestået': isFuture ? 'Låst' : 'Ikke endnu'}</button></div>`;
-      }).join("")}
-    </div>
-    <button class="btn secondary" onclick="undoLast('${p.id}')">Fortryd sidste beståede</button>
-  `;
+  const s = steps[selected], isFuture = selected > current, isPast = selected < current;
+  area.innerHTML = `${renderStepbar(p)}<div class="exercise-block">
+    <h3>${selected===current ? "Aktuelt trin" : isPast ? "Rediger tidligere trin" : "Kommende trin"}: Niveau ${s.level} · ${s.medal}</h3>
+    <p class="small">${isFuture ? "Dette trin åbner først, når tidligere trin er bestået." : "Marker de øvelser spilleren har bestået."}</p>
+    ${exercises.map(ex=>{
+      const on=!!p.passed[getKey(selected,ex)];
+      return `<div class="checkrow"><div><b>${ex}</b><div class="small">${criteria[ex][s.level][s.medal].join(" · ")}</div></div><button class="toggle ${on?'on':''}" ${isFuture?'disabled':''} onclick="togglePassed('${p.id}',${selected},'${ex}')">${on?'Bestået':isFuture?'Låst':'Ikke endnu'}</button></div>`;
+    }).join("")}</div>`;
 }
-function togglePassed(pid, si, ex){
-  const p=data.players.find(x=>x.id===pid);
+async function togglePassed(pid, si, ex){
+  const p=players.find(x=>x.id===pid);
+  if(!p || !canAccessYear(p.year)) return alert("Ingen adgang");
+  const passed = {...(p.passed||{})};
   const key=getKey(si,ex);
-  p.passed[key] = !p.passed[key];
-  save();
-}
-function undoLast(pid){
-  const p=data.players.find(x=>x.id===pid);
-  for(let i=steps.length-1;i>=0;i--){
-    for(let j=exercises.length-1;j>=0;j--){
-      const key=getKey(i,exercises[j]);
-      if(p.passed[key]){ p.passed[key]=false; save(); return; }
-    }
-  }
+  passed[key]=!passed[key];
+  await setDoc(doc(db,"players",pid), {...p, passed, updatedAt:serverTimestamp()}, {merge:true});
 }
 function renderOverview(){
   const area=document.getElementById("overviewArea");
-  const os=document.getElementById("overviewStep");
-  const si = os ? Number(os.value || 0) : 0;
-  const s = steps[si];
-  if(!data.players.length){ area.innerHTML='<p class="small">Ingen spillere endnu.</p>'; return; }
-  const done = data.players.filter(p=>countPassed(migratePlayer(p),si)===5).length;
-  const progress = data.players.filter(p=>{ const c=countPassed(migratePlayer(p),si); return c>0 && c<5; }).length;
-  const none = data.players.filter(p=>countPassed(migratePlayer(p),si)===0).length;
-  area.innerHTML = `
-    <div class="statuscards">
-      <div class="statuscard status-done"><b>✓ Bestået</b>${done} spillere</div>
-      <div class="statuscard status-progress"><b>● I gang</b>${progress} spillere</div>
-      <div class="statuscard status-none"><b>○ Ikke startet</b>${none} spillere</div>
-    </div>
-    <div class="tablewrap"><table class="overview-table"><thead><tr><th>Spiller</th><th>Status</th><th>Bestået</th></tr></thead><tbody>` + data.players.map(p=>{
-      migratePlayer(p);
-      const cnt=countPassed(p,si);
-      const status = cnt===5 ? '<span class="pill greenpill">✓ Bestået</span>' : cnt>0 ? '<span class="pill guld">● I gang</span>' : '<span class="pill none">○ Ikke startet</span>';
-      return `<tr><td><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(p.note||"")}</div></td><td>${status}</td><td><b>${cnt}/5</b></td></tr>`;
-    }).join("") + `</tbody></table></div>`;
-}function listItems(arr){ return "<ul>"+arr.map(x=>`<li>${escapeHtml(x)}</li>`).join("")+"</ul>"; }
+  const year=document.getElementById("overviewYear").value;
+  const si=Number(document.getElementById("overviewStep").value||0);
+  const list=players.filter(p=>p.year===year);
+  const done=list.filter(p=>countPassed(p,si)===5).length;
+  const progress=list.filter(p=>{const c=countPassed(p,si); return c>0 && c<5;}).length;
+  const none=list.filter(p=>countPassed(p,si)===0).length;
+  area.innerHTML = `<div class="statuscards"><div class="statuscard status-done"><b>✓ Bestået</b>${done}</div><div class="statuscard status-progress"><b>● I gang</b>${progress}</div><div class="statuscard status-none"><b>○ Ikke startet</b>${none}</div></div>
+  <div class="tablewrap"><table><thead><tr><th>Spiller</th><th>Status</th><th>Bestået</th></tr></thead><tbody>${list.map(p=>{
+    const cnt=countPassed(p,si);
+    const status=cnt===5?'<span class="pill greenpill">✓ Bestået</span>':cnt>0?'<span class="pill guld">● I gang</span>':'<span class="pill none">○ Ikke startet</span>';
+    return `<tr><td><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(p.note)}</div></td><td>${status}</td><td><b>${cnt}/5</b></td></tr>`;
+  }).join("")}</tbody></table></div>`;
+}
+function listItems(arr){ return "<ul>"+arr.map(x=>`<li>${escapeHtml(x)}</li>`).join("")+"</ul>"; }
 function renderCriteria(){
   const ex=document.getElementById("criteriaExercise").value || exercises[0];
   const level=document.getElementById("criteriaLevel").value || "1";
   const c=criteria[ex][level];
   document.getElementById("criteriaArea").innerHTML = `<h3>${ex} · Niveau ${level}</h3><table><tr><th>Medalje</th><th>Kriterier</th></tr>
-  <tr><td><span class="pill bronze">Bronze</span></td><td>${listItems(c.Bronze)}</td></tr>
-  <tr><td><span class="pill sølv">Sølv</span></td><td>${listItems(c.Sølv)}</td></tr>
-  <tr><td><span class="pill guld">Guld</span></td><td>${listItems(c.Guld)}</td></tr></table>`;
+  <tr><td><span class="pill bronze">Bronze</span></td><td>${listItems(c.Bronze)}</td></tr><tr><td><span class="pill sølv">Sølv</span></td><td>${listItems(c.Sølv)}</td></tr><tr><td><span class="pill guld">Guld</span></td><td>${listItems(c.Guld)}</td></tr></table>`;
 }
 function renderExerciseInfo(){
- const area=document.getElementById("exerciseInfo");
- area.innerHTML = exercises.map(ex=>{
+ document.getElementById("exerciseInfo").innerHTML = exercises.map(ex=>{
   const d=exerciseDescriptions[ex];
   return `<div class="exercise-block"><h3>${ex}</h3><p><b>Formål:</b> ${escapeHtml(d.Formål)}</p><p><b>Opsætning:</b>${listItems(d.Opsætning)}</p><p><b>Udførsel:</b>${listItems(d.Udførsel)}</p><p><b>Trænerfokus:</b>${listItems(d.Trænerfokus)}</p></div>`;
  }).join("");
 }
-function exportData(){ document.getElementById("dataBox").value = JSON.stringify(data,null,2); }
-function importPrompt(){ try{ const v=document.getElementById("dataBox").value; if(!v) return alert("Indsæt data i feltet først"); data=JSON.parse(v); data.players=(data.players||[]).map(migratePlayer); save(); alert("Data importeret"); }catch(e){ alert("Kunne ikke importere data"); } }
-function resetData(){ if(confirm("Vil du slette alle spillere og registreringer?")){ data={players:[]}; save(); } }
-function escapeHtml(str){ return String(str).replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s])); }
-function renderAll(){ renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); }
-
-async function forceFirebaseSave(){
-  try {
-    await setDoc(stateRef, {
-      players: data.players || [],
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-    setSyncStatus("v8 · gemt manuelt online");
-  } catch(e) {
-    console.error(e);
-    alert("Kunne ikke gemme online. Tjek Firestore rules.");
-    setSyncStatus("v8 · fejl ved online-gemning");
-  }
+function renderAdmin(){
+  const area=document.getElementById("adminArea");
+  if(!area || !isAdmin()) return;
+  area.innerHTML = users.map(u=>`<div class="coachrow"><div><b>${escapeHtml(u.email)}</b><div class="small">UID: ${u.uid}<br>Rolle: ${u.role || "coach"} · Årgange: ${(u.years||[]).join(", ") || "ingen"}</div></div><button class="btn secondary smallbtn" onclick="editCoach('${u.uid}')">Rediger</button></div>`).join("");
 }
+async function editCoach(uid){
+  const u=users.find(x=>x.uid===uid);
+  const role=prompt("Rolle: admin eller coach", u.role || "coach");
+  if(!role) return;
+  const yearText=prompt("Årgange, kommasepareret. Fx U9,U10", (u.years||[]).join(","));
+  const y=(yearText||"").split(",").map(x=>x.trim()).filter(Boolean);
+  await setDoc(doc(db,"users",uid), {email:u.email, role, years:y, updatedAt:serverTimestamp()}, {merge:true});
+}
+function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); }
+function forceReload(){ location.reload(); }
 
-// Make functions available to inline onclick handlers in module mode
-Object.assign(window, {
-  showPage,
-  addPlayer,
-  deletePlayer,
-  renderTracking,
-  renderOverview,
-  renderCriteria,
-  selectStep,
-  togglePassed,
-  undoLast,
-  exportData,
-  importPrompt,
-  resetData,
-  forceFirebaseSave
-});
-
-renderAll();
-setSyncStatus("v8 · forbinder til fælles database...");
-onSnapshot(stateRef, async (snap) => {
-  firebaseReady = true;
-  applyingRemoteUpdate = true;
-  if(snap.exists()){
-    const remote = snap.data();
-    data = { players: (remote.players || []).map(migratePlayer) };
-    localStorage.setItem("tifTalentData", JSON.stringify(data));
-    setSyncStatus("v8 · live fælles database aktiv");
-  } else {
-    data.players = (data.players || []).map(migratePlayer);
-    await setDoc(stateRef, {
-      players: data.players || [],
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-    setSyncStatus("v8 · fælles database oprettet");
-  }
-  applyingRemoteUpdate = false;
-  renderAll();
-}, (error) => {
-  console.error(error);
-  firebaseReady = false;
-  setSyncStatus("v8 · database ikke aktiv - tjek Firestore setup/rules");
-  renderAll();
-});
+Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,forceReload});
 </script>
 </body>
 </html>
