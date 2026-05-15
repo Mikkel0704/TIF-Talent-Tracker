@@ -44,10 +44,11 @@
     .footer-note{font-size:12px;color:var(--muted);padding:10px;text-align:center}
     ul{margin:6px 0 0;padding-left:20px}
     li{margin:3px 0}
-    .stepbar{display:flex;gap:4px;overflow-x:auto;padding:4px 0 10px}
-    .step{min-width:54px;border-radius:10px;padding:6px 4px;text-align:center;font-size:11px;font-weight:800;background:#eee;color:#555;border:1px solid #ddd}
+    .stepbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 0 12px}
+    .step{border-radius:10px;padding:8px 4px;text-align:center;font-size:13px;font-weight:800;background:#eee;color:#555;border:1px solid #ddd}
     .step.done{background:#d1fae5;color:#065f46;border-color:#85d6a8}
     .step.current{background:var(--green2);color:white;border-color:var(--green2)}
+    .step.selected{outline:3px solid rgba(15,81,50,.25)}
     .checkrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
     .checkrow:last-child{border-bottom:0}
     .toggle{border:0;border-radius:999px;padding:9px 13px;font-weight:800;background:var(--not);color:#333;min-width:92px}
@@ -60,6 +61,12 @@
     .dot{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:900;font-size:12px;background:#eee;color:#555}
     .dot.done{background:#d1fae5;color:#065f46}
     .dot.current{background:var(--green2);color:white}
+    .statuscards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
+    .statuscard{border:1px solid var(--line);border-radius:12px;padding:10px;background:white;font-size:12px}
+    .statuscard b{display:block;margin-bottom:4px}
+    .status-done{background:#ecfdf5}.status-progress{background:#fffbeb}.status-none{background:#f8fafc}
+    .overview-table th,.overview-table td{text-align:left}
+    .overview-table td:last-child,.overview-table th:last-child{text-align:right}
   </style>
 </head>
 <body>
@@ -104,7 +111,9 @@
 <section id="overview" class="page hidden">
   <div class="card">
     <h2>Holdoverblik</h2>
-    <p class="small">Kompakt overblik: hvert trin består af 5 øvelser. Tallet viser hvor mange øvelser spilleren har bestået på trinnet.</p>
+    <p class="small">Vælg niveau for at se spillernes status på det valgte trin.</p>
+    <label>Vælg niveau</label>
+    <select id="overviewStep" onchange="renderOverview()"></select>
     <div id="overviewArea"></div>
   </div>
 </section>
@@ -173,6 +182,7 @@ const criteria = {
 };
 
 let data = JSON.parse(localStorage.getItem("tifTalentData") || '{"players":[]}');
+let selectedStepByPlayer = {};
 
 function getKey(stepIndex, ex){ return `s${stepIndex}_${ex}`; }
 function migratePlayer(p){
@@ -229,6 +239,12 @@ function renderSelects(){
   const selectedEx = ce.value;
   ce.innerHTML = exercises.map(e=>`<option>${e}</option>`).join("");
   if(selectedEx) ce.value = selectedEx;
+  const os = document.getElementById("overviewStep");
+  if(os){
+    const selectedOs = os.value || "0";
+    os.innerHTML = steps.map((s,i)=>`<option value="${i}">Niveau ${s.level} · ${s.medal}</option>`).join("");
+    os.value = selectedOs;
+  }
 }
 function countPassed(p, si){ return exercises.filter(ex=>p.passed[getKey(si,ex)]).length; }
 function isStepComplete(p, si){ return countPassed(p, si) === exercises.length; }
@@ -238,11 +254,16 @@ function currentStepIndex(p){
 }
 function renderStepbar(p){
   const current = currentStepIndex(p);
+  const selected = selectedStepByPlayer[p.id] ?? current;
   return `<div class="stepbar">${steps.map((s,i)=>{
-    const cls = i<current ? "done" : i===current ? "current" : "";
+    const cls = (i<current ? "done" : i===current ? "current" : "") + (i===selected ? " selected" : "");
     const txt = i<current ? "✓" : `${countPassed(p,i)}/5`;
-    return `<div class="step ${cls}">${s.label}<br>${txt}</div>`;
+    return `<button type="button" class="step ${cls}" onclick="selectStep('${p.id}',${i})">N${s.level} ${s.medal}<br>${txt}</button>`;
   }).join("")}</div>`;
+}
+function selectStep(pid, si){
+  selectedStepByPlayer[pid] = si;
+  renderTracking();
 }
 function renderTracking(){
   const id = document.getElementById("trackPlayer").value;
@@ -251,19 +272,21 @@ function renderTracking(){
   if(!p){ area.innerHTML='<p class="small">Tilføj først en spiller.</p>'; return; }
   migratePlayer(p);
   const current = currentStepIndex(p);
-  if(current >= steps.length){
-    area.innerHTML = renderStepbar(p) + `<p><span class="pill greenpill">Alle niveauer gennemført</span></p>`;
-    return;
-  }
-  const s = steps[current];
+  if(selectedStepByPlayer[p.id] === undefined) selectedStepByPlayer[p.id] = Math.min(current, steps.length-1);
+  const selected = Math.min(selectedStepByPlayer[p.id], steps.length-1);
+  const s = steps[selected];
+  const isCurrent = selected === current;
+  const isPast = selected < current;
+  const isFuture = selected > current;
   area.innerHTML = `
     ${renderStepbar(p)}
     <div class="exercise-block">
-      <h3>Aktuelt trin: Niveau ${s.level} · ${s.medal}</h3>
-      <p class="small">Marker de øvelser spilleren har bestået på dette trin. Når alle 5 er bestået, åbner næste trin automatisk.</p>
+      <h3>${isCurrent ? "Aktuelt trin" : isPast ? "Rediger tidligere trin" : "Kommende trin"}: Niveau ${s.level} · ${s.medal}</h3>
+      <p class="small">${isFuture ? "Dette trin åbner først, når de tidligere trin er bestået. Du kan stadig se kriterierne her." : "Marker de øvelser spilleren har bestået på dette trin. Du kan også redigere et tidligere bestået trin."}</p>
       ${exercises.map(ex=>{
-        const on = !!p.passed[getKey(current,ex)];
-        return `<div class="checkrow"><div><b>${ex}</b><div class="small">${criteria[ex][s.level][s.medal].join(" · ")}</div></div><button class="toggle ${on?'on':''}" onclick="togglePassed('${p.id}',${current},'${ex}')">${on?'Bestået':'Ikke endnu'}</button></div>`;
+        const on = !!p.passed[getKey(selected,ex)];
+        const disabled = isFuture ? "disabled" : "";
+        return `<div class="checkrow"><div><b>${ex}</b><div class="small">${criteria[ex][s.level][s.medal].join(" · ")}</div></div><button class="toggle ${on?'on':''}" ${disabled} onclick="togglePassed('${p.id}',${selected},'${ex}')">${on?'Bestået': isFuture ? 'Låst' : 'Ikke endnu'}</button></div>`;
       }).join("")}
     </div>
     <button class="btn secondary" onclick="undoLast('${p.id}')">Fortryd sidste beståede</button>
@@ -286,19 +309,26 @@ function undoLast(pid){
 }
 function renderOverview(){
   const area=document.getElementById("overviewArea");
+  const os=document.getElementById("overviewStep");
+  const si = os ? Number(os.value || 0) : 0;
+  const s = steps[si];
   if(!data.players.length){ area.innerHTML='<p class="small">Ingen spillere endnu.</p>'; return; }
-  area.innerHTML = `<div class="tablewrap"><table class="compact-table"><thead><tr><th>Spiller</th>${steps.map(s=>`<th>${s.label}</th>`).join("")}<th>Næste</th></tr></thead><tbody>` + data.players.map(p=>{
-    migratePlayer(p);
-    const current = currentStepIndex(p);
-    return `<tr><td><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(p.note||"")}</div></td>` + steps.map((s,i)=>{
-      const cnt=countPassed(p,i);
-      const cls = i<current ? "done" : i===current ? "current" : "";
-      const txt = i<current ? "✓" : cnt;
-      return `<td><span class="dot ${cls}">${txt}</span></td>`;
-    }).join("") + `<td>${current>=steps.length?'<span class="pill greenpill">Færdig</span>':`<span class="pill ${steps[current].medal.toLowerCase()}">${steps[current].label} ${countPassed(p,current)}/5</span>`}</td></tr>`;
-  }).join("") + `</tbody></table></div>`;
-}
-function listItems(arr){ return "<ul>"+arr.map(x=>`<li>${escapeHtml(x)}</li>`).join("")+"</ul>"; }
+  const done = data.players.filter(p=>countPassed(migratePlayer(p),si)===5).length;
+  const progress = data.players.filter(p=>{ const c=countPassed(migratePlayer(p),si); return c>0 && c<5; }).length;
+  const none = data.players.filter(p=>countPassed(migratePlayer(p),si)===0).length;
+  area.innerHTML = `
+    <div class="statuscards">
+      <div class="statuscard status-done"><b>✓ Bestået</b>${done} spillere</div>
+      <div class="statuscard status-progress"><b>● I gang</b>${progress} spillere</div>
+      <div class="statuscard status-none"><b>○ Ikke startet</b>${none} spillere</div>
+    </div>
+    <div class="tablewrap"><table class="overview-table"><thead><tr><th>Spiller</th><th>Status</th><th>Bestået</th></tr></thead><tbody>` + data.players.map(p=>{
+      migratePlayer(p);
+      const cnt=countPassed(p,si);
+      const status = cnt===5 ? '<span class="pill greenpill">✓ Bestået</span>' : cnt>0 ? '<span class="pill guld">● I gang</span>' : '<span class="pill none">○ Ikke startet</span>';
+      return `<tr><td><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(p.note||"")}</div></td><td>${status}</td><td><b>${cnt}/5</b></td></tr>`;
+    }).join("") + `</tbody></table></div>`;
+}function listItems(arr){ return "<ul>"+arr.map(x=>`<li>${escapeHtml(x)}</li>`).join("")+"</ul>"; }
 function renderCriteria(){
   const ex=document.getElementById("criteriaExercise").value || exercises[0];
   const level=document.getElementById("criteriaLevel").value || "1";
