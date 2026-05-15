@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15</title>
+  <title>TIF Talent Tracker v15.1</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -89,7 +89,7 @@
 <header>
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
-  <div id="syncStatus" class="syncstatus">v15 · starter login...</div>
+  <div id="syncStatus" class="syncstatus">v15.1 · starter login...</div>
 </header>
 
 <nav id="mainNav" class="hidden">
@@ -230,7 +230,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15 · login, årgangsadgang og migrering af gamle spillere.</div>
+<div class="footer-note">TIF Talent Tracker v15.1 · login, årgangsadgang og migrering af gamle spillere.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -330,24 +330,30 @@ async function login(){
 }
 async function logout(){ await signOut(auth); location.reload(); }
 
-onSnapshot(yearsRef, (snap)=>{
-  if(snap.exists()){
-    const ys = snap.data().years || [];
-    availableYears = normalizeYearsList(ys).sort((a,b)=>Number(b)-Number(a));
-  } else if(isAdmin()){
-    setDoc(yearsRef, {years: availableYears, updatedAt: serverTimestamp()}, {merge:true});
-  }
-  renderAll();
-}, (error)=>{
-  console.error(error);
-});
 
+let unsubscribeYears = null;
+function startYearsListener(){
+  if(unsubscribeYears) return;
+  unsubscribeYears = onSnapshot(yearsRef, (snap)=>{
+    if(snap.exists()){
+      const ys = snap.data().years || [];
+      availableYears = normalizeYearsList(ys).sort((a,b)=>Number(b)-Number(a));
+    } else if(isAdmin()){
+      setDoc(yearsRef, {years: availableYears, updatedAt: serverTimestamp()}, {merge:true});
+    }
+    renderAll();
+  }, (error)=>{
+    console.error(error);
+    // Do not block login if settings/years is not readable yet.
+    renderAll();
+  });
+}
 onAuthStateChanged(auth, async (user)=>{
   currentUser = user;
   if(!user){
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
-    setSyncStatus("v15 · ikke logget ind");
+    setSyncStatus("v15.1 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -370,9 +376,10 @@ function startListeners(){
   if(unsubPlayers) unsubPlayers();
   unsubPlayers = onSnapshot(collection(db, "players"), (snap)=>{
     players = snap.docs.map(d=>migratePlayer({id:d.id, ...d.data()})).filter(p=>canAccessYear(p.year));
-    setSyncStatus("v15 · live database aktiv");
+    setSyncStatus("v15.1 · live database aktiv");
+    startYearsListener();
     renderAll();
-  }, (e)=>setSyncStatus("v15 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.1 · databasefejl: " + e.code));
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
     unsubUsers = onSnapshot(collection(db, "users"), (snap)=>{
@@ -584,11 +591,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15 · migrering færdig");
+    setSyncStatus("v15.1 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15 · migrering fejlede");
+    setSyncStatus("v15.1 · migrering fejlede");
   }
 }
 
