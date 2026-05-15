@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v14.1</title>
+  <title>TIF Talent Tracker v14</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -88,7 +88,7 @@
 <header>
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
-  <div id="syncStatus" class="syncstatus">v14.1 · starter login...</div>
+  <div id="syncStatus" class="syncstatus">v14 · starter login...</div>
 </header>
 
 <nav id="mainNav" class="hidden">
@@ -222,7 +222,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v14.1 · login, årgangsadgang og migrering af gamle spillere.</div>
+<div class="footer-note">TIF Talent Tracker v14 · login, årgangsadgang og migrering af gamle spillere.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -327,7 +327,7 @@ onAuthStateChanged(auth, async (user)=>{
   if(!user){
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
-    setSyncStatus("v14.1 · ikke logget ind");
+    setSyncStatus("v14 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -350,9 +350,9 @@ function startListeners(){
   if(unsubPlayers) unsubPlayers();
   unsubPlayers = onSnapshot(collection(db, "players"), (snap)=>{
     players = snap.docs.map(d=>migratePlayer({id:d.id, ...d.data()})).filter(p=>canAccessYear(p.year));
-    setSyncStatus("v14.1 · live database aktiv");
+    setSyncStatus("v14 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v14.1 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v14 · databasefejl: " + e.code));
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
     unsubUsers = onSnapshot(collection(db, "users"), (snap)=>{
@@ -373,7 +373,6 @@ function showPage(id){
 function renderYearOptions(){
   const ay = allowedYears();
   const opts = ay.map(y=>`<option value="${y}">${y}</option>`).join("");
-
   ["playerYear","overviewYear"].forEach(id=>{
     const el=document.getElementById(id);
     if(el){
@@ -382,39 +381,45 @@ function renderYearOptions(){
       if(old && ay.includes(old)) el.value=old;
     }
   });
-
   const ply = document.getElementById("playerListYear");
   if(ply){
-    const old = ply.value || "all";
+    const old = ply.value;
     ply.innerHTML = `<option value="all">Alle mine årgange</option>` + opts;
-    if(old === "all" || ay.includes(old)) ply.value = old;
+    if(old && (old === "all" || ay.includes(old))) ply.value = old;
   }
 }
 
+async function addPlayer(){
+  const name = document.getElementById("playerName").value.trim();
+  const year = document.getElementById("playerYear").value;
+  const note = document.getElementById("playerNote").value.trim();
+  if(!name) return alert("Skriv spillerens navn");
+  if(!canAccessYear(year)) return alert("Du har ikke adgang til denne årgang");
+  const id = Date.now().toString();
+  await setDoc(doc(db,"players",id), {
+    name, year, note, passed:{},
+    history:[{type:"created", text:"Spiller oprettet", by: currentUser?.email || "", at: new Date().toISOString()}],
+    createdAt:serverTimestamp(), updatedAt:serverTimestamp()
+  });
+  document.getElementById("playerName").value=""; document.getElementById("playerNote").value="";
+}
+async function deletePlayer(id){
+  if(!isAdmin()) return alert("Kun admin kan slette spillere.");
+  const p=players.find(x=>x.id===id);
+  if(!p || !canAccessYear(p.year)) return alert("Ingen adgang");
+  if(confirm("Slet spilleren?")) await deleteDoc(doc(db,"players",id));
+}
 function renderPlayers(){
   const el = document.getElementById("playerList");
-  if(!el) return;
-
   const selectedYear = document.getElementById("playerListYear")?.value || "all";
-
-  // Normaliserer både filter og spillerens årgang, så fx U9/2017 ikke blandes forkert.
-  const list = players.filter(p => {
-    const py = normalizeYearValue(p.year);
-    return selectedYear === "all" || py === selectedYear;
-  });
-
-  if(!list.length){
-    el.innerHTML='<p class="small">Ingen spillere i den valgte årgang.</p>';
-    return;
-  }
-
+  const list = selectedYear === "all" ? players : players.filter(p=>p.year === selectedYear);
+  if(!list.length){ el.innerHTML='<p class="small">Ingen spillere i den valgte årgang.</p>'; return; }
   el.innerHTML = list.map(p=>{
     const si = currentStepIndex(p);
     const status = si >= steps.length ? "Alle niveauer gennemført" : `${steps[si].label} · ${countPassed(p,si)}/5`;
-    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(yearLabel(p.year))} · ${escapeHtml(p.note||"")} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button>`:""}</div>`;
+    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(yearLabel(p.year))} · ${escapeHtml(p.note)} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button>`:""}</div>`;
   }).join("");
 }
-
 function renderSelects(){
   const tp = document.getElementById("trackPlayer");
   const selected = tp.value;
@@ -573,11 +578,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v14.1 · migrering færdig");
+    setSyncStatus("v14 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v14.1 · migrering fejlede");
+    setSyncStatus("v14 · migrering fejlede");
   }
 }
 
