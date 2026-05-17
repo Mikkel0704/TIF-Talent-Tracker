@@ -189,7 +189,7 @@
     <p class="small">Kun admin kan tildele trænere adgang til årgange. Trænere skal først være oprettet i Firebase Authentication og have logget ind én gang.</p>
     <div class="yearcontrol">
       <h3>Årgange</h3>
-      <p class="small">Admin kan åbne/lukke årgange for oprettelse af nye spillere. Lukkede årgange kan stadig vises, hvis der allerede er spillere.</p>
+      <p class="small">Admin kan tilføje årgange og åbne/lukke for oprettelse af nye spillere. Lukkede årgange kan stadig vises, hvis der allerede findes spillere.</p>
       <div id="yearControlArea"></div>
       <label>Tilføj ny årgang</label><input id="newAdminYear" placeholder="Fx 2019">
       <button class="btn secondary" onclick="addAdminYear()">Tilføj / åbn årgang</button>
@@ -254,7 +254,7 @@ const secondaryAuth = getAuth(secondaryAppForUserCreation);
 const db = getFirestore(app);
 
 const defaultYears = ["2018","2017","2016","2015","2014","2013","2012","2011"];
-let openYears = [...defaultYears];
+let localExtraYears = [];
 
 function normalizeYearValue(value){
   const v = String(value || "").trim().toUpperCase();
@@ -271,17 +271,22 @@ function legacyYearValues(list){
   return Array.from(out);
 }
 function yearLabel(value){ return normalizeYearValue(value); }
-function activeYears(){
-  return normalizeYearsList(openYears).sort((a,b)=>Number(b)-Number(a));
-}
 function allKnownYears(){
-  const set = new Set([...defaultYears, ...openYears]);
+  const set = new Set(defaultYears.map(normalizeYearValue));
+  localExtraYears.forEach(y=>set.add(normalizeYearValue(y)));
+  (currentUserDoc?.years || []).forEach(y=>set.add(normalizeYearValue(y)));
   players.forEach(p=>set.add(normalizeYearValue(p.year)));
-  users.forEach(u=>(u.years||[]).forEach(y=>set.add(normalizeYearValue(y))));
+  users.forEach(u=>(u.years || []).forEach(y=>set.add(normalizeYearValue(y))));
   return Array.from(set).filter(Boolean).sort((a,b)=>Number(b)-Number(a));
 }
-function canCreateInYear(y){
-  return activeYears().includes(normalizeYearValue(y));
+function closedYearsForCurrentUser(){
+  return normalizeYearsList(currentUserDoc?.closedYears || []);
+}
+function isYearOpenForCurrentUser(y){
+  return !closedYearsForCurrentUser().includes(normalizeYearValue(y));
+}
+function yearsForCreate(){
+  return allowedYears().filter(y=>isYearOpenForCurrentUser(y));
 }
 const exercises = ["Jonglering","Præcision","Modtag & Afslut","Finter","Kontrol"];
 const medalOrder = ["Bronze","Sølv","Guld"];
@@ -315,7 +320,6 @@ let selectedStepByPlayer = {};
 let playerListFilterYear = "all";
 let unsubPlayers = null;
 let unsubUsers = null;
-let unsubYearSettings = null;
 
 function setSyncStatus(text){ document.getElementById("syncStatus").textContent = text; }
 function isAdmin(){ return currentUserDoc?.role === "admin"; }
@@ -367,24 +371,8 @@ onAuthStateChanged(auth, async (user)=>{
   document.getElementById("tab-admin").style.display = isAdmin() ? "" : "none";
   document.getElementById("userInfo").textContent = `${user.email} · ${currentUserDoc.role || "coach"} · adgang: ${allowedYears().join(", ") || "ingen årgange endnu"}`;
   showPage("players");
-  startYearSettingsListener();
   startListeners();
 });
-
-function startYearSettingsListener(){
-  if(unsubYearSettings) unsubYearSettings();
-  unsubYearSettings = onSnapshot(yearSettingsRef, (snap)=>{
-    if(snap.exists()){
-      openYears = normalizeYearsList(snap.data().openYears || defaultYears);
-    } else if(isAdmin()){
-      setDoc(yearSettingsRef, {openYears: activeYears(), updatedAt: serverTimestamp()}, {merge:true});
-    }
-    renderAll();
-  }, (e)=>{
-    console.error(e);
-    renderAll();
-  });
-}
 
 function startListeners(){
   if(unsubPlayers) unsubPlayers();
@@ -397,7 +385,9 @@ function startListeners(){
     if(unsubUsers) unsubUsers();
     unsubUsers = onSnapshot(collection(db, "users"), (snap)=>{
       users = snap.docs.map(d=>({uid:d.id, ...d.data()}));
-      renderAdmin();
+      const own = users.find(u=>u.uid===currentUser?.uid);
+      if(own) currentUserDoc = own;
+      renderAll();
     });
   }
 }
@@ -417,23 +407,24 @@ function setPlayerListFilter(value){
 
 function renderYearOptions(){
   const visibleYears = allowedYears();
+  const createYears = yearsForCreate();
   const visibleNormalized = visibleYears.map(normalizeYearValue);
-  const createYears = visibleYears.filter(y=>canCreateInYear(y));
+  const createNormalized = createYears.map(normalizeYearValue);
   const visibleOpts = visibleYears.map(y=>`<option value="${normalizeYearValue(y)}">${yearLabel(y)}</option>`).join("");
   const createOpts = createYears.map(y=>`<option value="${normalizeYearValue(y)}">${yearLabel(y)}</option>`).join("");
 
-  const py=document.getElementById("playerYear");
+  const py = document.getElementById("playerYear");
   if(py){
-    const old=normalizeYearValue(py.value);
+    const old = normalizeYearValue(py.value);
     py.innerHTML = createOpts;
-    if(old && createYears.map(normalizeYearValue).includes(old)) py.value=old;
+    if(old && createNormalized.includes(old)) py.value = old;
   }
 
-  const oy=document.getElementById("overviewYear");
+  const oy = document.getElementById("overviewYear");
   if(oy){
-    const old=normalizeYearValue(oy.value);
+    const old = normalizeYearValue(oy.value);
     oy.innerHTML = visibleOpts;
-    if(old && visibleNormalized.includes(old)) oy.value=old;
+    if(old && visibleNormalized.includes(old)) oy.value = old;
   }
 
   const ply = document.getElementById("playerListYear");
@@ -449,7 +440,8 @@ function renderYearOptions(){
 
 async function addPlayer(){
   const name = document.getElementById("playerName").value.trim();
-  const year = document.getElementById("playerYear").value;
+  const year = normalizeYearValue(document.getElementById("playerYear").value);
+  if(!year || !yearsForCreate().map(normalizeYearValue).includes(year)){ alert("Denne årgang er lukket for oprettelse."); return; }
   const note = document.getElementById("playerNote").value.trim();
   if(!name) return alert("Skriv spillerens navn");
   if(!canAccessYear(year)) return alert("Du har ikke adgang til denne årgang");
@@ -574,16 +566,19 @@ function renderExerciseInfo(){
 function renderYearControl(){
   const area = document.getElementById("yearControlArea");
   if(!area || !isAdmin()) return;
-  const openSet = new Set(activeYears());
+  const closed = new Set(closedYearsForCurrentUser());
   area.innerHTML = allKnownYears().map(y=>{
-    const isOpen = openSet.has(y);
+    const isOpen = !closed.has(normalizeYearValue(y));
     return `<div class="yearline"><div><b>${y}</b><div class="small">${isOpen ? "Åben for oprettelse" : "Lukket for nye spillere"}</div></div><button class="btn ${isOpen ? "danger" : "secondary"} smallbtn" onclick="toggleAdminYear('${y}')">${isOpen ? "Luk" : "Åbn"}</button></div>`;
   }).join("");
 }
 
-async function saveOpenYears(){
-  openYears = activeYears();
-  await setDoc(yearSettingsRef, {openYears, updatedAt: serverTimestamp()}, {merge:true});
+async function updateClosedYearsForAll(closedYears){
+  const targets = users.length ? users : [{uid:currentUser.uid, ...currentUserDoc}];
+  for(const u of targets){
+    await setDoc(doc(db,"users",u.uid), {closedYears, updatedAt:serverTimestamp()}, {merge:true});
+  }
+  currentUserDoc = {...currentUserDoc, closedYears};
   renderAll();
 }
 
@@ -592,20 +587,34 @@ async function addAdminYear(){
   const input = document.getElementById("newAdminYear");
   const y = normalizeYearValue(input.value);
   if(!/^\d{4}$/.test(y)){ alert("Skriv årgang som årstal, fx 2019."); return; }
-  if(!openYears.map(normalizeYearValue).includes(y)) openYears.push(y);
+
+  localExtraYears.push(y);
+
+  const adminYears = normalizeYearsList([...(currentUserDoc?.years || []), y]);
+  const closedYears = closedYearsForCurrentUser().filter(x=>x !== y);
+
+  await setDoc(doc(db,"users",currentUser.uid), {
+    years: adminYears,
+    closedYears,
+    updatedAt:serverTimestamp()
+  }, {merge:true});
+
+  currentUserDoc = {...currentUserDoc, years: adminYears, closedYears};
   input.value = "";
-  await saveOpenYears();
+  renderAll();
+  alert("Årgang " + y + " er tilføjet og åbnet.");
 }
 
 async function toggleAdminYear(y){
   if(!isAdmin()) return alert("Kun admin kan ændre årgange.");
   y = normalizeYearValue(y);
-  if(activeYears().includes(y)){
-    openYears = openYears.filter(x=>normalizeYearValue(x)!==y);
+  let closed = closedYearsForCurrentUser();
+  if(closed.includes(y)){
+    closed = closed.filter(x=>x !== y);
   } else {
-    openYears.push(y);
+    closed = normalizeYearsList([...closed, y]);
   }
-  await saveOpenYears();
+  await updateClosedYearsForAll(closed);
 }
 
 function renderAdmin(){
@@ -705,6 +714,7 @@ async function createCoachFromAdmin(){
       role: "coach",
       years: selectedYears,
       active: true,
+      closedYears: closedYearsForCurrentUser(),
       createdBy: currentUser?.email || "",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
