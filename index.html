@@ -286,7 +286,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
 const firebaseConfig = {
@@ -401,6 +401,31 @@ function isAdmin(){ return currentUserDoc?.role === "admin"; }
 function isPlayer(){ return currentUserDoc?.role === "player"; }
 function allowedYears(){ return isAdmin() ? allKnownYears() : normalizeYearsList(currentUserDoc?.years || []); }
 function canAccessYear(y){ return isAdmin() || allowedYears().includes(normalizeYearValue(y)); }
+
+function chunkArray(arr, size){
+  const out = [];
+  for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i, i+size));
+  return out;
+}
+// Firestore rejects an unconstrained collection listen when the security rule depends on
+// per-document data (like `year`) that isn't fixed for the whole query - only a role whose
+// access rule collapses to a constant (admin) can list a collection without a matching
+// `where` filter. Non-admin roles (coach/player) must scope the query to their own years,
+// chunked into groups of 10 (Firestore's limit for a single "in" filter).
+function subscribeYearScoped(collectionName, onChunk, onError){
+  if(isAdmin()){
+    return [onSnapshot(collection(db, collectionName), snap=>{
+      onChunk(0, snap.docs.map(d=>({id:d.id, ...d.data()})));
+    }, onError)];
+  }
+  const years = allowedYears();
+  if(!years.length){ onChunk(0, []); return []; }
+  return chunkArray(years, 10).map((yrs, idx)=>
+    onSnapshot(query(collection(db, collectionName), where("year","in", yrs)), snap=>{
+      onChunk(idx, snap.docs.map(d=>({id:d.id, ...d.data()})));
+    }, onError)
+  );
+}
 function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s])); }
 function getKey(stepIndex, ex){ return `s${stepIndex}_${ex}`; }
 function inferYearFromNote(note){
@@ -446,18 +471,22 @@ onAuthStateChanged(auth, async (user)=>{
   document.getElementById("mainNav").classList.remove("hidden");
   const coachOnlyTabs = ["tab-players","tab-track","tab-overview","tab-review"];
   const playerOnlyTabs = ["tab-training","tab-challenges"];
-  coachOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = isPlayer() ? "none" : ""; });
-  playerOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = isPlayer() ? "" : "none"; });
-  document.getElementById("tab-admin").style.display = isAdmin() ? "" : "none";
+  coachOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.toggle("hidden", isPlayer()); });
+  playerOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.toggle("hidden", !isPlayer()); });
+  document.getElementById("tab-admin").classList.toggle("hidden", !isAdmin());
   document.getElementById("userInfo").textContent = `${user.email} · ${currentUserDoc.role || "coach"} · adgang: ${allowedYears().join(", ") || "ingen årgange endnu"}`;
   showPage(isPlayer() ? "training" : "players");
   startListeners();
 });
 
+function stopListeners(list){ (list || []).forEach(unsub=>unsub()); }
+
 function startListeners(){
-  if(unsubPlayers) unsubPlayers();
-  unsubPlayers = onSnapshot(collection(db, "players"), (snap)=>{
-    players = snap.docs.map(d=>migratePlayer({id:d.id, ...d.data()})).filter(p=>canAccessYear(p.year));
+  stopListeners(unsubPlayers);
+  const playersChunks = {};
+  unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
+    playersChunks[idx] = docs;
+    players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
     if(isPlayer()){
       currentPlayerLink = players.find(p=>p.id===currentUserDoc.playerId) || null;
       if(currentPlayerLink){
@@ -469,6 +498,7 @@ function startListeners(){
     setSyncStatus("v15.0 · live database aktiv");
     renderAll();
   }, (e)=>setSyncStatus("v15.0 · databasefejl: " + e.code));
+
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
     unsubUsers = onSnapshot(collection(db, "users"), (snap)=>{
@@ -478,14 +508,20 @@ function startListeners(){
       renderAll();
     });
   }
-  if(unsubSubmissions) unsubSubmissions();
-  unsubSubmissions = onSnapshot(collection(db, "submissions"), (snap)=>{
-    submissions = snap.docs.map(d=>({id:d.id, ...d.data()}));
+
+  stopListeners(unsubSubmissions);
+  const submissionsChunks = {};
+  unsubSubmissions = subscribeYearScoped("submissions", (idx, docs)=>{
+    submissionsChunks[idx] = docs;
+    submissions = Object.values(submissionsChunks).flat();
     renderAll();
   }, (e)=>console.error("submissions listener", e));
-  if(unsubChallenges) unsubChallenges();
-  unsubChallenges = onSnapshot(collection(db, "challenges"), (snap)=>{
-    challenges = snap.docs.map(d=>({id:d.id, ...d.data()}));
+
+  stopListeners(unsubChallenges);
+  const challengesChunks = {};
+  unsubChallenges = subscribeYearScoped("challenges", (idx, docs)=>{
+    challengesChunks[idx] = docs;
+    challenges = Object.values(challengesChunks).flat();
     renderAll();
   }, (e)=>console.error("challenges listener", e));
 }
