@@ -40,6 +40,24 @@ service cloud.firestore {
         );
     }
 
+    // A coach/player may additionally be restricted to only "dreng", only "pige",
+    // or "begge" (both) within a given year, via users/{uid}.yearGenders: {year: value}.
+    // Missing map, or missing entry for this specific year, means unrestricted (both
+    // genders) - this keeps every account created before this feature existed working
+    // exactly as before, with no migration required for coaches/players who don't need
+    // gender-scoping.
+    function genderAllowed(year, gender) {
+      return isAdmin()
+        || !("yearGenders" in userDoc().data)
+        || !(year in userDoc().data.yearGenders)
+        || userDoc().data.yearGenders[year] == "begge"
+        || userDoc().data.yearGenders[year] == gender;
+    }
+
+    function hasFullAccess(year, gender) {
+      return hasYearAccess(year) && genderAllowed(year, gender);
+    }
+
     // Users/adgangsstyring
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
@@ -48,7 +66,7 @@ service cloud.firestore {
 
     // Ny struktur: én spiller pr. dokument
     match /players/{playerId} {
-      allow read: if signedIn() && hasYearAccess(resource.data.year);
+      allow read: if signedIn() && hasFullAccess(resource.data.year, resource.data.gender);
 
       // Players (role "player") never write player docs directly - passed[]
       // and points are only ever granted by a coach/admin approving a video
@@ -56,12 +74,12 @@ service cloud.firestore {
       // stops a player from awarding themselves points via the SDK/console.
       allow create: if signedIn()
         && !isPlayerRole()
-        && hasYearAccess(request.resource.data.year);
+        && hasFullAccess(request.resource.data.year, request.resource.data.gender);
 
       allow update: if signedIn()
         && !isPlayerRole()
-        && hasYearAccess(resource.data.year)
-        && hasYearAccess(request.resource.data.year);
+        && hasFullAccess(resource.data.year, resource.data.gender)
+        && hasFullAccess(request.resource.data.year, request.resource.data.gender);
 
       allow delete: if isAdmin();
     }
@@ -73,30 +91,33 @@ service cloud.firestore {
     }
 
     // Spillervideoer til gamification: uploades af spilleren, godkendes/afvises af træner.
+    // gender er denormaliseret fra spilleren ved oprettelse, så reglen kan tjekke den
+    // uden et ekstra opslag (og så listen kan begrænses korrekt af klienten, se index.html).
     match /submissions/{submissionId} {
-      allow read: if signedIn() && hasYearAccess(resource.data.year);
+      allow read: if signedIn() && hasFullAccess(resource.data.year, resource.data.gender);
 
       allow create: if isPlayerRole()
         && request.resource.data.playerId == myPlayerId()
         && request.resource.data.status == "pending"
-        && hasYearAccess(request.resource.data.year);
+        && hasFullAccess(request.resource.data.year, request.resource.data.gender);
 
       // Only a coach/admin may approve/reject an existing submission.
-      allow update: if signedIn() && !isPlayerRole() && hasYearAccess(resource.data.year);
+      allow update: if signedIn() && !isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender);
 
       allow delete: if isAdmin();
     }
 
-    // Spiller-mod-spiller udfordringer.
+    // Spiller-mod-spiller udfordringer. gender er den udfordrende spillers køn,
+    // denormaliseret ligesom på submissions.
     match /challenges/{challengeId} {
-      allow read: if signedIn() && hasYearAccess(resource.data.year);
+      allow read: if signedIn() && hasFullAccess(resource.data.year, resource.data.gender);
 
       allow create: if isPlayerRole()
         && request.resource.data.challengerId == myPlayerId()
-        && hasYearAccess(request.resource.data.year);
+        && hasFullAccess(request.resource.data.year, request.resource.data.gender);
 
       allow update: if signedIn() && (
-        (!isPlayerRole() && hasYearAccess(resource.data.year))
+        (!isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender))
         || (
           isPlayerRole()
           && resource.data.opponentId == myPlayerId()

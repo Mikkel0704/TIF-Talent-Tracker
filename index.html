@@ -126,6 +126,7 @@
     <div class="row three">
       <div><label>Navn</label><input id="playerName" placeholder="Fx Oscar" /></div>
       <div><label>Årgang</label><select id="playerYear"></select></div>
+      <div><label>Køn</label><select id="playerGender"><option value="dreng">Dreng</option><option value="pige">Pige</option></select></div>
       <div><label>Note</label><input id="playerNote" placeholder="Fx venstrebenet..." /></div>
     </div>
     <p><button class="btn" onclick="addPlayer()">Tilføj spiller</button></p>
@@ -250,6 +251,7 @@
     <button class="btn secondary" onclick="migrateOldPlayers()">Migrér gamle spillere fra sharedState</button>
     <button class="btn secondary" onclick="migrateYearsToBirthYears()">Migrér årgange til årstal</button>
     <p class="small">Brug kun knappen én gang. Den flytter gamle spillere fra tifTalentTracker/sharedState til players collection og sætter årgang ud fra note-feltet, fx U9.</p>
+    <div id="genderMigrationArea"></div>
     <div id="adminArea"></div>
     <div id="adminEditArea"></div>
   </div>
@@ -427,12 +429,16 @@ function isAdmin(){ return currentUserDoc?.role === "admin"; }
 function isPlayer(){ return currentUserDoc?.role === "player"; }
 function allowedYears(){ return isAdmin() ? allKnownYears() : normalizeYearsList(currentUserDoc?.years || []); }
 function canAccessYear(y){ return isAdmin() || allowedYears().includes(normalizeYearValue(y)); }
-
-function chunkArray(arr, size){
-  const out = [];
-  for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i, i+size));
-  return out;
+function genderRestrictionFor(y){
+  const val = currentUserDoc?.yearGenders?.[normalizeYearValue(y)];
+  return (val === "dreng" || val === "pige") ? val : null; // null = ubegrænset ("begge")
 }
+function canAccessPlayer(y, gender){
+  if(!canAccessYear(y)) return false;
+  const restriction = genderRestrictionFor(y);
+  return !restriction || !gender || restriction === gender;
+}
+
 // Firestore rejects an unconstrained collection listen when the security rule depends on
 // per-document data (like `year`) that isn't fixed for the whole query - only a role whose
 // access rule collapses to a constant (admin) can list a collection without a matching
@@ -446,11 +452,19 @@ function subscribeYearScoped(collectionName, onChunk, onError){
   }
   const years = allowedYears();
   if(!years.length){ onChunk(0, []); return []; }
-  return chunkArray(years, 10).map((yrs, idx)=>
-    onSnapshot(query(collection(db, collectionName), where("year","in", yrs)), snap=>{
+  // Én query pr. årgang (ikke en samlet "in"-query) fordi Firestore afviser en query
+  // helt, hvis reglen afhænger af et felt (gender) som ikke er begrænset af selve
+  // queryen for en given bruger - kun de årgange, der reelt er køns-begrænset for
+  // denne bruger, får en ekstra where-clause på gender.
+  return years.map((year, idx)=>{
+    const restriction = genderRestrictionFor(year);
+    const q = restriction
+      ? query(collection(db, collectionName), where("year","==",year), where("gender","==",restriction))
+      : query(collection(db, collectionName), where("year","==",year));
+    return onSnapshot(q, snap=>{
       onChunk(idx, snap.docs.map(d=>({id:d.id, ...d.data()})));
-    }, onError)
-  );
+    }, onError);
+  });
 }
 function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s])); }
 function getKey(stepIndex, ex){ return `s${stepIndex}_${ex}`; }
@@ -602,12 +616,13 @@ async function addPlayer(){
   const name = document.getElementById("playerName").value.trim();
   const year = normalizeYearValue(document.getElementById("playerYear").value);
   if(!year || !yearsForCreate().map(normalizeYearValue).includes(year)){ alert("Denne årgang er lukket for oprettelse."); return; }
+  const gender = document.getElementById("playerGender").value;
   const note = document.getElementById("playerNote").value.trim();
   if(!name) return alert("Skriv spillerens navn");
-  if(!canAccessYear(year)) return alert("Du har ikke adgang til denne årgang");
+  if(!canAccessPlayer(year, gender)) return alert("Du har ikke adgang til at oprette denne årgang/køn-kombination");
   const id = Date.now().toString();
   await setDoc(doc(db,"players",id), {
-    name, year, note, passed:{}, points:0,
+    name, year, gender, note, passed:{}, points:0,
     history:[{type:"created", text:"Spiller oprettet", by: currentUser?.email || "", at: new Date().toISOString()}],
     createdAt:serverTimestamp(), updatedAt:serverTimestamp()
   });
@@ -632,9 +647,10 @@ function renderPlayers(){
   el.innerHTML = list.map(p=>{
     const si = currentStepIndex(p);
     const status = si >= steps.length ? "Alle niveauer gennemført" : `${steps[si].label} · ${countPassed(p,si)}/5`;
-    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(yearLabel(p.year))} · ${escapeHtml(p.note)} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button>`:""}</div>`;
+    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(yearLabel(p.year))} · ${genderLabel(p.gender)} · ${escapeHtml(p.note)} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button>`:""}</div>`;
   }).join("");
 }
+function genderLabel(g){ return g==="dreng" ? "Dreng" : g==="pige" ? "Pige" : "Køn ikke sat"; }
 
 function renderSelects(){
   const tp = document.getElementById("trackPlayer");
@@ -777,11 +793,27 @@ async function toggleAdminYear(y){
   await updateClosedYearsForAll(closed);
 }
 
+function renderGenderMigration(){
+  const area = document.getElementById("genderMigrationArea");
+  if(!area || !isAdmin()) return;
+  const missing = players.filter(p=>p.gender!=="dreng" && p.gender!=="pige");
+  if(!missing.length){ area.innerHTML = ""; return; }
+  area.innerHTML = `<div class="dangernote">
+    <p class="small"><b>${missing.length} spiller(e) mangler køn.</b> Sæt køn på dem for at kunne give trænere adgang begrænset til drenge/piger pr. årgang.</p>
+    ${missing.map(p=>`<div class="coachrow"><div><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(yearLabel(p.year))}</div></div><div><button class="btn smallbtn" onclick="setPlayerGender('${p.id}','dreng')">Dreng</button><button class="btn smallbtn" onclick="setPlayerGender('${p.id}','pige')">Pige</button></div></div>`).join("")}
+  </div>`;
+}
+async function setPlayerGender(id, gender){
+  if(!isAdmin()) return alert("Kun admin kan rette køn på spillere.");
+  await setDoc(doc(db,"players",id), {gender, updatedAt:serverTimestamp()}, {merge:true});
+}
+
 function renderAdmin(){
   renderYearControl();
+  renderGenderMigration();
   const newYears=document.getElementById("newCoachYears");
   if(newYears && isAdmin()){
-    newYears.innerHTML = allKnownYears().map(y=>`<label class="checkpill"><input type="checkbox" class="newCoachYear" value="${y}"> ${y}</label>`).join("");
+    newYears.innerHTML = allKnownYears().map(y=>`<label class="checkpill"><input type="checkbox" class="newCoachYear" value="${y}"> ${y}<select class="newCoachYearGender" data-year="${y}">${yearGenderOptions("begge")}</select></label>`).join("");
   }
   const playerLoginSelect = document.getElementById("newPlayerLoginPlayer");
   if(playerLoginSelect && isAdmin()){
@@ -795,14 +827,22 @@ function renderAdmin(){
   if(!area || !isAdmin()) return;
   area.innerHTML = users.map(u=>{
     const linkedPlayer = u.role==="player" ? players.find(p=>p.id===u.playerId) : null;
-    return `<div class="coachrow"><div><b>${escapeHtml(u.email)}</b><div class="small">UID: ${u.uid}<br>Rolle: ${u.role || "coach"} · Årgange: ${(u.years||[]).join(", ") || "ingen"}${linkedPlayer ? ` · Spiller: ${escapeHtml(linkedPlayer.name)}` : ""}</div></div>${u.role!=="player" ? `<button class="btn secondary smallbtn" onclick="editCoach('${u.uid}')">Rediger</button>` : ""}</div>`;
+    const yearsText = (u.years||[]).map(y=>{
+      const g = u.yearGenders?.[y];
+      return g && g!=="begge" ? `${y} (${g==="dreng"?"drenge":"piger"})` : y;
+    }).join(", ") || "ingen";
+    return `<div class="coachrow"><div><b>${escapeHtml(u.email)}</b><div class="small">UID: ${u.uid}<br>Rolle: ${u.role || "coach"} · Årgange: ${yearsText}${linkedPlayer ? ` · Spiller: ${escapeHtml(linkedPlayer.name)}` : ""}</div></div>${u.role!=="player" ? `<button class="btn secondary smallbtn" onclick="editCoach('${u.uid}')">Rediger</button>` : ""}</div>`;
   }).join("");
+}
+function yearGenderOptions(selectedValue){
+  return `<option value="begge" ${selectedValue==="begge"?"selected":""}>Begge</option><option value="dreng" ${selectedValue==="dreng"?"selected":""}>Drenge</option><option value="pige" ${selectedValue==="pige"?"selected":""}>Piger</option>`;
 }
 function editCoach(uid){
   const u=users.find(x=>x.uid===uid);
   const area=document.getElementById("adminEditArea");
   if(!u || !area) return;
   const selected = new Set(u.years || []);
+  const yearGenders = u.yearGenders || {};
   area.innerHTML = `<div class="adminedit">
     <h3>Rediger adgang</h3>
     <p><b>${escapeHtml(u.email)}</b></p>
@@ -810,7 +850,7 @@ function editCoach(uid){
     <select id="editRole"><option value="coach">coach</option><option value="admin">admin</option></select>
     <label class="checkpill"><input type="checkbox" id="editActive"> Aktiv træner</label>
     <div class="yearchecks">
-      ${allKnownYears().map(y=>`<label class="checkpill"><input type="checkbox" class="editYear" value="${y}" ${selected.has(y) ? "checked" : ""}> ${y}</label>`).join("")}
+      ${allKnownYears().map(y=>`<label class="checkpill"><input type="checkbox" class="editYear" value="${y}" ${selected.has(y) ? "checked" : ""}> ${y}<select class="editYearGender" data-year="${y}">${yearGenderOptions(yearGenders[y] || "begge")}</select></label>`).join("")}
     </div>
     <button class="btn" onclick="saveCoachAccess('${uid}')">Gem adgang</button>
     <button class="btn secondary" onclick="cancelCoachEdit()">Annuller</button>
@@ -828,7 +868,12 @@ async function saveCoachAccess(uid){
   const role=document.getElementById("editRole").value;
   const y=Array.from(document.querySelectorAll(".editYear:checked")).map(x=>x.value);
   const active = document.getElementById("editActive").checked;
-  await setDoc(doc(db,"users",uid), {email:u.email, role, years:y, active, updatedAt:serverTimestamp()}, {merge:true});
+  const yearGenders = {};
+  y.forEach(year=>{
+    const sel = document.querySelector(`.editYearGender[data-year="${year}"]`);
+    yearGenders[year] = sel ? sel.value : "begge";
+  });
+  await setDoc(doc(db,"users",uid), {email:u.email, role, years:y, yearGenders, active, updatedAt:serverTimestamp()}, {merge:true});
   cancelCoachEdit();
 }
 
@@ -875,6 +920,11 @@ async function createCoachFromAdmin(){
   const email = document.getElementById("newCoachEmail").value.trim();
   const password = document.getElementById("newCoachPassword").value;
   const selectedYears = Array.from(document.querySelectorAll(".newCoachYear:checked")).map(x=>x.value);
+  const yearGenders = {};
+  selectedYears.forEach(year=>{
+    const sel = document.querySelector(`.newCoachYearGender[data-year="${year}"]`);
+    yearGenders[year] = sel ? sel.value : "begge";
+  });
   if(!email) return alert("Skriv trænerens email.");
   if(!password || password.length < 6) return alert("Password skal være mindst 6 tegn.");
   if(!selectedYears.length) return alert("Vælg mindst én årgang.");
@@ -884,6 +934,7 @@ async function createCoachFromAdmin(){
       email,
       role: "coach",
       years: selectedYears,
+      yearGenders,
       active: true,
       closedYears: closedYearsForCurrentUser(),
       createdBy: currentUser?.email || "",
@@ -916,6 +967,10 @@ async function createPlayerLoginFromAdmin(){
       role: "player",
       playerId: p.id,
       years: [p.year],
+      // Kun begræns spilleren til eget køn, hvis spilleren rent faktisk har fået sat
+      // et køn (se "Sæt køn på spillere" i Admin) - ellers ville de miste adgang til
+      // deres egen årgang, indtil migreringen er lavet.
+      yearGenders: p.gender ? {[p.year]: p.gender} : {},
       active: true,
       createdBy: currentUser?.email || "",
       createdAt: serverTimestamp(),
@@ -962,7 +1017,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
     const url = await getDownloadURL(sref);
     const step = steps[stepIndex];
     await addDoc(collection(db, "submissions"), {
-      playerId, playerName: p.name, year: p.year,
+      playerId, playerName: p.name, year: p.year, gender: p.gender || null,
       exercise, stepIndex, level: step.level, medal: step.medal,
       videoPath: path, videoURL: url,
       status: "pending",
@@ -1031,7 +1086,7 @@ function renderTraining(){
 function opponentsForCurrentPlayer(){
   const p = currentPlayerLink;
   if(!p) return [];
-  return players.filter(x=>x.id!==p.id && normalizeYearValue(x.year)===normalizeYearValue(p.year));
+  return players.filter(x=>x.id!==p.id && normalizeYearValue(x.year)===normalizeYearValue(p.year) && (!p.gender || !x.gender || x.gender===p.gender));
 }
 
 function challengeCard(c, p, showActions){
@@ -1096,7 +1151,7 @@ async function createChallenge(playerId){
     exercise, stepIndex, level: steps[stepIndex].level, medal: steps[stepIndex].medal,
     challengerId: playerId, challengerName: p.name,
     opponentId: opponent.id, opponentName: opponent.name,
-    year: p.year,
+    year: p.year, gender: p.gender || null,
     status: "pending",
     createdAt: serverTimestamp()
   });
@@ -1357,7 +1412,7 @@ function exportBackupCsv(){
 function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); }
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod});
+Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender});
 </script>
 </body>
 </html>
