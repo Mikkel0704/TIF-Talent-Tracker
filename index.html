@@ -1280,6 +1280,11 @@ async function deleteViewedSubmissionVideo(id){
 const CHALLENGE_VIDEO_MAX_AGE_MS = 2*24*60*60*1000;
 let lastChallengeVideoSweep = 0;
 function sweepExpiredChallengeVideos(){
+  // Submissions-listener snapshot may not have arrived yet on a fresh page load (this can
+  // run off the players/challenges listeners too, via renderAll()) - skip silently rather
+  // than spending the rate-limit slot below on an empty array, which would otherwise block
+  // the real check for the next 5 minutes once the data actually arrives.
+  if(!submissions.length) return;
   const now = Date.now();
   if(now - lastChallengeVideoSweep < 5*60*1000) return;
   lastChallengeVideoSweep = now;
