@@ -11,16 +11,22 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    function isAdmin() {
+    // A deactivated account (admin, coach, or player - see the "Aktiv træner"
+    // checkbox / "Slet"-button's alternative in Admin) keeps existing in Auth and
+    // Firestore, but loses all access from here on. Missing "active" field means
+    // active (keeps every account created before this feature existed working).
+    function isActive() {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && userDoc().data.role == "admin";
+        && userDoc().data.active != false;
+    }
+
+    function isAdmin() {
+      return isActive() && userDoc().data.role == "admin";
     }
 
     function isPlayerRole() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && userDoc().data.role == "player";
+      return isActive() && userDoc().data.role == "player";
     }
 
     function myPlayerId() {
@@ -34,8 +40,7 @@ service cloud.firestore {
     function hasYearAccess(year) {
       return isAdmin()
         || (
-          signedIn()
-          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          isActive()
           && year in allowedYears()
         );
     }

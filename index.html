@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.2</title>
+  <title>TIF Talent Tracker v15.3</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -94,7 +94,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.2 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.3 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -291,7 +291,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.2 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.3 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -505,16 +505,21 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.2 · ikke logget ind");
+    setSyncStatus("v15.3 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
   const usnap = await getDoc(uref);
   if(!usnap.exists()){
-    await setDoc(uref, {email:user.email, role:"coach", years:[], createdAt:serverTimestamp()}, {merge:true});
-    currentUserDoc = {email:user.email, role:"coach", years:[]};
+    await setDoc(uref, {email:user.email, role:"coach", years:[], active:true, createdAt:serverTimestamp()}, {merge:true});
+    currentUserDoc = {email:user.email, role:"coach", years:[], active:true};
   } else {
     currentUserDoc = usnap.data();
+  }
+  if(currentUserDoc.active === false){
+    alert("Din adgang til appen er deaktiveret af en admin. Kontakt din klub, hvis du mener det er en fejl.");
+    await signOut(auth);
+    return;
   }
   document.getElementById("login").classList.add("hidden");
   document.getElementById("mainNav").classList.remove("hidden");
@@ -545,9 +550,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.2 · live database aktiv");
+    setSyncStatus("v15.3 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.2 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.3 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -843,19 +848,28 @@ function renderAdmin(){
       return g && g!=="begge" ? `${y} (${g==="dreng"?"drenge":"piger"})` : y;
     }).join(", ") || "ingen";
     const isSelf = u.uid === currentUser?.uid;
-    return `<div class="coachrow"><div><b>${escapeHtml(u.email)}</b><div class="small">UID: ${u.uid}<br>Rolle: ${u.role || "coach"} · Årgange: ${yearsText}${u.active===false ? " · Inaktiv" : ""}</div></div>
+    const isInactive = u.active === false;
+    return `<div class="coachrow"><div><b>${escapeHtml(u.email)}</b><div class="small">UID: ${u.uid}<br>Rolle: ${u.role || "coach"} · Årgange: ${yearsText}${isInactive ? " · Inaktiv" : ""}</div></div>
       <div style="display:flex;gap:8px;flex-shrink:0">
         <button class="btn secondary smallbtn" onclick="editCoach('${u.uid}')">Rediger</button>
+        ${!isSelf ? `<button class="btn secondary smallbtn" onclick="toggleCoachActive('${u.uid}')">${isInactive ? "Aktiver" : "Deaktiver"}</button>` : ""}
         ${!isSelf ? `<button class="btn danger smallbtn" onclick="deleteCoach('${u.uid}')">Slet</button>` : ""}
       </div>
     </div>`;
   }).join("") : '<p class="small">Ingen trænere oprettet endnu.</p>';
 }
+async function toggleCoachActive(uid){
+  const u = users.find(x=>x.uid===uid);
+  if(!u) return;
+  if(uid === currentUser?.uid) return alert("Du kan ikke deaktivere din egen adgang.");
+  const makeActive = u.active === false;
+  await setDoc(doc(db,"users",uid), {active: makeActive, updatedAt: serverTimestamp()}, {merge:true});
+}
 async function deleteCoach(uid){
   const u = users.find(x=>x.uid===uid);
   if(!u) return;
   if(uid === currentUser?.uid) return alert("Du kan ikke slette din egen adgang.");
-  if(!confirm(`Slet trænerens adgang til appen: ${u.email}?\n\nDette fjerner adgangen med det samme (samme som en øjeblikkelig deaktivering), men sletter ikke selve login'et i Firebase Authentication - det skal admin gøre manuelt i Firebase-konsollen, hvis e-mailen skal kunne bruges til at oprette en helt ny bruger igen.`)) return;
+  if(!confirm(`Slet trænerens adgang til appen: ${u.email}?\n\nBemærk: dette sletter ikke selve login'et i Firebase Authentication (det kræver Firebase-konsollen), så samme e-mail kan IKKE bruges til at oprette en ny bruger bagefter, før det er ryddet manuelt der. Vil du blot lukke midlertidigt for adgang (og evt. åbne igen senere) uden det problem, så brug "Deaktiver" i stedet.`)) return;
   await deleteDoc(doc(db,"users",uid));
 }
 function yearGenderOptions(selectedValue){
@@ -929,11 +943,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.2 · migrering færdig");
+    setSyncStatus("v15.3 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.2 · migrering fejlede");
+    setSyncStatus("v15.3 · migrering fejlede");
   }
 }
 
@@ -1034,7 +1048,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.2 · uploader video...");
+    setSyncStatus("v15.3 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1055,12 +1069,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.2 · live database aktiv");
+    setSyncStatus("v15.3 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.2 · live database aktiv");
+    setSyncStatus("v15.3 · live database aktiv");
   }
 }
 
@@ -1639,7 +1653,7 @@ function renderChallengeBadge(){
 function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); }
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,markSubmissionViewed,deleteViewedSubmissionVideo,deleteCoach});
+Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,markSubmissionViewed,deleteViewedSubmissionVideo,deleteCoach,toggleCoachActive});
 </script>
 </body>
 </html>
