@@ -1,18 +1,25 @@
-// Reference Firebase Storage security rules for TIF Talent Tracker's
-// player training-video uploads. Not deployed automatically — see the
-// same note in firestore.rules about merging this with whatever is
-// currently configured in the Firebase console.
+// Firebase Storage security rules for TIF Talent Tracker's player training-video
+// uploads. This file IS deployed (see README for how); it is not just a reference.
 //
-// Videos are uploaded by the app to: submissions/{playerId}/{timestamp}_{filename}
+// Videos are uploaded by a player to: submissions/{playerId}/{timestamp}_{filename}
+// and deleted automatically by the app once a coach/admin has approved or rejected
+// the matching submission (see reviewSubmission() in index.html) - only the points/
+// pass-status persist after that, not the raw footage.
 
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     match /submissions/{playerId}/{fileName} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null
+
+      allow create: if request.auth != null
         && request.resource.size < 200 * 1024 * 1024
         && request.resource.contentType.matches('video/.*');
+
+      // Only a coach/admin may delete (matches who may approve/reject in firestore.rules) -
+      // a player can never delete their own or someone else's uploaded video directly.
+      allow delete: if request.auth != null
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'coach'];
     }
   }
 }

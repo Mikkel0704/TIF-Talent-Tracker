@@ -287,7 +287,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD-nsf6aP_l9fSA_kGRIAAHiHSvtgmDOlI",
@@ -1100,7 +1100,9 @@ function reviewCard(s, readOnly){
   return `<div class="exercise-block">
     <b>${escapeHtml(s.playerName)}</b> · ${escapeHtml(s.exercise)} · ${step ? step.label : ""} ${s.challengeId ? '<span class="pill guld">Udfordring</span>' : ""}
     <div class="small">${escapeHtml(yearLabel(s.year))} · Uploadet ${s.submittedAt ? new Date(s.submittedAt).toLocaleString("da-DK") : ""}</div>
-    <video controls preload="metadata" style="width:100%;border-radius:10px;margin:8px 0;background:#000" src="${s.videoURL}"></video>
+    ${s.videoURL
+      ? `<video controls preload="metadata" style="width:100%;border-radius:10px;margin:8px 0;background:#000" src="${s.videoURL}"></video>`
+      : `<p class="small" style="margin:8px 0">Videoen er slettet efter behandling.</p>`}
     ${readOnly ? `<div class="small">${submissionStatusPill(s)}</div>` : `
       <button class="btn smallbtn" onclick="reviewSubmission('${s.id}',true)">Godkend</button>
       <button class="btn danger smallbtn" onclick="reviewSubmission('${s.id}',false)">Afvis</button>
@@ -1153,6 +1155,17 @@ async function reviewSubmission(id, approve){
     await setDoc(doc(db, "players", p.id), {passed, points: (p.points||0)+pointsAwarded, history: history.slice(0,100), updatedAt: serverTimestamp()}, {merge:true});
   }
   await setDoc(doc(db, "submissions", id), {status: approve?"approved":"rejected", reviewedBy: currentUser?.email||"", reviewedAt: serverTimestamp(), pointsAwarded}, {merge:true});
+
+  // Points/bestået-status er nu gemt permanent på spilleren - selve videoen er ikke længere
+  // nødvendig, så den slettes fra Storage med det samme for ikke at opbevare børnevideo unødigt.
+  if(s.videoPath){
+    try{
+      await deleteObject(storageRef(storage, s.videoPath));
+      await setDoc(doc(db, "submissions", id), {videoURL: null, videoDeletedAt: serverTimestamp()}, {merge:true});
+    }catch(e){
+      console.error("kunne ikke slette video efter godkendelse", e);
+    }
+  }
 }
 
 function renderLeaderboard(){
