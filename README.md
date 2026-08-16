@@ -15,7 +15,7 @@ point og rang (avatar-niveau), og udfordre holdkammerater i de enkelte
 
 **Opsætning i Firebase:**
 1. **Storage er aktiveret** på Blaze-planen (pay-as-you-go), med bucket
-   `tif-talent-tracker.firebasestorage.app` i US-EAST1 (no-cost region —
+   `tif-talent-tracker.firebasestorage.app` i US-WEST1 (no-cost region —
    forventet forbrug for en enkelt klub ligger inden for den gratis
    kvote).
 2. **Sikkerhedsregler**: `firestore.rules` og `storage.rules` i dette
