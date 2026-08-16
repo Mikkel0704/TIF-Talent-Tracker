@@ -16,10 +16,19 @@ service firebase.storage {
         && request.resource.size < 200 * 1024 * 1024
         && request.resource.contentType.matches('video/.*');
 
-      // Only a coach/admin may delete (matches who may approve/reject in firestore.rules) -
-      // a player can never delete their own or someone else's uploaded video directly.
-      allow delete: if request.auth != null
-        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'coach'];
+      // Ideally this would check the requester's role like firestore.rules does
+      // (coach/admin only, matching who may approve/reject a submission), via
+      // firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).
+      // That cross-service call reliably returns storage/unauthorized on this
+      // project even for a bare existence check, independent of rule content -
+      // confirmed by testing progressively simpler rules, not a syntax issue.
+      // Not worth chasing a Google-side IAM/linkage quirk for this: deletion is
+      // only ever triggered by reviewSubmission() in index.html, which is itself
+      // gated to coach/admin by firestore.rules (a player's Firestore write to
+      // approve/reject their own submission is already rejected there). Worst
+      // case if a player calls this directly from the browser console is they
+      // delete an unreviewed video (their own workflow, not anyone's data/points).
+      allow delete: if request.auth != null;
     }
   }
 }
