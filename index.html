@@ -954,10 +954,16 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   }
 }
 
-function submitTraining(playerId, stepIndex, exercise){
+async function submitTraining(playerId, stepIndex, exercise){
   const input = document.getElementById(`upload_${stepIndex}_${exercise}`);
   const file = input?.files?.[0];
-  uploadSubmission(playerId, stepIndex, exercise, file).then(()=>{ if(input) input.value = ""; });
+  if(!file) return alert("Vælg en video først.");
+  const btn = document.getElementById(`uploadbtn_${stepIndex}_${exercise}`);
+  const originalText = btn?.textContent;
+  if(btn){ btn.disabled = true; btn.textContent = "Uploader..."; }
+  await uploadSubmission(playerId, stepIndex, exercise, file);
+  if(input) input.value = "";
+  if(btn){ btn.disabled = false; btn.textContent = originalText; }
 }
 
 function renderTraining(){
@@ -988,7 +994,7 @@ function renderTraining(){
         ${passed ? '' : pending ? `<p class="small">Video uploadet · afventer godkendelse fra træner.</p>` : `
           <label>Upload video af øvelsen</label>
           <input type="file" accept="video/*" capture="environment" id="upload_${si}_${escapeHtml(ex)}">
-          <button class="btn smallbtn" onclick="submitTraining('${p.id}',${si},'${ex}')">Upload</button>
+          <button class="btn smallbtn" id="uploadbtn_${si}_${escapeHtml(ex)}" onclick="submitTraining('${p.id}',${si},'${ex}')">Upload</button>
         `}
         ${mySubs.length ? `<div class="small" style="margin-top:6px">Historik: ${mySubs.slice(0,5).map(sub=>submissionStatusPill(sub)).join(" ")}</div>` : ""}
       </div>`;
@@ -1016,7 +1022,7 @@ function challengeCard(c, p, showActions){
     <b>${escapeHtml(c.exercise)} · ${step.label}</b>
     <div class="small">Mod: ${escapeHtml(otherName)} · ${statusText}</div>
     ${showActions ? `<button class="btn smallbtn" onclick="respondChallenge('${c.id}',true)">Accepter</button><button class="btn secondary smallbtn" onclick="respondChallenge('${c.id}',false)">Afvis</button>` : ""}
-    ${canUpload ? `<div style="margin-top:8px"><label>Upload video</label><input type="file" accept="video/*" capture="environment" id="chupload_${c.id}"><button class="btn smallbtn" onclick="submitChallengeVideo('${c.id}')">Upload</button></div>` : ""}
+    ${canUpload ? `<div style="margin-top:8px"><label>Upload video</label><input type="file" accept="video/*" capture="environment" id="chupload_${c.id}"><button class="btn smallbtn" id="chuploadbtn_${c.id}" onclick="submitChallengeVideo('${c.id}')">Upload</button></div>` : ""}
   </div>`;
 }
 
@@ -1075,12 +1081,18 @@ async function respondChallenge(challengeId, accept){
   await setDoc(doc(db, "challenges", challengeId), {status: accept?"active":"declined", respondedAt: serverTimestamp()}, {merge:true});
 }
 
-function submitChallengeVideo(challengeId){
+async function submitChallengeVideo(challengeId){
   const c = challenges.find(x=>x.id===challengeId);
   if(!c || !currentPlayerLink) return;
   const input = document.getElementById(`chupload_${challengeId}`);
   const file = input?.files?.[0];
-  uploadSubmission(currentPlayerLink.id, c.stepIndex, c.exercise, file, c.id).then(()=>{ if(input) input.value = ""; });
+  if(!file) return alert("Vælg en video først.");
+  const btn = document.getElementById(`chuploadbtn_${challengeId}`);
+  const originalText = btn?.textContent;
+  if(btn){ btn.disabled = true; btn.textContent = "Uploader..."; }
+  await uploadSubmission(currentPlayerLink.id, c.stepIndex, c.exercise, file, c.id);
+  if(input) input.value = "";
+  if(btn){ btn.disabled = false; btn.textContent = originalText; }
 }
 
 function reviewCard(s, readOnly){
