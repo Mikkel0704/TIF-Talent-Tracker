@@ -26,8 +26,9 @@
     #headerLogout{background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800;flex-shrink:0}
     .syncstatus{display:inline-block;font-size:12px;color:#064e3b;background:#d1fae5;padding:4px 8px;border-radius:999px;font-weight:800}
     nav{display:flex;gap:8px;overflow-x:auto;padding:10px 12px;background:#e9dfc8;border-bottom:1px solid var(--line)}
-    nav button{border:0;border-radius:999px;padding:10px 13px;background:white;color:var(--green);font-weight:700;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+    nav button{position:relative;border:0;border-radius:999px;padding:10px 13px;background:white;color:var(--green);font-weight:700;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.08)}
     nav button.active{background:var(--green2);color:white}
+    .navbadge{position:absolute;top:-4px;right:-4px;background:#dc2626;color:white;border-radius:999px;min-width:18px;height:18px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 0 0 2px #e9dfc8}
     main{padding:14px;max-width:980px;margin:0 auto}
     .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin:0 0 14px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
     h2{font-size:20px;margin:0 0 10px} h3{font-size:16px;margin:12px 0 8px}
@@ -104,7 +105,7 @@
   <button onclick="showPage('overview')" id="tab-overview">Overblik</button>
   <button onclick="showPage('review')" id="tab-review">Godkendelser</button>
   <button onclick="showPage('training')" id="tab-training" class="hidden">Træning</button>
-  <button onclick="showPage('challenges')" id="tab-challenges" class="hidden">Udfordringer</button>
+  <button onclick="showPage('challenges')" id="tab-challenges" class="hidden">Udfordringer<span id="challengeBadge" class="navbadge hidden"></span></button>
   <button onclick="showPage('leaderboard')" id="tab-leaderboard">Rangliste</button>
   <button onclick="showPage('profile')" id="tab-profile" class="hidden">Spillerprofil</button>
   <button onclick="showPage('criteria')" id="tab-criteria">Kriterier</button>
@@ -1416,7 +1417,15 @@ function exportBackupCsv(){
 }
 
 
-function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); }
+function renderChallengeBadge(){
+  const badge = document.getElementById("challengeBadge");
+  if(!badge) return;
+  const p = currentPlayerLink;
+  const count = p ? challenges.filter(c=>c.opponentId===p.id && c.status==="pending").length : 0;
+  badge.textContent = count > 9 ? "9+" : String(count);
+  badge.classList.toggle("hidden", count === 0);
+}
+function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); }
 function forceReload(){ location.reload(); }
 
 Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender});
