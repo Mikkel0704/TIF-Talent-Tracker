@@ -186,6 +186,7 @@
 <section id="leaderboard" class="page hidden">
   <div class="card">
     <h2>Rangliste</h2>
+    <div id="leaderboardPeriodArea"></div>
     <div id="leaderboardFilter"></div>
     <div id="leaderboardArea"></div>
   </div>
@@ -382,6 +383,30 @@ function tierForPoints(points){
 }
 function nextTier(points){ return RANK_TIERS.find(t=>t.min > (points||0)) || null; }
 
+function startOfWeek(d){
+  const date = new Date(d);
+  date.setHours(0,0,0,0);
+  const day = date.getDay(); // 0=søn,1=man,...6=lør
+  date.setDate(date.getDate() + (day===0 ? -6 : 1-day)); // mandag som ugestart
+  return date;
+}
+function startOfMonth(d){
+  const date = new Date(d);
+  date.setHours(0,0,0,0);
+  date.setDate(1);
+  return date;
+}
+function pointsInWindow(playerId, sinceDate){
+  return submissions
+    .filter(s=>s.playerId===playerId && s.status==="approved" && s.reviewedAt)
+    .filter(s=>{
+      const reviewedDate = s.reviewedAt.toDate ? s.reviewedAt.toDate() : new Date(s.reviewedAt);
+      return reviewedDate >= sinceDate;
+    })
+    .reduce((sum,s)=>sum+(s.pointsAwarded||0), 0);
+}
+function setLeaderboardPeriod(period){ leaderboardPeriod = period; renderLeaderboard(); }
+
 let currentUser = null;
 let currentUserDoc = null;
 let players = [];
@@ -391,6 +416,7 @@ let challenges = [];
 let currentPlayerLink = null;
 let selectedStepByPlayer = {};
 let playerListFilterYear = "all";
+let leaderboardPeriod = "all";
 let unsubPlayers = null;
 let unsubUsers = null;
 let unsubSubmissions = null;
@@ -1169,9 +1195,18 @@ async function reviewSubmission(id, approve){
 }
 
 function renderLeaderboard(){
+  const periodArea = document.getElementById("leaderboardPeriodArea");
   const filterArea = document.getElementById("leaderboardFilter");
   const area = document.getElementById("leaderboardArea");
   if(!area) return;
+
+  if(periodArea){
+    const periods = [["week","Denne uge"],["month","Denne måned"],["all","All-time"]];
+    periodArea.innerHTML = `<div class="stepbar">${periods.map(([key,label])=>
+      `<button type="button" class="step ${leaderboardPeriod===key?"current":""}" onclick="setLeaderboardPeriod('${key}')">${label}</button>`
+    ).join("")}</div>`;
+  }
+
   let list = players;
   if(!isPlayer() && filterArea){
     const years = allowedYears();
@@ -1182,14 +1217,20 @@ function renderLeaderboard(){
   } else if(filterArea){
     filterArea.innerHTML = "";
   }
-  const sorted = [...list].sort((a,b)=>(b.points||0)-(a.points||0));
+
+  const now = new Date();
+  const sinceDate = leaderboardPeriod==="week" ? startOfWeek(now) : leaderboardPeriod==="month" ? startOfMonth(now) : null;
+  const pointsFor = p => sinceDate ? pointsInWindow(p.id, sinceDate) : (p.points||0);
+
+  const sorted = [...list].sort((a,b)=>pointsFor(b)-pointsFor(a));
   area.innerHTML = sorted.map((p,i)=>{
-    const tier = tierForPoints(p.points);
+    const tier = tierForPoints(p.points); // rang-tier er altid baseret på all-time point
+    const periodPoints = pointsFor(p);
     const medalIcon = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`;
     const me = isPlayer() && currentPlayerLink && p.id===currentPlayerLink.id;
     return `<div class="player" style="${me?'background:#ecfdf5;border-radius:12px;padding:6px 10px':''}">
       <div><b>${medalIcon} ${escapeHtml(p.name)}</b><div class="small">${tier.icon} ${tier.name}</div></div>
-      <div class="pill guld">${p.points||0} point</div>
+      <div class="pill guld">${periodPoints} point</div>
     </div>`;
   }).join("") || '<p class="small">Ingen spillere endnu.</p>';
 }
@@ -1316,7 +1357,7 @@ function exportBackupCsv(){
 function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); }
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard});
+Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod});
 </script>
 </body>
 </html>
