@@ -579,6 +579,7 @@ function showPage(id){
   document.getElementById(id).classList.remove("hidden");
   document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
   document.getElementById("tab-"+id)?.classList.add("active");
+  if(id==="challenges" && isPlayer()) markChallengesSeen();
   renderAll();
 }
 
@@ -1115,6 +1116,13 @@ function challengeCard(c, p, showActions){
   </div>`;
 }
 
+function challengeStatsFor(playerId){
+  const mine = challenges.filter(c=>c.challengerId===playerId || c.opponentId===playerId);
+  const wins = mine.filter(c=>c.status==="completed" && c.winnerId===playerId).length;
+  const losses = mine.filter(c=>c.status==="completed" && c.winnerId && c.winnerId!==playerId).length;
+  return {wins, losses, total: mine.length};
+}
+
 function renderChallenges(){
   const area = document.getElementById("challengesArea");
   if(!area) return;
@@ -1122,13 +1130,23 @@ function renderChallenges(){
   if(!p){ area.innerHTML = '<p class="small">Din spillerprofil blev ikke fundet.</p>'; return; }
   const si = Math.min(currentStepIndex(p), steps.length-1);
   const opponents = opponentsForCurrentPlayer();
-  const mine = challenges.filter(c=>c.challengerId===p.id || c.opponentId===p.id);
+  const mine = challenges.filter(c=>c.challengerId===p.id || c.opponentId===p.id)
+    .sort((a,b)=>(challengeDecidedAt(b)?.getTime()||0)-(challengeDecidedAt(a)?.getTime()||0));
   const incoming = mine.filter(c=>c.opponentId===p.id && c.status==="pending");
   const active = mine.filter(c=>c.status==="active");
   const outgoingPending = mine.filter(c=>c.challengerId===p.id && c.status==="pending");
-  const done = mine.filter(c=>c.status==="completed" || c.status==="declined").slice(0,10);
+  const done = mine.filter(c=>c.status==="completed" || c.status==="declined");
+  const stats = challengeStatsFor(p.id);
 
   area.innerHTML = `
+    <div class="card">
+      <h3>Din statistik (all-time)</h3>
+      <div class="statuscards">
+        <div class="statuscard status-done"><b>🏆 Sejre</b>${stats.wins}</div>
+        <div class="statuscard status-none"><b>Nederlag</b>${stats.losses}</div>
+        <div class="statuscard status-progress"><b>I alt</b>${stats.total}</div>
+      </div>
+    </div>
     <div class="card">
       <h3>Udfordr en holdkammerat</h3>
       ${opponents.length===0 ? '<p class="small">Ingen andre spillere i din årgang endnu.</p>' : `
@@ -1144,7 +1162,7 @@ function renderChallenges(){
     ${incoming.length ? `<div class="card"><h3>Indkommende udfordringer</h3>${incoming.map(c=>challengeCard(c,p,true)).join("")}</div>` : ""}
     ${active.length ? `<div class="card"><h3>Aktive udfordringer</h3>${active.map(c=>challengeCard(c,p,false)).join("")}</div>` : ""}
     ${outgoingPending.length ? `<div class="card"><h3>Afsendte udfordringer</h3>${outgoingPending.map(c=>challengeCard(c,p,false)).join("")}</div>` : ""}
-    ${done.length ? `<div class="card"><h3>Afsluttede udfordringer</h3>${done.map(c=>challengeCard(c,p,false)).join("")}</div>` : ""}
+    ${done.length ? `<div class="card"><h3>Alle udfordringer (${done.length})</h3>${done.map(c=>challengeCard(c,p,false)).join("")}</div>` : ""}
   `;
 }
 
@@ -1417,11 +1435,36 @@ function exportBackupCsv(){
 }
 
 
+// "Set" holdes lokalt på enheden (localStorage), ikke i Firestore - undgår at skulle
+// give spillere skriveret til challenges-felter ud over accepter/afvis, og er fin til
+// et badge der bare skal markere "har du kigget forbi siden sidst".
+function lastSeenChallengesKey(playerId){ return `lastSeenChallenges_${playerId}`; }
+function getLastSeenChallenges(playerId){
+  const raw = localStorage.getItem(lastSeenChallengesKey(playerId));
+  return raw ? new Date(raw) : new Date(0);
+}
+function markChallengesSeen(){
+  if(!currentPlayerLink) return;
+  localStorage.setItem(lastSeenChallengesKey(currentPlayerLink.id), new Date().toISOString());
+}
+function challengeDecidedAt(c){
+  const ts = c.completedAt || c.respondedAt;
+  return ts?.toDate ? ts.toDate() : (ts ? new Date(ts) : null);
+}
 function renderChallengeBadge(){
   const badge = document.getElementById("challengeBadge");
   if(!badge) return;
   const p = currentPlayerLink;
-  const count = p ? challenges.filter(c=>c.opponentId===p.id && c.status==="pending").length : 0;
+  if(!p){ badge.classList.add("hidden"); return; }
+  const pendingIncoming = challenges.filter(c=>c.opponentId===p.id && c.status==="pending").length;
+  const lastSeen = getLastSeenChallenges(p.id);
+  const recentlyDecided = challenges.filter(c=>{
+    if(c.challengerId!==p.id && c.opponentId!==p.id) return false;
+    if(c.status!=="completed" && c.status!=="declined") return false;
+    const decidedAt = challengeDecidedAt(c);
+    return decidedAt && decidedAt > lastSeen;
+  }).length;
+  const count = pendingIncoming + recentlyDecided;
   badge.textContent = count > 9 ? "9+" : String(count);
   badge.classList.toggle("hidden", count === 0);
 }
