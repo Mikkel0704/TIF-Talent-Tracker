@@ -1,0 +1,18 @@
+// Reference Firebase Storage security rules for TIF Talent Tracker's
+// player training-video uploads. Not deployed automatically — see the
+// same note in firestore.rules about merging this with whatever is
+// currently configured in the Firebase console.
+//
+// Videos are uploaded by the app to: submissions/{playerId}/{timestamp}_{filename}
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /submissions/{playerId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.size < 200 * 1024 * 1024
+        && request.resource.contentType.matches('video/.*');
+    }
+  }
+}

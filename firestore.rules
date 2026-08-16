@@ -1,0 +1,88 @@
+// Reference Firestore security rules for TIF Talent Tracker, including the
+// new player gamification collections (submissions, challenges).
+//
+// IMPORTANT: This repo does not store your live, deployed Firestore rules
+// (they only live in the Firebase console / your local firebase.json setup).
+// This file is a best-effort REFERENCE covering the data model used by the
+// app, written to match the app's existing client-side access pattern
+// (each role reads whole collections and the app filters by year in the
+// browser). Before using it:
+//   1. Open Firebase console → Firestore Database → Rules, and compare
+//      against what is deployed today for the "users" and "players"
+//      collections, so you don't accidentally loosen or break existing
+//      protections.
+//   2. Add/merge in the "submissions" and "challenges" match blocks below,
+//      which are new in this release.
+//   3. Test in the Rules Playground (or `firebase emulators:start`) before
+//      publishing, especially the player-role paths.
+//
+// Data model this expects:
+//   users/{uid}        -> { email, role: "admin"|"coach"|"player", years: [...],
+//                            playerId? (only for role "player"), active, ... }
+//   players/{playerId} -> { name, year, note, passed: {...}, points, history: [...] }
+//   submissions/{id}   -> { playerId, playerName, year, exercise, stepIndex,
+//                            level, medal, videoPath, videoURL, status:
+//                            "pending"|"approved"|"rejected", challengeId,
+//                            submittedAt, submittedBy, reviewedBy, reviewedAt,
+//                            pointsAwarded }
+//   challenges/{id}    -> { exercise, stepIndex, level, medal, challengerId,
+//                            challengerName, opponentId, opponentName, year,
+//                            status: "pending"|"active"|"declined"|"completed",
+//                            winnerId, winnerName, createdAt, respondedAt,
+//                            completedAt }
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function myUserDoc() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function myRole() { return isSignedIn() ? myUserDoc().role : null; }
+    function isAdmin() { return myRole() == 'admin'; }
+    function isCoachOrAdmin() { return myRole() == 'coach' || myRole() == 'admin'; }
+    function isPlayerRole() { return myRole() == 'player'; }
+    function myPlayerId() { return myUserDoc().playerId; }
+
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || request.auth.uid == uid;
+    }
+
+    match /players/{playerId} {
+      // Coaches/admins read the whole collection and filter by year client-side.
+      // Players need read access to their own year group for the leaderboard
+      // and to pick challenge opponents.
+      allow read: if isSignedIn();
+      // Only coaches/admins may edit player records directly (passed[], points,
+      // history). Players never write their own player doc — points can only
+      // be granted by a coach approving a submission (see reviewSubmission()).
+      allow write: if isCoachOrAdmin();
+    }
+
+    match /submissions/{submissionId} {
+      allow read: if isSignedIn();
+      // A player may only create a submission for themselves, starting as "pending".
+      allow create: if isPlayerRole()
+        && request.resource.data.playerId == myPlayerId()
+        && request.resource.data.status == 'pending';
+      // Only coaches/admins may approve/reject (they are the only ones who can
+      // update an existing submission).
+      allow update: if isCoachOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /challenges/{challengeId} {
+      allow read: if isSignedIn();
+      // A player may only create a challenge where they are the challenger.
+      allow create: if isPlayerRole()
+        && request.resource.data.challengerId == myPlayerId();
+      allow update: if isCoachOrAdmin() || (
+        isPlayerRole()
+        && resource.data.opponentId == myPlayerId()
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['active', 'declined']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+      );
+      allow delete: if isAdmin();
+    }
+  }
+}

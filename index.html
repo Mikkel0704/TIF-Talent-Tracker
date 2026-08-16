@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v14.3</title>
+  <title>TIF Talent Tracker v15.0</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -42,7 +42,7 @@
     .player:first-child,.coachrow:first-child{border-top:0}
     .small{font-size:13px;color:var(--muted)}
     .pill{display:inline-block;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:800;margin:2px;background:#eee;white-space:nowrap}
-    .guld{background:var(--gold);color:#4b3600}.sølv{background:var(--silver);color:#263238}.bronze{background:var(--bronze);color:white}.none{background:#e5e7eb;color:#555}.greenpill{background:#d1fae5;color:#065f46}
+    .guld{background:var(--gold);color:#4b3600}.sølv{background:var(--silver);color:#263238}.bronze{background:var(--bronze);color:white}.none{background:#e5e7eb;color:#555}.greenpill{background:#d1fae5;color:#065f46}.pill.red{background:#fee2e2;color:#991b1b}
     table{width:100%;border-collapse:collapse;font-size:14px;overflow:hidden;border-radius:12px;background:white}
     th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:middle}
     th{background:#efe5cf}
@@ -90,13 +90,17 @@
 <header>
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
-  <div id="syncStatus" class="syncstatus">v14.3 · starter login...</div>
+  <div id="syncStatus" class="syncstatus">v15.0 · starter login...</div>
 </header>
 
 <nav id="mainNav" class="hidden">
   <button onclick="showPage('players')" id="tab-players" class="active">Spillere</button>
   <button onclick="showPage('track')" id="tab-track">Registrering</button>
   <button onclick="showPage('overview')" id="tab-overview">Overblik</button>
+  <button onclick="showPage('review')" id="tab-review">Godkendelser</button>
+  <button onclick="showPage('training')" id="tab-training" class="hidden">Træning</button>
+  <button onclick="showPage('challenges')" id="tab-challenges" class="hidden">Udfordringer</button>
+  <button onclick="showPage('leaderboard')" id="tab-leaderboard">Rangliste</button>
   <button onclick="showPage('profile')" id="tab-profile" class="hidden">Spillerprofil</button>
   <button onclick="showPage('criteria')" id="tab-criteria">Kriterier</button>
   <button onclick="showPage('guide')" id="tab-guide">Guide</button>
@@ -155,6 +159,38 @@
 </section>
 
 
+<section id="review" class="page hidden">
+  <div class="card">
+    <h2>Godkendelser</h2>
+    <p class="small">Spillere uploader videoer af sig selv, når de træner øvelserne hjemme. Se videoen og godkend eller afvis den. Godkendelse giver spilleren point og markerer øvelsen som bestået.</p>
+    <div id="reviewArea"></div>
+  </div>
+</section>
+
+<section id="training" class="page hidden">
+  <div class="card">
+    <h2>Træning</h2>
+    <p class="small">Se dine øvelser, øv derhjemme og upload en video af dig selv, så din træner kan godkende den.</p>
+    <div id="trainingArea"></div>
+  </div>
+</section>
+
+<section id="challenges" class="page hidden">
+  <div class="card">
+    <h2>Udfordringer</h2>
+    <p class="small">Udfordr en holdkammerat i en øvelse. Den der først får sin video godkendt af træneren vinder udfordringen og en bonus.</p>
+    <div id="challengesArea"></div>
+  </div>
+</section>
+
+<section id="leaderboard" class="page hidden">
+  <div class="card">
+    <h2>Rangliste</h2>
+    <div id="leaderboardFilter"></div>
+    <div id="leaderboardArea"></div>
+  </div>
+</section>
+
 <section id="profile" class="page hidden">
   <div class="card">
     <h2>Spillerprofil</h2>
@@ -202,6 +238,14 @@
       <div class="yearchecks" id="newCoachYears"></div>
       <button class="btn" onclick="createCoachFromAdmin()">Opret træner</button>
     </div>
+    <div class="createcoach">
+      <h3>Opret spillerlogin</h3>
+      <p class="small">Giver en eksisterende spiller sit eget login til at åbne appen derhjemme, uploade træningsvideoer, udfordre holdkammerater og se ranglisten. Spilleren bør skifte password efter første login under Indstillinger.</p>
+      <label>Vælg spiller</label><select id="newPlayerLoginPlayer"></select>
+      <label>Email</label><input id="newPlayerLoginEmail" placeholder="spiller@email.dk">
+      <label>Midlertidigt password</label><input id="newPlayerLoginPassword" type="password" placeholder="Min. 6 tegn">
+      <button class="btn" onclick="createPlayerLoginFromAdmin()">Opret spillerlogin</button>
+    </div>
     <button class="btn secondary" onclick="migrateOldPlayers()">Migrér gamle spillere fra sharedState</button>
     <button class="btn secondary" onclick="migrateYearsToBirthYears()">Migrér årgange til årstal</button>
     <p class="small">Brug kun knappen én gang. Den flytter gamle spillere fra tifTalentTracker/sharedState til players collection og sætter årgang ud fra note-feltet, fx U9.</p>
@@ -223,6 +267,12 @@
         <textarea id="backupBox" placeholder="Backup vises her"></textarea>
       </div>
       <div class="mutedbox">
+        <h3>Adgangskode</h3>
+        <p class="small">Skift din adgangskode.</p>
+        <label>Ny adgangskode</label><input id="newPasswordInput" type="password" placeholder="Min. 6 tegn">
+        <button class="btn secondary" onclick="changeOwnPassword()">Skift adgangskode</button>
+      </div>
+      <div class="mutedbox">
         <h3>App</h3>
         <button class="btn secondary" onclick="forceReload()">Genindlæs data</button>
         <button class="btn danger" onclick="logout()">Log ud</button>
@@ -231,12 +281,13 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v14.3 · filterfix på spillerlisten.</div>
+<div class="footer-note">TIF Talent Tracker v15.0 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD-nsf6aP_l9fSA_kGRIAAHiHSvtgmDOlI",
@@ -252,6 +303,7 @@ const auth = getAuth(app);
 const secondaryAppForUserCreation = initializeApp(firebaseConfig, "SecondaryUserCreation");
 const secondaryAuth = getAuth(secondaryAppForUserCreation);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 const defaultYears = ["2018","2017","2016","2015","2014","2013","2012","2011"];
 let localExtraYears = [];
@@ -312,17 +364,41 @@ const criteria = {
  "Kontrol": {1:{Bronze:["5 ud af 10","+ maks 3 berøringer"],Sølv:["6 ud af 10","+ maks 2 berøringer"],Guld:["7 ud af 10","+ maks 2 berøringer"]},2:{Bronze:["5 ud af 10","+ maks 2 berøringer","+ 1 dårligt ben"],Sølv:["6 ud af 10","+ maks 2 berøringer","+ 2 dårligt ben"],Guld:["7 ud af 10","+ 3 til hver side","+ inderside og yderside","+ 2 berøringer efter vending før afslutning"]},3:{Bronze:["6 ud af 10","+ maks 1 berøring","+ 2 med dårligt ben","+ 1 top"],Sølv:["7 ud af 10","+ maks 1 berøring","+ 3 med dårligt ben","+ 2 top"],Guld:["8 ud af 10","+ maks 1 berøring","+ 3 med dårligt ben","+ 4 top"]}}
 };
 
+const POINT_BASE = {Bronze:10, Sølv:20, Guld:35};
+const CHALLENGE_BONUS = 25;
+function pointsForStep(step){ return step.level*15 + POINT_BASE[step.medal]; }
+const RANK_TIERS = [
+ {name:"Rookie", min:0, icon:"🥉"},
+ {name:"Talent", min:100, icon:"⚽"},
+ {name:"Stjerne", min:250, icon:"⭐"},
+ {name:"Es", min:500, icon:"🔥"},
+ {name:"Mester", min:900, icon:"🏆"},
+ {name:"Legende", min:1500, icon:"👑"}
+];
+function tierForPoints(points){
+  let tier = RANK_TIERS[0];
+  for(const t of RANK_TIERS){ if((points||0) >= t.min) tier = t; }
+  return tier;
+}
+function nextTier(points){ return RANK_TIERS.find(t=>t.min > (points||0)) || null; }
+
 let currentUser = null;
 let currentUserDoc = null;
 let players = [];
 let users = [];
+let submissions = [];
+let challenges = [];
+let currentPlayerLink = null;
 let selectedStepByPlayer = {};
 let playerListFilterYear = "all";
 let unsubPlayers = null;
 let unsubUsers = null;
+let unsubSubmissions = null;
+let unsubChallenges = null;
 
 function setSyncStatus(text){ document.getElementById("syncStatus").textContent = text; }
 function isAdmin(){ return currentUserDoc?.role === "admin"; }
+function isPlayer(){ return currentUserDoc?.role === "player"; }
 function allowedYears(){ return isAdmin() ? allKnownYears() : normalizeYearsList(currentUserDoc?.years || []); }
 function canAccessYear(y){ return isAdmin() || allowedYears().includes(normalizeYearValue(y)); }
 function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[s])); }
@@ -355,7 +431,7 @@ onAuthStateChanged(auth, async (user)=>{
   if(!user){
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
-    setSyncStatus("v14.3 · ikke logget ind");
+    setSyncStatus("v15.0 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -368,9 +444,13 @@ onAuthStateChanged(auth, async (user)=>{
   }
   document.getElementById("login").classList.add("hidden");
   document.getElementById("mainNav").classList.remove("hidden");
+  const coachOnlyTabs = ["tab-players","tab-track","tab-overview","tab-review"];
+  const playerOnlyTabs = ["tab-training","tab-challenges"];
+  coachOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = isPlayer() ? "none" : ""; });
+  playerOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = isPlayer() ? "" : "none"; });
   document.getElementById("tab-admin").style.display = isAdmin() ? "" : "none";
   document.getElementById("userInfo").textContent = `${user.email} · ${currentUserDoc.role || "coach"} · adgang: ${allowedYears().join(", ") || "ingen årgange endnu"}`;
-  showPage("players");
+  showPage(isPlayer() ? "training" : "players");
   startListeners();
 });
 
@@ -378,9 +458,17 @@ function startListeners(){
   if(unsubPlayers) unsubPlayers();
   unsubPlayers = onSnapshot(collection(db, "players"), (snap)=>{
     players = snap.docs.map(d=>migratePlayer({id:d.id, ...d.data()})).filter(p=>canAccessYear(p.year));
-    setSyncStatus("v14.3 · live database aktiv");
+    if(isPlayer()){
+      currentPlayerLink = players.find(p=>p.id===currentUserDoc.playerId) || null;
+      if(currentPlayerLink){
+        selectedProfilePlayerId = currentPlayerLink.id;
+        const tab = document.getElementById("tab-profile");
+        if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
+      }
+    }
+    setSyncStatus("v15.0 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v14.3 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.0 · databasefejl: " + e.code));
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
     unsubUsers = onSnapshot(collection(db, "users"), (snap)=>{
@@ -390,6 +478,16 @@ function startListeners(){
       renderAll();
     });
   }
+  if(unsubSubmissions) unsubSubmissions();
+  unsubSubmissions = onSnapshot(collection(db, "submissions"), (snap)=>{
+    submissions = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderAll();
+  }, (e)=>console.error("submissions listener", e));
+  if(unsubChallenges) unsubChallenges();
+  unsubChallenges = onSnapshot(collection(db, "challenges"), (snap)=>{
+    challenges = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderAll();
+  }, (e)=>console.error("challenges listener", e));
 }
 
 function showPage(id){
@@ -447,7 +545,7 @@ async function addPlayer(){
   if(!canAccessYear(year)) return alert("Du har ikke adgang til denne årgang");
   const id = Date.now().toString();
   await setDoc(doc(db,"players",id), {
-    name, year, note, passed:{},
+    name, year, note, passed:{}, points:0,
     history:[{type:"created", text:"Spiller oprettet", by: currentUser?.email || "", at: new Date().toISOString()}],
     createdAt:serverTimestamp(), updatedAt:serverTimestamp()
   });
@@ -623,9 +721,20 @@ function renderAdmin(){
   if(newYears && isAdmin()){
     newYears.innerHTML = allKnownYears().map(y=>`<label class="checkpill"><input type="checkbox" class="newCoachYear" value="${y}"> ${y}</label>`).join("");
   }
+  const playerLoginSelect = document.getElementById("newPlayerLoginPlayer");
+  if(playerLoginSelect && isAdmin()){
+    const linkedPlayerIds = new Set(users.filter(u=>u.role==="player" && u.playerId).map(u=>u.playerId));
+    const available = players.filter(p=>!linkedPlayerIds.has(p.id));
+    playerLoginSelect.innerHTML = available.length
+      ? available.map(p=>`<option value="${p.id}">${escapeHtml(p.name)} (${yearLabel(p.year)})</option>`).join("")
+      : '<option value="">Ingen ledige spillere</option>';
+  }
   const area=document.getElementById("adminArea");
   if(!area || !isAdmin()) return;
-  area.innerHTML = users.map(u=>`<div class="coachrow"><div><b>${escapeHtml(u.email)}</b><div class="small">UID: ${u.uid}<br>Rolle: ${u.role || "coach"} · Årgange: ${(u.years||[]).join(", ") || "ingen"}</div></div><button class="btn secondary smallbtn" onclick="editCoach('${u.uid}')">Rediger</button></div>`).join("");
+  area.innerHTML = users.map(u=>{
+    const linkedPlayer = u.role==="player" ? players.find(p=>p.id===u.playerId) : null;
+    return `<div class="coachrow"><div><b>${escapeHtml(u.email)}</b><div class="small">UID: ${u.uid}<br>Rolle: ${u.role || "coach"} · Årgange: ${(u.years||[]).join(", ") || "ingen"}${linkedPlayer ? ` · Spiller: ${escapeHtml(linkedPlayer.name)}` : ""}</div></div>${u.role!=="player" ? `<button class="btn secondary smallbtn" onclick="editCoach('${u.uid}')">Rediger</button>` : ""}</div>`;
+  }).join("");
 }
 function editCoach(uid){
   const u=users.find(x=>x.uid===uid);
@@ -689,11 +798,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v14.3 · migrering færdig");
+    setSyncStatus("v15.0 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v14.3 · migrering fejlede");
+    setSyncStatus("v15.0 · migrering fejlede");
   }
 }
 
@@ -727,6 +836,301 @@ async function createCoachFromAdmin(){
     console.error(e);
     alert("Kunne ikke oprette træner: " + e.message);
   }
+}
+
+async function createPlayerLoginFromAdmin(){
+  if(!isAdmin()) return alert("Kun admin kan oprette spillerlogin.");
+  const playerId = document.getElementById("newPlayerLoginPlayer").value;
+  const email = document.getElementById("newPlayerLoginEmail").value.trim();
+  const password = document.getElementById("newPlayerLoginPassword").value;
+  const p = players.find(x=>x.id===playerId);
+  if(!p) return alert("Vælg en spiller.");
+  if(!email) return alert("Skriv spillerens email.");
+  if(!password || password.length < 6) return alert("Password skal være mindst 6 tegn.");
+  try{
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    await setDoc(doc(db, "users", cred.user.uid), {
+      email,
+      role: "player",
+      playerId: p.id,
+      years: [p.year],
+      active: true,
+      createdBy: currentUser?.email || "",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }, {merge:true});
+    await signOut(secondaryAuth);
+    document.getElementById("newPlayerLoginEmail").value = "";
+    document.getElementById("newPlayerLoginPassword").value = "";
+    alert("Spillerlogin oprettet til " + p.name + ": " + email);
+  }catch(e){
+    console.error(e);
+    alert("Kunne ikke oprette spillerlogin: " + e.message);
+  }
+}
+
+async function changeOwnPassword(){
+  const pw = document.getElementById("newPasswordInput").value;
+  if(!pw || pw.length < 6) return alert("Adgangskoden skal være mindst 6 tegn.");
+  try{
+    await updatePassword(currentUser, pw);
+    document.getElementById("newPasswordInput").value = "";
+    alert("Adgangskode ændret.");
+  }catch(e){
+    alert("Kunne ikke skifte adgangskode: " + e.message + ". Log evt. ud og ind igen, og prøv igen.");
+  }
+}
+
+function submissionStatusPill(sub){
+  const cls = sub.status==="approved" ? "greenpill" : sub.status==="rejected" ? "red" : "guld";
+  const label = sub.status==="approved" ? "Godkendt" : sub.status==="rejected" ? "Afvist" : "Afventer";
+  return `<span class="pill ${cls}">${label}</span>`;
+}
+
+async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId){
+  if(!file) return alert("Vælg en video først.");
+  if(file.size > 200*1024*1024) return alert("Videoen er for stor (maks 200 MB).");
+  const p = currentPlayerLink;
+  if(!p) return alert("Din spillerprofil blev ikke fundet.");
+  try{
+    setSyncStatus("v15.0 · uploader video...");
+    const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
+    const sref = storageRef(storage, path);
+    await uploadBytes(sref, file);
+    const url = await getDownloadURL(sref);
+    const step = steps[stepIndex];
+    await addDoc(collection(db, "submissions"), {
+      playerId, playerName: p.name, year: p.year,
+      exercise, stepIndex, level: step.level, medal: step.medal,
+      videoPath: path, videoURL: url,
+      status: "pending",
+      challengeId: challengeId || null,
+      submittedAt: new Date().toISOString(),
+      submittedBy: currentUser?.email || "",
+      createdAt: serverTimestamp()
+    });
+    setSyncStatus("v15.0 · live database aktiv");
+    alert("Video uploadet! Din træner skal godkende den.");
+  }catch(e){
+    console.error(e);
+    alert("Upload fejlede: " + e.message);
+    setSyncStatus("v15.0 · live database aktiv");
+  }
+}
+
+function submitTraining(playerId, stepIndex, exercise){
+  const input = document.getElementById(`upload_${stepIndex}_${exercise}`);
+  const file = input?.files?.[0];
+  uploadSubmission(playerId, stepIndex, exercise, file).then(()=>{ if(input) input.value = ""; });
+}
+
+function renderTraining(){
+  const area = document.getElementById("trainingArea");
+  if(!area) return;
+  const p = currentPlayerLink;
+  if(!p){ area.innerHTML = '<p class="small">Din spillerprofil blev ikke fundet. Kontakt din træner.</p>'; return; }
+  const si = currentStepIndex(p);
+  const atMax = si >= steps.length;
+  const s = atMax ? steps[steps.length-1] : steps[si];
+  const tier = tierForPoints(p.points);
+  area.innerHTML = `
+    <div class="profilebox">
+      <h3>${tier.icon} ${escapeHtml(p.name)} · ${tier.name}</h3>
+      <p class="small">${p.points||0} point · ${atMax ? "Alle niveauer gennemført" : `Aktuelt niveau: ${s.label}`}</p>
+    </div>
+    ${atMax ? '<p class="small">Du har gennemført alle niveauer. Tal med din træner om næste skridt!</p>' : exercises.map(ex=>{
+      const d = exerciseDescriptions[ex];
+      const c = criteria[ex][s.level][s.medal];
+      const passed = !!p.passed?.[getKey(si,ex)];
+      const mySubs = submissions.filter(sub=>sub.playerId===p.id && sub.exercise===ex && sub.stepIndex===si && !sub.challengeId)
+        .sort((a,b)=>(b.submittedAt||"").localeCompare(a.submittedAt||""));
+      const pending = mySubs.find(sub=>sub.status==="pending");
+      return `<div class="exercise-block">
+        <h3>${escapeHtml(ex)} ${passed?'<span class="pill greenpill">✓ Bestået</span>':''}</h3>
+        <p class="small">${escapeHtml(d.Formål)}</p>
+        <p class="small"><b>Krav (${s.medal}):</b> ${c.map(escapeHtml).join(" · ")}</p>
+        ${passed ? '' : pending ? `<p class="small">Video uploadet · afventer godkendelse fra træner.</p>` : `
+          <label>Upload video af øvelsen</label>
+          <input type="file" accept="video/*" capture="environment" id="upload_${si}_${escapeHtml(ex)}">
+          <button class="btn smallbtn" onclick="submitTraining('${p.id}',${si},'${ex}')">Upload</button>
+        `}
+        ${mySubs.length ? `<div class="small" style="margin-top:6px">Historik: ${mySubs.slice(0,5).map(sub=>submissionStatusPill(sub)).join(" ")}</div>` : ""}
+      </div>`;
+    }).join("")}
+  `;
+}
+
+function opponentsForCurrentPlayer(){
+  const p = currentPlayerLink;
+  if(!p) return [];
+  return players.filter(x=>x.id!==p.id && normalizeYearValue(x.year)===normalizeYearValue(p.year));
+}
+
+function challengeCard(c, p, showActions){
+  const step = steps[c.stepIndex] || steps[0];
+  const youAreChallenger = c.challengerId===p.id;
+  const otherName = youAreChallenger ? c.opponentName : c.challengerName;
+  let statusText = "";
+  if(c.status==="pending") statusText = youAreChallenger ? "Afventer svar" : "Ny udfordring";
+  if(c.status==="active") statusText = "I gang";
+  if(c.status==="declined") statusText = "Afvist";
+  if(c.status==="completed") statusText = c.winnerId===p.id ? "Du vandt! 🏆" : c.winnerId ? `${escapeHtml(c.winnerName)} vandt` : "Afsluttet";
+  const canUpload = c.status==="active" && !submissions.some(sub=>sub.challengeId===c.id && sub.playerId===p.id);
+  return `<div class="exercise-block">
+    <b>${escapeHtml(c.exercise)} · ${step.label}</b>
+    <div class="small">Mod: ${escapeHtml(otherName)} · ${statusText}</div>
+    ${showActions ? `<button class="btn smallbtn" onclick="respondChallenge('${c.id}',true)">Accepter</button><button class="btn secondary smallbtn" onclick="respondChallenge('${c.id}',false)">Afvis</button>` : ""}
+    ${canUpload ? `<div style="margin-top:8px"><label>Upload video</label><input type="file" accept="video/*" capture="environment" id="chupload_${c.id}"><button class="btn smallbtn" onclick="submitChallengeVideo('${c.id}')">Upload</button></div>` : ""}
+  </div>`;
+}
+
+function renderChallenges(){
+  const area = document.getElementById("challengesArea");
+  if(!area) return;
+  const p = currentPlayerLink;
+  if(!p){ area.innerHTML = '<p class="small">Din spillerprofil blev ikke fundet.</p>'; return; }
+  const si = Math.min(currentStepIndex(p), steps.length-1);
+  const opponents = opponentsForCurrentPlayer();
+  const mine = challenges.filter(c=>c.challengerId===p.id || c.opponentId===p.id);
+  const incoming = mine.filter(c=>c.opponentId===p.id && c.status==="pending");
+  const active = mine.filter(c=>c.status==="active");
+  const outgoingPending = mine.filter(c=>c.challengerId===p.id && c.status==="pending");
+  const done = mine.filter(c=>c.status==="completed" || c.status==="declined").slice(0,10);
+
+  area.innerHTML = `
+    <div class="card">
+      <h3>Udfordr en holdkammerat</h3>
+      ${opponents.length===0 ? '<p class="small">Ingen andre spillere i din årgang endnu.</p>' : `
+      <label>Modstander</label>
+      <select id="challengeOpponent">${opponents.map(o=>`<option value="${o.id}">${escapeHtml(o.name)}</option>`).join("")}</select>
+      <label>Øvelse</label>
+      <select id="challengeExercise">${exercises.map(e=>`<option>${e}</option>`).join("")}</select>
+      <label>Niveau</label>
+      <select id="challengeStep">${steps.slice(0, si+1).map((s,i)=>`<option value="${i}">${s.label}</option>`).join("")}</select>
+      <button class="btn" onclick="createChallenge('${p.id}')">Send udfordring</button>
+      `}
+    </div>
+    ${incoming.length ? `<div class="card"><h3>Indkommende udfordringer</h3>${incoming.map(c=>challengeCard(c,p,true)).join("")}</div>` : ""}
+    ${active.length ? `<div class="card"><h3>Aktive udfordringer</h3>${active.map(c=>challengeCard(c,p,false)).join("")}</div>` : ""}
+    ${outgoingPending.length ? `<div class="card"><h3>Afsendte udfordringer</h3>${outgoingPending.map(c=>challengeCard(c,p,false)).join("")}</div>` : ""}
+    ${done.length ? `<div class="card"><h3>Afsluttede udfordringer</h3>${done.map(c=>challengeCard(c,p,false)).join("")}</div>` : ""}
+  `;
+}
+
+async function createChallenge(playerId){
+  const p = currentPlayerLink;
+  const opponentId = document.getElementById("challengeOpponent").value;
+  const opponent = players.find(x=>x.id===opponentId);
+  const exercise = document.getElementById("challengeExercise").value;
+  const stepIndex = Number(document.getElementById("challengeStep").value);
+  if(!opponent) return alert("Vælg en modstander.");
+  await addDoc(collection(db, "challenges"), {
+    exercise, stepIndex, level: steps[stepIndex].level, medal: steps[stepIndex].medal,
+    challengerId: playerId, challengerName: p.name,
+    opponentId: opponent.id, opponentName: opponent.name,
+    year: p.year,
+    status: "pending",
+    createdAt: serverTimestamp()
+  });
+  alert("Udfordring sendt til " + opponent.name + "!");
+}
+
+async function respondChallenge(challengeId, accept){
+  await setDoc(doc(db, "challenges", challengeId), {status: accept?"active":"declined", respondedAt: serverTimestamp()}, {merge:true});
+}
+
+function submitChallengeVideo(challengeId){
+  const c = challenges.find(x=>x.id===challengeId);
+  if(!c || !currentPlayerLink) return;
+  const input = document.getElementById(`chupload_${challengeId}`);
+  const file = input?.files?.[0];
+  uploadSubmission(currentPlayerLink.id, c.stepIndex, c.exercise, file, c.id).then(()=>{ if(input) input.value = ""; });
+}
+
+function reviewCard(s, readOnly){
+  const step = steps[s.stepIndex];
+  return `<div class="exercise-block">
+    <b>${escapeHtml(s.playerName)}</b> · ${escapeHtml(s.exercise)} · ${step ? step.label : ""} ${s.challengeId ? '<span class="pill guld">Udfordring</span>' : ""}
+    <div class="small">${escapeHtml(yearLabel(s.year))} · Uploadet ${s.submittedAt ? new Date(s.submittedAt).toLocaleString("da-DK") : ""}</div>
+    <video controls preload="metadata" style="width:100%;border-radius:10px;margin:8px 0;background:#000" src="${s.videoURL}"></video>
+    ${readOnly ? `<div class="small">${submissionStatusPill(s)}</div>` : `
+      <button class="btn smallbtn" onclick="reviewSubmission('${s.id}',true)">Godkend</button>
+      <button class="btn danger smallbtn" onclick="reviewSubmission('${s.id}',false)">Afvis</button>
+    `}
+  </div>`;
+}
+
+function renderReview(){
+  const area = document.getElementById("reviewArea");
+  if(!area) return;
+  const pending = submissions.filter(s=>canAccessYear(s.year) && s.status==="pending")
+    .sort((a,b)=>(a.submittedAt||"").localeCompare(b.submittedAt||""));
+  const recent = submissions.filter(s=>canAccessYear(s.year) && s.status!=="pending")
+    .sort((a,b)=>(b.submittedAt||"").localeCompare(a.submittedAt||"")).slice(0,15);
+  area.innerHTML = `
+    <h3>Afventer godkendelse (${pending.length})</h3>
+    ${pending.length===0 ? '<p class="small">Ingen ventende videoer.</p>' : pending.map(s=>reviewCard(s)).join("")}
+    <h3 style="margin-top:16px">Seneste behandlede</h3>
+    ${recent.length===0 ? '<p class="small">Ingen endnu.</p>' : recent.map(s=>reviewCard(s,true)).join("")}
+  `;
+}
+
+async function reviewSubmission(id, approve){
+  const s = submissions.find(x=>x.id===id);
+  if(!s) return;
+  const p = players.find(x=>x.id===s.playerId);
+  if(!p || !canAccessYear(s.year)) return alert("Ingen adgang");
+  let pointsAwarded = 0;
+  if(approve){
+    const step = steps[s.stepIndex];
+    pointsAwarded = pointsForStep(step);
+    const passed = {...(p.passed||{})};
+    passed[getKey(s.stepIndex, s.exercise)] = true;
+    const history = [...(p.history||[])];
+    let bonusText = "";
+    if(s.challengeId){
+      const c = challenges.find(x=>x.id===s.challengeId);
+      if(c && c.status==="active" && !c.winnerId){
+        pointsAwarded += CHALLENGE_BONUS;
+        bonusText = ` (+${CHALLENGE_BONUS} udfordringsbonus)`;
+        await setDoc(doc(db, "challenges", c.id), {winnerId: p.id, winnerName: p.name, status: "completed", completedAt: serverTimestamp()}, {merge:true});
+      }
+    }
+    history.unshift({
+      type: "submission_approved",
+      text: `${s.exercise} · ${step.label} godkendt via video${bonusText}: +${pointsAwarded} point`,
+      by: currentUser?.email || "",
+      at: new Date().toISOString()
+    });
+    await setDoc(doc(db, "players", p.id), {passed, points: (p.points||0)+pointsAwarded, history: history.slice(0,100), updatedAt: serverTimestamp()}, {merge:true});
+  }
+  await setDoc(doc(db, "submissions", id), {status: approve?"approved":"rejected", reviewedBy: currentUser?.email||"", reviewedAt: serverTimestamp(), pointsAwarded}, {merge:true});
+}
+
+function renderLeaderboard(){
+  const filterArea = document.getElementById("leaderboardFilter");
+  const area = document.getElementById("leaderboardArea");
+  if(!area) return;
+  let list = players;
+  if(!isPlayer() && filterArea){
+    const years = allowedYears();
+    const prev = document.getElementById("leaderboardYear")?.value || "all";
+    filterArea.innerHTML = `<label>Årgang</label><select id="leaderboardYear" onchange="renderLeaderboard()"><option value="all">Alle mine årgange</option>${years.map(y=>`<option value="${normalizeYearValue(y)}">${yearLabel(y)}</option>`).join("")}</select>`;
+    document.getElementById("leaderboardYear").value = prev;
+    if(prev !== "all") list = players.filter(p=>normalizeYearValue(p.year)===normalizeYearValue(prev));
+  } else if(filterArea){
+    filterArea.innerHTML = "";
+  }
+  const sorted = [...list].sort((a,b)=>(b.points||0)-(a.points||0));
+  area.innerHTML = sorted.map((p,i)=>{
+    const tier = tierForPoints(p.points);
+    const medalIcon = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`;
+    const me = isPlayer() && currentPlayerLink && p.id===currentPlayerLink.id;
+    return `<div class="player" style="${me?'background:#ecfdf5;border-radius:12px;padding:6px 10px':''}">
+      <div><b>${medalIcon} ${escapeHtml(p.name)}</b><div class="small">${tier.icon} ${tier.name}</div></div>
+      <div class="pill guld">${p.points||0} point</div>
+    </div>`;
+  }).join("") || '<p class="small">Ingen spillere endnu.</p>';
 }
 
 async function migrateYearsToBirthYears(){
@@ -768,7 +1172,7 @@ function openPlayerProfile(pid){
 function renderPlayerProfile(){
   const area = document.getElementById("profileArea");
   if(!area) return;
-  const p = players.find(x=>x.id===selectedProfilePlayerId) || players[0];
+  const p = players.find(x=>x.id===selectedProfilePlayerId) || (isPlayer() ? currentPlayerLink : players[0]);
   if(!p){
     area.innerHTML = '<p class="small">Vælg en spiller fra spillerlisten.</p>';
     return;
@@ -781,6 +1185,15 @@ function renderPlayerProfile(){
     const cls = cnt === 5 ? "greenpill" : cnt > 0 ? "guld" : "none";
     return `<span class="pill ${cls}">N${s.level} ${s.medal}: ${cnt}/5</span>`;
   }).join("");
+  const points = p.points || 0;
+  const tier = tierForPoints(points);
+  const next = nextTier(points);
+  const progressPct = next ? Math.round(((points - tier.min) / (next.min - tier.min)) * 100) : 100;
+  const rankBox = `<div class="profilebox">
+    <h3>${tier.icon} ${tier.name}</h3>
+    <p class="small">${points} point ${next ? `· ${next.min - points} point til ${next.icon} ${next.name}` : "· Højeste rang opnået!"}</p>
+    <div style="background:#eee;border-radius:999px;height:10px;overflow:hidden"><div style="background:var(--green2);height:100%;width:${progressPct}%"></div></div>
+  </div>`;
   const history = (p.history || []).slice(0,25).map(h=>{
     const date = h.at ? new Date(h.at).toLocaleString("da-DK") : "";
     return `<div class="historyitem"><b>${escapeHtml(h.text || h.type || "Ændring")}</b><div class="small">${escapeHtml(date)} · ${escapeHtml(h.by || "")}</div></div>`;
@@ -791,8 +1204,9 @@ function renderPlayerProfile(){
       <div class="profilebox">
         <h3>${escapeHtml(p.name)}</h3>
         <p class="small">Årgang: ${escapeHtml(yearLabel(p.year))}<br>Note: ${escapeHtml(p.note || "")}<br>Status: ${escapeHtml(currentText)}</p>
-        <button class="btn secondary" onclick="selectProfileForTracking('${p.id}')">Åbn i registrering</button>
+        ${!isPlayer() ? `<button class="btn secondary" onclick="selectProfileForTracking('${p.id}')">Åbn i registrering</button>` : ""}
       </div>
+      ${rankBox}
       <div class="profilebox">
         <h3>Niveauer</h3>
         ${stepSummary}
@@ -838,10 +1252,10 @@ function exportBackupCsv(){
 }
 
 
-function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); renderPlayerProfile(); }
+function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); }
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear});
+Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard});
 </script>
 </body>
 </html>
