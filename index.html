@@ -425,6 +425,7 @@ let currentPlayerLink = null;
 let selectedStepByPlayer = {};
 let playerListFilterYear = "all";
 let leaderboardPeriod = "all";
+let challengeCreateType = "exercise";
 let unsubPlayers = null;
 let unsubUsers = null;
 let unsubSubmissions = null;
@@ -1024,10 +1025,10 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
     const url = await getDownloadURL(sref);
-    const step = steps[stepIndex];
+    const step = stepIndex!=null ? steps[stepIndex] : null;
     await addDoc(collection(db, "submissions"), {
       playerId, playerName: p.name, year: p.year, gender: p.gender || null,
-      exercise, stepIndex, level: step.level, medal: step.medal,
+      exercise, stepIndex: stepIndex ?? null, level: step?.level ?? null, medal: step?.medal ?? null,
       videoPath: path, videoURL: url,
       status: "pending",
       challengeId: challengeId || null,
@@ -1099,7 +1100,8 @@ function opponentsForCurrentPlayer(){
 }
 
 function challengeCard(c, p, showActions){
-  const step = steps[c.stepIndex] || steps[0];
+  const isFreestyle = c.type === "freestyle";
+  const headerText = isFreestyle ? escapeHtml(c.title) : `${escapeHtml(c.exercise)} · ${(steps[c.stepIndex]||steps[0]).label}`;
   const youAreChallenger = c.challengerId===p.id;
   const otherName = youAreChallenger ? c.opponentName : c.challengerName;
   let statusText = "";
@@ -1109,7 +1111,7 @@ function challengeCard(c, p, showActions){
   if(c.status==="completed") statusText = c.winnerId===p.id ? "Du vandt! 🏆" : c.winnerId ? `${escapeHtml(c.winnerName)} vandt` : "Afsluttet";
   const canUpload = c.status==="active" && !submissions.some(sub=>sub.challengeId===c.id && sub.playerId===p.id);
   return `<div class="exercise-block">
-    <b>${escapeHtml(c.exercise)} · ${step.label}</b>
+    <b>${headerText}</b> ${isFreestyle ? '<span class="pill guld">Fri</span>' : ''}
     <div class="small">Mod: ${escapeHtml(otherName)} · ${statusText}</div>
     ${showActions ? `<button class="btn smallbtn" onclick="respondChallenge('${c.id}',true)">Accepter</button><button class="btn secondary smallbtn" onclick="respondChallenge('${c.id}',false)">Afvis</button>` : ""}
     ${canUpload ? `<div style="margin-top:8px"><label>Upload video</label><input type="file" accept="video/*" id="chupload_${c.id}"><button class="btn smallbtn" id="chuploadbtn_${c.id}" onclick="submitChallengeVideo('${c.id}')">Upload</button></div>` : ""}
@@ -1150,12 +1152,26 @@ function renderChallenges(){
     <div class="card">
       <h3>Udfordr en holdkammerat</h3>
       ${opponents.length===0 ? '<p class="small">Ingen andre spillere i din årgang endnu.</p>' : `
+      <div class="stepbar" style="grid-template-columns:1fr 1fr">
+        <button type="button" class="step ${challengeCreateType==="exercise"?"current":""}" onclick="setChallengeCreateType('exercise')">Øvelse</button>
+        <button type="button" class="step ${challengeCreateType==="freestyle"?"current":""}" onclick="setChallengeCreateType('freestyle')">Fri udfordring</button>
+      </div>
       <label>Modstander</label>
       <select id="challengeOpponent">${opponents.map(o=>`<option value="${o.id}">${escapeHtml(o.name)}</option>`).join("")}</select>
+      ${challengeCreateType==="exercise" ? `
       <label>Øvelse</label>
       <select id="challengeExercise">${exercises.map(e=>`<option>${e}</option>`).join("")}</select>
       <label>Niveau</label>
       <select id="challengeStep">${steps.slice(0, si+1).map((s,i)=>`<option value="${i}">${s.label}</option>`).join("")}</select>
+      ` : `
+      <label>Vælg en type, eller skriv din egen</label>
+      <p>
+        <button type="button" class="btn secondary smallbtn" onclick="fillFreestylePreset('Flest jongleringer')">Flest jongleringer</button>
+        <button type="button" class="btn secondary smallbtn" onclick="fillFreestylePreset('Fedeste trick')">Fedeste trick</button>
+        <button type="button" class="btn secondary smallbtn" onclick="fillFreestylePreset('Tættest på hjørnet')">Tættest på hjørnet</button>
+      </p>
+      <input id="challengeFreeTitle" placeholder="Fx flest jongleringer på 30 sekunder...">
+      `}
       <button class="btn" onclick="createChallenge('${p.id}')">Send udfordring</button>
       `}
     </div>
@@ -1166,14 +1182,37 @@ function renderChallenges(){
   `;
 }
 
+function setChallengeCreateType(type){ challengeCreateType = type; renderChallenges(); }
+function fillFreestylePreset(text){
+  const input = document.getElementById("challengeFreeTitle");
+  if(input) input.value = text;
+}
+
 async function createChallenge(playerId){
   const p = currentPlayerLink;
   const opponentId = document.getElementById("challengeOpponent").value;
   const opponent = players.find(x=>x.id===opponentId);
+  if(!opponent) return alert("Vælg en modstander.");
+
+  if(challengeCreateType === "freestyle"){
+    const title = document.getElementById("challengeFreeTitle").value.trim();
+    if(!title) return alert('Skriv en udfordring, fx "Flest jongleringer".');
+    await addDoc(collection(db, "challenges"), {
+      type: "freestyle", title,
+      challengerId: playerId, challengerName: p.name,
+      opponentId: opponent.id, opponentName: opponent.name,
+      year: p.year, gender: p.gender || null,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+    alert("Udfordring sendt til " + opponent.name + "!");
+    return;
+  }
+
   const exercise = document.getElementById("challengeExercise").value;
   const stepIndex = Number(document.getElementById("challengeStep").value);
-  if(!opponent) return alert("Vælg en modstander.");
   await addDoc(collection(db, "challenges"), {
+    type: "exercise",
     exercise, stepIndex, level: steps[stepIndex].level, medal: steps[stepIndex].medal,
     challengerId: playerId, challengerName: p.name,
     opponentId: opponent.id, opponentName: opponent.name,
@@ -1197,7 +1236,8 @@ async function submitChallengeVideo(challengeId){
   const btn = document.getElementById(`chuploadbtn_${challengeId}`);
   const originalText = btn?.textContent;
   if(btn){ btn.disabled = true; btn.textContent = "Uploader..."; }
-  await uploadSubmission(currentPlayerLink.id, c.stepIndex, c.exercise, file, c.id);
+  const isFreestyle = c.type === "freestyle";
+  await uploadSubmission(currentPlayerLink.id, isFreestyle ? null : c.stepIndex, isFreestyle ? c.title : c.exercise, file, c.id);
   if(input) input.value = "";
   if(btn){ btn.disabled = false; btn.textContent = originalText; }
 }
@@ -1217,15 +1257,78 @@ function reviewCard(s, readOnly){
   </div>`;
 }
 
+function isFreestyleChallengeSubmission(s){
+  if(!s.challengeId) return false;
+  const c = challenges.find(x=>x.id===s.challengeId);
+  return c?.type === "freestyle";
+}
+function freestyleChallengesReadyForJudging(){
+  return challenges
+    .filter(c=>c.type==="freestyle" && c.status==="active" && canAccessYear(c.year))
+    .map(c=>({challenge: c, subs: submissions.filter(s=>s.challengeId===c.id && s.status==="pending")}))
+    .filter(x=>x.subs.length>=2);
+}
+function freestyleJudgeCard(c, subs){
+  const subA = subs.find(s=>s.playerId===c.challengerId);
+  const subB = subs.find(s=>s.playerId===c.opponentId);
+  const videoOrNote = s => s?.videoURL
+    ? `<video controls preload="metadata" style="width:100%;border-radius:10px;background:#000" src="${s.videoURL}"></video>`
+    : '<p class="small">Ingen video.</p>';
+  return `<div class="exercise-block">
+    <b>${escapeHtml(c.title)}</b> <span class="pill guld">Fri udfordring</span>
+    <div class="small">${escapeHtml(yearLabel(c.year))} · ${escapeHtml(c.challengerName)} mod ${escapeHtml(c.opponentName)}</div>
+    <div class="row two" style="margin-top:8px">
+      <div><p class="small"><b>${escapeHtml(c.challengerName)}</b></p>${videoOrNote(subA)}</div>
+      <div><p class="small"><b>${escapeHtml(c.opponentName)}</b></p>${videoOrNote(subB)}</div>
+    </div>
+    <div style="margin-top:8px">
+      <button class="btn smallbtn" onclick="judgeFreestyleChallenge('${c.id}','${c.challengerId}')">${escapeHtml(c.challengerName)} vinder</button>
+      <button class="btn smallbtn" onclick="judgeFreestyleChallenge('${c.id}','${c.opponentId}')">${escapeHtml(c.opponentName)} vinder</button>
+    </div>
+  </div>`;
+}
+async function judgeFreestyleChallenge(challengeId, winnerId){
+  const c = challenges.find(x=>x.id===challengeId);
+  if(!c || !canAccessYear(c.year)) return alert("Ingen adgang");
+  const subs = submissions.filter(s=>s.challengeId===challengeId && s.status==="pending");
+  const winnerPlayer = players.find(x=>x.id===winnerId);
+  if(!winnerPlayer) return alert("Kunne ikke finde vinderens spillerprofil.");
+
+  const history = [...(winnerPlayer.history||[])];
+  history.unshift({
+    type: "freestyle_won",
+    text: `Vandt fri udfordring "${c.title}": +${CHALLENGE_BONUS} point`,
+    by: currentUser?.email || "",
+    at: new Date().toISOString()
+  });
+  await setDoc(doc(db, "players", winnerPlayer.id), {points: (winnerPlayer.points||0)+CHALLENGE_BONUS, history: history.slice(0,100), updatedAt: serverTimestamp()}, {merge:true});
+  await setDoc(doc(db, "challenges", challengeId), {status: "completed", winnerId, winnerName: winnerPlayer.name, completedAt: serverTimestamp()}, {merge:true});
+
+  for(const s of subs){
+    const isWinner = s.playerId === winnerId;
+    await setDoc(doc(db, "submissions", s.id), {status: isWinner?"approved":"rejected", reviewedBy: currentUser?.email||"", reviewedAt: serverTimestamp(), pointsAwarded: isWinner?CHALLENGE_BONUS:0}, {merge:true});
+    if(s.videoPath){
+      try{
+        await deleteObject(storageRef(storage, s.videoPath));
+        await setDoc(doc(db, "submissions", s.id), {videoURL: null, videoDeletedAt: serverTimestamp()}, {merge:true});
+      }catch(e){
+        console.error("kunne ikke slette video efter afgørelse", e);
+      }
+    }
+  }
+}
+
 function renderReview(){
   const area = document.getElementById("reviewArea");
   if(!area) return;
-  const pending = submissions.filter(s=>canAccessYear(s.year) && s.status==="pending")
+  const freestyleReady = freestyleChallengesReadyForJudging();
+  const pending = submissions.filter(s=>canAccessYear(s.year) && s.status==="pending" && !isFreestyleChallengeSubmission(s))
     .sort((a,b)=>(a.submittedAt||"").localeCompare(b.submittedAt||""));
   const recent = submissions.filter(s=>canAccessYear(s.year) && s.status!=="pending")
     .sort((a,b)=>(b.submittedAt||"").localeCompare(a.submittedAt||"")).slice(0,15);
   area.innerHTML = `
-    <h3>Afventer godkendelse (${pending.length})</h3>
+    ${freestyleReady.length ? `<h3>Frie udfordringer klar til afgørelse (${freestyleReady.length})</h3>${freestyleReady.map(x=>freestyleJudgeCard(x.challenge, x.subs)).join("")}` : ""}
+    <h3 style="margin-top:16px">Afventer godkendelse (${pending.length})</h3>
     ${pending.length===0 ? '<p class="small">Ingen ventende videoer.</p>' : pending.map(s=>reviewCard(s)).join("")}
     <h3 style="margin-top:16px">Seneste behandlede</h3>
     ${recent.length===0 ? '<p class="small">Ingen endnu.</p>' : recent.map(s=>reviewCard(s,true)).join("")}
@@ -1471,7 +1574,7 @@ function renderChallengeBadge(){
 function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); }
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender});
+Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge});
 </script>
 </body>
 </html>
