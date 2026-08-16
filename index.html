@@ -20,10 +20,11 @@
     *{box-sizing:border-box}
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--cream);color:var(--text)}
     header{position:sticky;top:0;z-index:2;background:var(--green);color:white;padding:14px 16px 10px}
-    header h1{font-size:20px;margin:0 0 4px;padding-right:70px}
+    header h1{font-size:20px;margin:0 0 4px}
     header p{margin:0;font-size:13px;opacity:.9}
-    #headerLogout{position:absolute;top:14px;right:16px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800}
-    .syncstatus{display:inline-block;font-size:12px;color:#064e3b;background:#d1fae5;margin-top:8px;padding:4px 8px;border-radius:999px;font-weight:800}
+    .headerstatusrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+    #headerLogout{background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800;flex-shrink:0}
+    .syncstatus{display:inline-block;font-size:12px;color:#064e3b;background:#d1fae5;padding:4px 8px;border-radius:999px;font-weight:800}
     nav{display:flex;gap:8px;overflow-x:auto;padding:10px 12px;background:#e9dfc8;border-bottom:1px solid var(--line)}
     nav button{border:0;border-radius:999px;padding:10px 13px;background:white;color:var(--green);font-weight:700;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.08)}
     nav button.active{background:var(--green2);color:white}
@@ -89,10 +90,12 @@
 </head>
 <body>
 <header>
-  <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
-  <div id="syncStatus" class="syncstatus">v15.0 · starter login...</div>
+  <div class="headerstatusrow">
+    <div id="syncStatus" class="syncstatus">v15.0 · starter login...</div>
+    <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
+  </div>
 </header>
 
 <nav id="mainNav" class="hidden">
@@ -1078,7 +1081,7 @@ function renderTraining(){
         <p class="small"><b>Krav (${s.medal}):</b> ${c.map(escapeHtml).join(" · ")}</p>
         ${passed ? '' : pending ? `<p class="small">Video uploadet · afventer godkendelse fra træner.</p>` : `
           <label>Upload video af øvelsen</label>
-          <input type="file" accept="video/*" capture="environment" id="upload_${si}_${escapeHtml(ex)}">
+          <input type="file" accept="video/*" id="upload_${si}_${escapeHtml(ex)}">
           <button class="btn smallbtn" id="uploadbtn_${si}_${escapeHtml(ex)}" onclick="submitTraining('${p.id}',${si},'${ex}')">Upload</button>
         `}
         ${mySubs.length ? `<div class="small" style="margin-top:6px">Historik: ${mySubs.slice(0,5).map(sub=>submissionStatusPill(sub)).join(" ")}</div>` : ""}
@@ -1107,7 +1110,7 @@ function challengeCard(c, p, showActions){
     <b>${escapeHtml(c.exercise)} · ${step.label}</b>
     <div class="small">Mod: ${escapeHtml(otherName)} · ${statusText}</div>
     ${showActions ? `<button class="btn smallbtn" onclick="respondChallenge('${c.id}',true)">Accepter</button><button class="btn secondary smallbtn" onclick="respondChallenge('${c.id}',false)">Afvis</button>` : ""}
-    ${canUpload ? `<div style="margin-top:8px"><label>Upload video</label><input type="file" accept="video/*" capture="environment" id="chupload_${c.id}"><button class="btn smallbtn" id="chuploadbtn_${c.id}" onclick="submitChallengeVideo('${c.id}')">Upload</button></div>` : ""}
+    ${canUpload ? `<div style="margin-top:8px"><label>Upload video</label><input type="file" accept="video/*" id="chupload_${c.id}"><button class="btn smallbtn" id="chuploadbtn_${c.id}" onclick="submitChallengeVideo('${c.id}')">Upload</button></div>` : ""}
   </div>`;
 }
 
