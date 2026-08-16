@@ -24,9 +24,17 @@ point og rang (avatar-niveau), og udfordre holdkammerater i de enkelte
    / Storage → Rules, eller `firebase deploy` med Firebase CLI) — de
    opdateres ikke automatisk bare fordi filerne i repoet ændres.
 3. **Videoopbevaring**: når en træner har godkendt eller afvist en
-   video, sletter appen automatisk selve videofilen fra Storage —
-   point og bestået-status gemmes permanent på spilleren, men
-   optagelsen bliver ikke liggende bagefter.
+   almindelig træningsvideo (uden udfordring), sletter appen automatisk
+   selve videofilen fra Storage med det samme — point og
+   bestået-status gemmes permanent på spilleren, men optagelsen bliver
+   ikke liggende bagefter. En udfordringsvideo beholdes lidt længere,
+   så modstanderen kan nå at se den: den slettes automatisk, når
+   modstanderen har set den til ende, eller senest 2 dage efter
+   trænerens afgørelse — alt efter hvad der sker først. Uden Cloud
+   Functions håndhæves 2-dages-fristen "dovent" client-side (se
+   `sweepExpiredChallengeVideos()` i index.html) — den rammer først,
+   næste gang en spiller eller træner med relevante data indlæst
+   rent faktisk har appen åben efter fristens udløb, ikke på klokkeslæt.
 4. **Opret spillerlogin**: som admin, gå til Admin → "Opret
    spillerlogin", vælg en eksisterende spiller, og opret en e-mail +
    midlertidig adgangskode til dem. Spilleren bør selv skifte

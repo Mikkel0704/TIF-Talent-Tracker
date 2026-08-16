@@ -101,8 +101,22 @@ service cloud.firestore {
         && request.resource.data.status == "pending"
         && hasFullAccess(request.resource.data.year, request.resource.data.gender);
 
-      // Only a coach/admin may approve/reject an existing submission.
-      allow update: if signedIn() && !isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender);
+      // Only a coach/admin may approve/reject an existing submission. A player may
+      // additionally update JUST the view/expiry fields on a challenge submission
+      // that belongs to their opponent (not their own), once it has been reviewed -
+      // this lets them watch their opponent's video and have it delete itself
+      // afterwards (see markSubmissionViewed/deleteViewedSubmissionVideo in index.html).
+      allow update: if signedIn() && (
+        (!isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender))
+        || (
+          isPlayerRole()
+          && hasFullAccess(resource.data.year, resource.data.gender)
+          && resource.data.playerId != myPlayerId()
+          && resource.data.status != "pending"
+          && (resource.data.challengerId == myPlayerId() || resource.data.opponentId == myPlayerId())
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["viewedAt", "videoURL", "videoDeletedAt"])
+        )
+      );
 
       allow delete: if isAdmin();
     }

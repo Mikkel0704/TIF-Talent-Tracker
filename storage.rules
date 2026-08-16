@@ -1,10 +1,14 @@
 // Firebase Storage security rules for TIF Talent Tracker's player training-video
 // uploads. This file IS deployed (see README for how); it is not just a reference.
 //
-// Videos are uploaded by a player to: submissions/{playerId}/{timestamp}_{filename}
-// and deleted automatically by the app once a coach/admin has approved or rejected
-// the matching submission (see reviewSubmission() in index.html) - only the points/
-// pass-status persist after that, not the raw footage.
+// Videos are uploaded by a player to: submissions/{playerId}/{timestamp}_{filename}.
+// A plain training video is deleted automatically the moment a coach/admin approves
+// or rejects it (see reviewSubmission() in index.html) - only the points/pass-status
+// persist after that, not the raw footage. A challenge video is kept a bit longer so
+// the opponent can watch it once the coach has decided: it deletes itself once the
+// opponent has watched it to the end, or at the latest 2 days after the decision,
+// whichever comes first (see markSubmissionViewed/deleteViewedSubmissionVideo/
+// sweepExpiredChallengeVideos in index.html).
 
 rules_version = '2';
 service firebase.storage {
@@ -23,11 +27,12 @@ service firebase.storage {
       // project even for a bare existence check, independent of rule content -
       // confirmed by testing progressively simpler rules, not a syntax issue.
       // Not worth chasing a Google-side IAM/linkage quirk for this: deletion is
-      // only ever triggered by reviewSubmission() in index.html, which is itself
-      // gated to coach/admin by firestore.rules (a player's Firestore write to
-      // approve/reject their own submission is already rejected there). Worst
-      // case if a player calls this directly from the browser console is they
-      // delete an unreviewed video (their own workflow, not anyone's data/points).
+      // only ever triggered by app code gated in firestore.rules - reviewSubmission()/
+      // judgeFreestyleChallenge() (coach/admin only) and deleteViewedSubmissionVideo()
+      // (only reachable by the opponent, once Firestore already lets them touch that
+      // submission's view/expiry fields - see submissions/{submissionId} above). Worst
+      // case if someone calls this directly from the browser console is they delete
+      // a video early (their own workflow, not anyone's points/pass-status).
       allow delete: if request.auth != null;
     }
   }

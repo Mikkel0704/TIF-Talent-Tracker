@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.0</title>
+  <title>TIF Talent Tracker v15.1</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -94,7 +94,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.0 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.1 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -290,7 +290,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.0 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.1 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -504,7 +504,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.0 · ikke logget ind");
+    setSyncStatus("v15.1 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -544,9 +544,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.0 · live database aktiv");
+    setSyncStatus("v15.1 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.0 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.1 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -915,11 +915,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.0 · migrering færdig");
+    setSyncStatus("v15.1 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.0 · migrering fejlede");
+    setSyncStatus("v15.1 · migrering fejlede");
   }
 }
 
@@ -1020,28 +1020,33 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.0 · uploader video...");
+    setSyncStatus("v15.1 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
     const url = await getDownloadURL(sref);
     const step = stepIndex!=null ? steps[stepIndex] : null;
+    // Udfordringens deltagere denormaliseres på submission, så modstanderen kan få
+    // lov til at se (og senere selv slette) netop denne video via sikkerhedsreglerne,
+    // uden at reglen skal slå udfordringen op separat.
+    const c = challengeId ? challenges.find(x=>x.id===challengeId) : null;
     await addDoc(collection(db, "submissions"), {
       playerId, playerName: p.name, year: p.year, gender: p.gender || null,
       exercise, stepIndex: stepIndex ?? null, level: step?.level ?? null, medal: step?.medal ?? null,
       videoPath: path, videoURL: url,
       status: "pending",
       challengeId: challengeId || null,
+      challengerId: c?.challengerId ?? null, opponentId: c?.opponentId ?? null,
       submittedAt: new Date().toISOString(),
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.0 · live database aktiv");
+    setSyncStatus("v15.1 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.0 · live database aktiv");
+    setSyncStatus("v15.1 · live database aktiv");
   }
 }
 
@@ -1110,11 +1115,19 @@ function challengeCard(c, p, showActions){
   if(c.status==="declined") statusText = "Afvist";
   if(c.status==="completed") statusText = c.winnerId===p.id ? "Du vandt! 🏆" : c.winnerId ? `${escapeHtml(c.winnerName)} vandt` : "Afsluttet";
   const canUpload = c.status==="active" && !submissions.some(sub=>sub.challengeId===c.id && sub.playerId===p.id);
+  // Modstanderens video vises kun her - man kan ikke gense sin egen upload i appen
+  // (den har man jo selv liggende), og kun når træneren har taget stilling til den.
+  const theirSub = submissions.find(sub=>sub.challengeId===c.id && sub.playerId!==p.id && sub.status!=="pending" && sub.videoURL);
   return `<div class="exercise-block">
     <b>${headerText}</b> ${isFreestyle ? '<span class="pill guld">Fri</span>' : ''}
     <div class="small">Mod: ${escapeHtml(otherName)} · ${statusText}</div>
     ${showActions ? `<button class="btn smallbtn" onclick="respondChallenge('${c.id}',true)">Accepter</button><button class="btn secondary smallbtn" onclick="respondChallenge('${c.id}',false)">Afvis</button>` : ""}
     ${canUpload ? `<div style="margin-top:8px"><label>Upload video</label><input type="file" accept="video/*" id="chupload_${c.id}"><button class="btn smallbtn" id="chuploadbtn_${c.id}" onclick="submitChallengeVideo('${c.id}')">Upload</button></div>` : ""}
+    ${theirSub ? `<div style="margin-top:8px">
+      <p class="small"><b>${escapeHtml(otherName)}s video</b></p>
+      <video controls preload="metadata" style="width:100%;border-radius:10px;background:#000" src="${theirSub.videoURL}" onplay="markSubmissionViewed('${theirSub.id}')" onended="deleteViewedSubmissionVideo('${theirSub.id}')"></video>
+      <p class="small">Forsvinder, når du har set den til ende (senest 2 dage efter godkendelse).</p>
+    </div>` : ""}
   </div>`;
 }
 
@@ -1128,6 +1141,7 @@ function challengeStatsFor(playerId){
 function renderChallenges(){
   const area = document.getElementById("challengesArea");
   if(!area) return;
+  sweepExpiredChallengeVideos();
   const p = currentPlayerLink;
   if(!p){ area.innerHTML = '<p class="small">Din spillerprofil blev ikke fundet.</p>'; return; }
   const si = Math.min(currentStepIndex(p), steps.length-1);
@@ -1242,6 +1256,40 @@ async function submitChallengeVideo(challengeId){
   if(btn){ btn.disabled = false; btn.textContent = originalText; }
 }
 
+// En udfordringsvideo vises kun for modstanderen (afsenderen har jo selv videoen).
+// Den slettes automatisk, når modstanderen har set den til ende, eller senest
+// CHALLENGE_VIDEO_MAX_AGE_MS efter trænerens godkendelse/afvisning - alt efter
+// hvad der sker først. Uden Cloud Functions håndhæves tidsfristen "dovent": ethvert
+// klientkald, der alligevel har udfordringsdata liggende, fejer udløbne videoer væk.
+function markSubmissionViewed(id){
+  const s = submissions.find(x=>x.id===id);
+  if(!s || s.viewedAt) return;
+  setDoc(doc(db, "submissions", id), {viewedAt: serverTimestamp()}, {merge:true})
+    .catch(e=>console.error("kunne ikke markere video som set", e));
+}
+async function deleteViewedSubmissionVideo(id){
+  const s = submissions.find(x=>x.id===id);
+  if(!s || !s.videoPath || !s.videoURL) return;
+  try{
+    await deleteObject(storageRef(storage, s.videoPath));
+    await setDoc(doc(db, "submissions", id), {videoURL: null, videoDeletedAt: serverTimestamp()}, {merge:true});
+  }catch(e){
+    console.error("kunne ikke slette video efter visning", e);
+  }
+}
+const CHALLENGE_VIDEO_MAX_AGE_MS = 2*24*60*60*1000;
+let lastChallengeVideoSweep = 0;
+function sweepExpiredChallengeVideos(){
+  const now = Date.now();
+  if(now - lastChallengeVideoSweep < 5*60*1000) return;
+  lastChallengeVideoSweep = now;
+  submissions.forEach(s=>{
+    if(!s.challengeId || !s.videoURL || !s.videoPath || s.status==="pending" || !s.reviewedAt) return;
+    const reviewedAt = s.reviewedAt.toDate ? s.reviewedAt.toDate() : new Date(s.reviewedAt);
+    if(now - reviewedAt.getTime() > CHALLENGE_VIDEO_MAX_AGE_MS) deleteViewedSubmissionVideo(s.id);
+  });
+}
+
 function reviewCard(s, readOnly){
   const step = steps[s.stepIndex];
   return `<div class="exercise-block">
@@ -1304,23 +1352,19 @@ async function judgeFreestyleChallenge(challengeId, winnerId){
   await setDoc(doc(db, "players", winnerPlayer.id), {points: (winnerPlayer.points||0)+CHALLENGE_BONUS, history: history.slice(0,100), updatedAt: serverTimestamp()}, {merge:true});
   await setDoc(doc(db, "challenges", challengeId), {status: "completed", winnerId, winnerName: winnerPlayer.name, completedAt: serverTimestamp()}, {merge:true});
 
+  // Videoerne slettes IKKE her - modstanderen skal have mulighed for at se den andens
+  // video bagefter (se markSubmissionViewed/deleteViewedSubmissionVideo). De slettes
+  // automatisk, når modstanderen har set videoen til ende, eller senest 2 dage efter nu.
   for(const s of subs){
     const isWinner = s.playerId === winnerId;
     await setDoc(doc(db, "submissions", s.id), {status: isWinner?"approved":"rejected", reviewedBy: currentUser?.email||"", reviewedAt: serverTimestamp(), pointsAwarded: isWinner?CHALLENGE_BONUS:0}, {merge:true});
-    if(s.videoPath){
-      try{
-        await deleteObject(storageRef(storage, s.videoPath));
-        await setDoc(doc(db, "submissions", s.id), {videoURL: null, videoDeletedAt: serverTimestamp()}, {merge:true});
-      }catch(e){
-        console.error("kunne ikke slette video efter afgørelse", e);
-      }
-    }
   }
 }
 
 function renderReview(){
   const area = document.getElementById("reviewArea");
   if(!area) return;
+  sweepExpiredChallengeVideos();
   const freestyleReady = freestyleChallengesReadyForJudging();
   const pending = submissions.filter(s=>canAccessYear(s.year) && s.status==="pending" && !isFreestyleChallengeSubmission(s))
     .sort((a,b)=>(a.submittedAt||"").localeCompare(b.submittedAt||""));
@@ -1366,9 +1410,11 @@ async function reviewSubmission(id, approve){
   }
   await setDoc(doc(db, "submissions", id), {status: approve?"approved":"rejected", reviewedBy: currentUser?.email||"", reviewedAt: serverTimestamp(), pointsAwarded}, {merge:true});
 
-  // Points/bestået-status er nu gemt permanent på spilleren - selve videoen er ikke længere
-  // nødvendig, så den slettes fra Storage med det samme for ikke at opbevare børnevideo unødigt.
-  if(s.videoPath){
+  // Almindelig træningsvideo (ingen udfordring): ingen modstander skal se den bagefter,
+  // så den slettes fra Storage med det samme for ikke at opbevare børnevideo unødigt.
+  // Udfordringsvideoer beholdes derimod et stykke tid, så modstanderen kan nå at se den -
+  // se markSubmissionViewed/deleteViewedSubmissionVideo/sweepExpiredChallengeVideos.
+  if(!s.challengeId && s.videoPath){
     try{
       await deleteObject(storageRef(storage, s.videoPath));
       await setDoc(doc(db, "submissions", id), {videoURL: null, videoDeletedAt: serverTimestamp()}, {merge:true});
@@ -1574,7 +1620,7 @@ function renderChallengeBadge(){
 function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderExerciseInfo(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); }
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge});
+Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,markSubmissionViewed,deleteViewedSubmissionVideo});
 </script>
 </body>
 </html>
