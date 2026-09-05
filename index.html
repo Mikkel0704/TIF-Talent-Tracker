@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.7</title>
+  <title>TIF Talent Tracker v15.8</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -94,7 +94,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.7 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.8 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -218,6 +218,17 @@
 </section>
 
 <section id="guide" class="page hidden">
+  <div class="card hidden" id="parentGuideCard">
+    <h2>Sådan kommer I i gang</h2>
+    <p class="small">En kort guide til forældre og spillere, der lige har fået deres eget login.</p>
+    <p><b>Log ind:</b> Brug den e-mail og adgangskode, som jeres træner har oprettet til jer. I bør skifte adgangskoden under "Indstillinger" efter første login.</p>
+    <p><b>"Træning":</b> Her ser I dagens øvelser for jeres niveau. Optag en kort video, hvor I udfører øvelsen, og upload den. Træneren godkender eller afviser videoen, og I kan følge status direkte under øvelsen.</p>
+    <p><b>"Udfordringer":</b> Udfordr en holdkammerat i en øvelse - eller en fri udfordring, som "flest jongleringer" eller "fedeste trick". Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
+    <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet.</p>
+    <p><b>"Min profil":</b> Her ser I jeres point, rang (fra Rookie til Legende) og hvilke øvelser der allerede er bestået.</p>
+    <p><b>"Kriterier" og "Guide":</b> Her kan I se, præcis hvad der kræves for at bestå hver øvelse og medalje.</p>
+    <p class="small"><b>Om videoerne:</b> De bruges kun til godkendelse og slettes automatisk bagefter - ved almindelig træning med det samme, og ved udfordringer senest et par dage efter, at træneren har taget stilling. Vi gemmer ikke børnenes videoer permanent.</p>
+  </div>
   <div class="card">
     <h2>Vejledning om niveau</h2>
     <p><b>Målet er:</b> succesoplevelser, passende udfordring og lyst til at udvikle sig.</p>
@@ -293,7 +304,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.7 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.8 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -507,7 +518,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.7 · ikke logget ind");
+    setSyncStatus("v15.8 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -530,6 +541,7 @@ onAuthStateChanged(auth, async (user)=>{
   const playerOnlyTabs = ["tab-training","tab-challenges"];
   coachOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.toggle("hidden", isPlayer()); });
   playerOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.toggle("hidden", !isPlayer()); });
+  document.getElementById("parentGuideCard").classList.toggle("hidden", !isPlayer());
   document.getElementById("tab-admin").classList.toggle("hidden", !isAdmin());
   document.getElementById("userInfo").textContent = `${user.email} · ${currentUserDoc.role || "coach"} · adgang: ${allowedYears().join(", ") || "ingen årgange endnu"}`;
   showPage(isPlayer() ? "training" : "players");
@@ -552,9 +564,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.7 · live database aktiv");
+    setSyncStatus("v15.8 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.7 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.8 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -959,11 +971,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.7 · migrering færdig");
+    setSyncStatus("v15.8 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.7 · migrering fejlede");
+    setSyncStatus("v15.8 · migrering fejlede");
   }
 }
 
@@ -1064,7 +1076,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.7 · uploader video...");
+    setSyncStatus("v15.8 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1085,12 +1097,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.7 · live database aktiv");
+    setSyncStatus("v15.8 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.7 · live database aktiv");
+    setSyncStatus("v15.8 · live database aktiv");
   }
 }
 
