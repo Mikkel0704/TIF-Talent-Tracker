@@ -3,7 +3,7 @@
   "short_name": "TIF Talent",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#f4f1ef",
+  "background_color": "#e9f1fa",
   "theme_color": "#6d1b3a",
   "icons": [
     {

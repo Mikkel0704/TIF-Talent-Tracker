@@ -10,10 +10,10 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.9</title>
+  <title>TIF Talent Tracker v15.10</title>
   <style>
     :root{
-      --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#f4f1ef; --card:#ffffff;
+      --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
       --text:#2b1420; --muted:#6b7280; --line:#e0dedd; --gold:#f5c542; --silver:#cfd4da; --bronze:#c9823b;
       --ok:#198754; --not:#e5e7eb;
     }
@@ -24,7 +24,8 @@
     header p{margin:0;font-size:13px;opacity:.9}
     .headerstatusrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
     #headerLogout{background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800;flex-shrink:0}
-    .syncstatus{display:inline-block;font-size:12px;color:#064e3b;background:#d1fae5;padding:4px 8px;border-radius:999px;font-weight:800}
+    .syncstatus{display:inline-block;font-size:12px;color:#1f4e8c;background:#dbe9fa;padding:4px 8px;border-radius:999px;font-weight:800}
+    .syncstatus.error{color:#991b1b;background:#fee2e2}
     nav{display:flex;gap:8px;overflow-x:auto;padding:10px 12px;background:#e7eef5;border-bottom:1px solid var(--line)}
     nav button{position:relative;border:0;border-radius:999px;padding:10px 13px;background:white;color:var(--maroon);font-weight:700;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.08)}
     nav button.active{background:var(--blue);color:white}
@@ -94,7 +95,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.9 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.10 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -304,7 +305,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.9 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.10 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -445,7 +446,11 @@ let unsubUsers = null;
 let unsubSubmissions = null;
 let unsubChallenges = null;
 
-function setSyncStatus(text){ document.getElementById("syncStatus").textContent = text; }
+function setSyncStatus(text){
+  const el = document.getElementById("syncStatus");
+  el.textContent = text;
+  el.classList.toggle("error", text.includes("fejl"));
+}
 function isAdmin(){ return currentUserDoc?.role === "admin"; }
 function isPlayer(){ return currentUserDoc?.role === "player"; }
 function allowedYears(){ return isAdmin() ? allKnownYears() : normalizeYearsList(currentUserDoc?.years || []); }
@@ -518,7 +523,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.9 · ikke logget ind");
+    setSyncStatus("v15.10 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -564,9 +569,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.9 · live database aktiv");
+    setSyncStatus("v15.10 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.9 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.10 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -971,11 +976,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.9 · migrering færdig");
+    setSyncStatus("v15.10 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.9 · migrering fejlede");
+    setSyncStatus("v15.10 · migrering fejlede");
   }
 }
 
@@ -1076,7 +1081,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.9 · uploader video...");
+    setSyncStatus("v15.10 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1097,12 +1102,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.9 · live database aktiv");
+    setSyncStatus("v15.10 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.9 · live database aktiv");
+    setSyncStatus("v15.10 · live database aktiv");
   }
 }
 
