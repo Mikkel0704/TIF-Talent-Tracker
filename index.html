@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.13</title>
+  <title>TIF Talent Tracker v15.14</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -103,7 +103,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.13 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.14 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -284,6 +284,8 @@
     <button class="btn secondary" onclick="migrateOldPlayers()">Migrér gamle spillere fra sharedState</button>
     <button class="btn secondary" onclick="migrateYearsToBirthYears()">Migrér årgange til årstal</button>
     <p class="small">Brug kun knappen én gang. Den flytter gamle spillere fra tifTalentTracker/sharedState til players collection og sætter årgang ud fra note-feltet, fx U9.</p>
+    <button class="btn secondary" onclick="syncPlayerLoginFlags()">Synkronisér spilleres login-status</button>
+    <p class="small">Brug denne, hvis udfordringslisten ikke matcher, hvem der reelt har et aktivt spillerlogin (fx efter denne opdatering, eller hvis noget virker forkert). Fremover holdes det automatisk opdateret.</p>
     <div id="genderMigrationArea"></div>
     <h3>Trænere</h3>
     <div id="adminArea"></div>
@@ -318,7 +320,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.13 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.14 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -536,7 +538,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.13 · ikke logget ind");
+    setSyncStatus("v15.14 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -582,9 +584,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.13 · live database aktiv");
+    setSyncStatus("v15.14 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.13 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.14 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -910,6 +912,11 @@ async function toggleUserActive(uid){
   if(uid === currentUser?.uid) return alert("Du kan ikke deaktivere din egen adgang.");
   const makeActive = u.active === false;
   await setDoc(doc(db,"users",uid), {active: makeActive, updatedAt: serverTimestamp()}, {merge:true});
+  // Hold players.hasActiveLogin i sync, så udfordringslisten (kun spillere med aktivt
+  // login) opdaterer sig selv med det samme - se opponentsForCurrentPlayer().
+  if(u.role==="player" && u.playerId){
+    await setDoc(doc(db,"players",u.playerId), {hasActiveLogin: makeActive, updatedAt: serverTimestamp()}, {merge:true});
+  }
 }
 async function deleteUserAccess(uid){
   const u = users.find(x=>x.uid===uid);
@@ -917,6 +924,9 @@ async function deleteUserAccess(uid){
   if(uid === currentUser?.uid) return alert("Du kan ikke slette din egen adgang.");
   if(!confirm(`Slet denne kontos adgang til appen: ${u.email}?\n\nBemærk: dette sletter ikke selve login'et i Firebase Authentication (det kræver Firebase-konsollen), så samme e-mail kan IKKE bruges til at oprette en ny bruger bagefter, før det er ryddet manuelt der. Vil du blot lukke midlertidigt for adgang (og evt. åbne igen senere) uden det problem, så brug "Deaktiver" i stedet.`)) return;
   await deleteDoc(doc(db,"users",uid));
+  if(u.role==="player" && u.playerId){
+    await setDoc(doc(db,"players",u.playerId), {hasActiveLogin: false, updatedAt: serverTimestamp()}, {merge:true});
+  }
 }
 function yearGenderOptions(selectedValue){
   return `<option value="begge" ${selectedValue==="begge"?"selected":""}>Begge</option><option value="dreng" ${selectedValue==="dreng"?"selected":""}>Drenge</option><option value="pige" ${selectedValue==="pige"?"selected":""}>Piger</option>`;
@@ -961,6 +971,19 @@ async function saveCoachAccess(uid){
   cancelCoachEdit();
 }
 
+async function syncPlayerLoginFlags(){
+  if(!isAdmin()) return alert("Kun admin kan gøre dette.");
+  const activeLoginPlayerIds = new Set(users.filter(u=>u.role==="player" && u.playerId && u.active!==false).map(u=>u.playerId));
+  let count = 0;
+  for(const p of players){
+    const shouldHaveActiveLogin = activeLoginPlayerIds.has(p.id);
+    if(!!p.hasActiveLogin !== shouldHaveActiveLogin){
+      await setDoc(doc(db,"players",p.id), {hasActiveLogin: shouldHaveActiveLogin, updatedAt: serverTimestamp()}, {merge:true});
+      count++;
+    }
+  }
+  alert(`Synkronisering færdig: ${count} spillere opdateret.`);
+}
 async function migrateOldPlayers(){
   if(!isAdmin()) return alert("Kun admin kan migrere gamle spillere.");
   if(!confirm("Migrér gamle spillere fra sharedState til players collection? Brug kun én gang.")) return;
@@ -989,11 +1012,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.13 · migrering færdig");
+    setSyncStatus("v15.14 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.13 · migrering fejlede");
+    setSyncStatus("v15.14 · migrering fejlede");
   }
 }
 
@@ -1060,6 +1083,9 @@ async function createPlayerLoginFromAdmin(){
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     }, {merge:true});
+    // Denormaliseret på spilleren, så andre spillere (som ikke må læse users/) kan se
+    // hvem der har et aktivt login og dermed kan udfordres - se opponentsForCurrentPlayer().
+    await setDoc(doc(db, "players", p.id), {hasActiveLogin: true, updatedAt: serverTimestamp()}, {merge:true});
     await signOut(secondaryAuth);
     document.getElementById("newPlayerLoginEmail").value = "";
     document.getElementById("newPlayerLoginPassword").value = "";
@@ -1094,7 +1120,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.13 · uploader video...");
+    setSyncStatus("v15.14 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1115,12 +1141,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.13 · live database aktiv");
+    setSyncStatus("v15.14 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.13 · live database aktiv");
+    setSyncStatus("v15.14 · live database aktiv");
   }
 }
 
@@ -1175,7 +1201,7 @@ function renderTraining(){
 function opponentsForCurrentPlayer(){
   const p = currentPlayerLink;
   if(!p) return [];
-  return players.filter(x=>x.id!==p.id && normalizeYearValue(x.year)===normalizeYearValue(p.year) && (!p.gender || !x.gender || x.gender===p.gender));
+  return players.filter(x=>x.id!==p.id && x.hasActiveLogin===true && normalizeYearValue(x.year)===normalizeYearValue(p.year) && (!p.gender || !x.gender || x.gender===p.gender));
 }
 
 function challengeCard(c, p, showActions){
@@ -1706,7 +1732,7 @@ function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); ren
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive});
+Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>
