@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.12</title>
+  <title>TIF Talent Tracker v15.13</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -103,7 +103,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.12 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.13 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -318,7 +318,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.12 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.13 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -536,7 +536,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.12 · ikke logget ind");
+    setSyncStatus("v15.13 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -582,9 +582,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.12 · live database aktiv");
+    setSyncStatus("v15.13 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.12 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.13 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -989,11 +989,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.12 · migrering færdig");
+    setSyncStatus("v15.13 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.12 · migrering fejlede");
+    setSyncStatus("v15.13 · migrering fejlede");
   }
 }
 
@@ -1094,7 +1094,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.12 · uploader video...");
+    setSyncStatus("v15.13 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1115,12 +1115,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.12 · live database aktiv");
+    setSyncStatus("v15.13 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.12 · live database aktiv");
+    setSyncStatus("v15.13 · live database aktiv");
   }
 }
 
@@ -1188,10 +1188,14 @@ function challengeCard(c, p, showActions){
   if(c.status==="active") statusText = "I gang";
   if(c.status==="declined") statusText = "Afvist";
   if(c.status==="completed") statusText = c.winnerId===p.id ? "Du vandt! 🏆" : c.winnerId ? `${escapeHtml(c.winnerName)} vandt` : "Afsluttet";
-  const canUpload = c.status==="active" && !submissions.some(sub=>sub.challengeId===c.id && sub.playerId===p.id);
+  const mySub = submissions.find(sub=>sub.challengeId===c.id && sub.playerId===p.id);
+  const canUpload = c.status==="active" && !mySub;
   // Modstanderens video vises kun her - man kan ikke gense sin egen upload i appen
-  // (den har man jo selv liggende), og kun når træneren har taget stilling til den.
-  const theirSub = submissions.find(sub=>sub.challengeId===c.id && sub.playerId!==p.id && sub.status!=="pending" && sub.videoURL);
+  // (den har man jo selv liggende) - og kun når (a) man selv har uploadet sin egen video
+  // først (så man ikke kan tilpasse sit eget forsøg efter modstanderens) og (b) træneren
+  // har taget stilling til modstanderens video.
+  const theirSubPending = submissions.find(sub=>sub.challengeId===c.id && sub.playerId!==p.id && sub.status==="pending");
+  const theirSub = mySub ? submissions.find(sub=>sub.challengeId===c.id && sub.playerId!==p.id && sub.status!=="pending" && sub.videoURL) : null;
   return `<div class="exercise-block">
     <b>${headerText}</b> ${isFreestyle ? '<span class="pill guld">Fri</span>' : ''}
     <div class="small">Mod: ${escapeHtml(otherName)} · ${statusText}</div>
@@ -1201,7 +1205,7 @@ function challengeCard(c, p, showActions){
       <p class="small"><b>${escapeHtml(otherName)}s video</b></p>
       <video controls preload="metadata" style="width:100%;border-radius:10px;background:#000" src="${theirSub.videoURL}" onplay="markSubmissionViewed('${theirSub.id}')" onended="deleteViewedSubmissionVideo('${theirSub.id}')"></video>
       <p class="small">Forsvinder, når du har set den til ende (senest 2 dage efter godkendelse).</p>
-    </div>` : ""}
+    </div>` : mySub && theirSubPending ? `<p class="small" style="margin-top:8px">${escapeHtml(otherName)} har uploadet - I ser hinandens video, når træneren har taget stilling.</p>` : ""}
   </div>`;
 }
 
