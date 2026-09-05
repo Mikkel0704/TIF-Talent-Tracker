@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.4</title>
+  <title>TIF Talent Tracker v15.5</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -94,7 +94,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.4 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.5 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -293,7 +293,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.4 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.5 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -371,9 +371,9 @@ const exerciseDescriptions = {
 const criteria = {
  "Jonglering": {1:{Bronze:["10 jongleringer"],Sølv:["20 jongleringer"],Guld:["35 jongleringer"]},2:{Bronze:["25 jongleringer"],Sølv:["40 jongleringer","begge ben"],Guld:["75 jongleringer","begge ben",">10 med dårligt ben"]},3:{Bronze:["40 jongleringer","begge ben"],Sølv:["75 jongleringer","begge ben",">10 med dårligt ben"],Guld:["150 jongleringer","begge ben","lår & hoved",">25 med dårligt ben"]}},
  "Præcision": {1:{Bronze:["4 ud af 10"],Sølv:["5 ud af 10","+ 1 hver side"],Guld:["6 ud af 10","+ 1 hver side","+ 1 dårligt ben"]},2:{Bronze:["5 ud af 10","+ 1 hver side","+ 1 dårligt ben"],Sølv:["6 ud af 10","+ 1 hver side","+ 2 dårligt ben"],Guld:["7 ud af 10","+ 2 hver side","+ 3 dårligt ben","+ 1 top"]},3:{Bronze:["6 ud af 10","+ 2 hver side","+ 2 med dårligt ben","+ 1 top"],Sølv:["7 ud af 10","+ 2 hver side","+ 3 med dårligt ben","+ 2 top"],Guld:["8 ud af 10","+ 3 hver side","+ 4 dårligt ben","+ 4 i top"]}},
- "Modtag & Afslut": {1:{Bronze:["4 ud af 10","+ maks 2 berøringer"],Sølv:["5 ud af 10","+ maks 2 berøringer"],Guld:["7 ud af 10","+ maks 2 berøringer","+ 1 dårligt ben"]},2:{Bronze:["5 ud af 10","+ maks 2 berøringer","+ 1 dårligt ben"],Sølv:["6 ud af 10","+ maks 1 berøring","+ 2 dårligt ben"],Guld:["7 ud af 10","+ maks 1 berøring","+ 2 dårligt ben","+ 1 lår"]},3:{Bronze:["7 ud af 10","+ maks 2 berøringer","+ 2 dårligt ben","+ 1 lår"],Sølv:["8 ud af 10","+ maks 1 berøring","+ 3 dårligt ben","+ 2 lår"],Guld:["9 ud af 10","+ maks 1 berøring","+ 4 dårligt ben","+ 3 lår","+ 1 bryst"]}},
+ "Modtag & Afslut": {1:{Bronze:["4 ud af 10","+ maks 2 berøringer"],Sølv:["5 ud af 10","+ maks 2 berøringer"],Guld:["7 ud af 10","+ maks 2 berøringer","+ 1 dårligt ben"]},2:{Bronze:["5 ud af 10","+ maks 2 berøringer","+ 1 dårligt ben"],Sølv:["6 ud af 10","+ maks 2 berøringer","+ 2 dårligt ben"],Guld:["7 ud af 10","+ 3 til hver side","+ inderside og yderside","+ 2 berøringer efter vending før afslutning"]},3:{Bronze:["6 ud af 10","+ maks 1 berøring","+ 2 med dårligt ben","+ 1 top"],Sølv:["7 ud af 10","+ maks 1 berøring","+ 3 med dårligt ben","+ 2 top"],Guld:["8 ud af 10","+ maks 1 berøring","+ 3 med dårligt ben","+ 4 top"]}},
  "Finter": {1:{Bronze:["”Step over” finte","5 ud af 10","+ 1 til hver side","+ maks 3 berøringer før afslutning"],Sølv:["”Step over” finte","6 ud af 10","+ 2 til hver side","+ maks 3 berøringer før afslutning"],Guld:["”Step over” finte","7 ud af 10","+ 3 til hver side","+ maks 3 berøringer før afslutning"]},2:{Bronze:["”Step over” finte","5 ud af 10 i glidende tempo","+ mindst 2 til hver side","+ maks 2 berøringer efter dribling før afslutning"],Sølv:["”Dobbelt Step over” finte","6 ud af 10 forbi i glidende tempo","+ 2 til hver side","+ 2 berøringer efter dribling før afslutning"],Guld:["”Laudrup Finte”","7 ud af 10","+ 2 til hver side","+ 2 berøringer efter dribling før afslutning","+ 1 i top"]},3:{Bronze:["”Step over” finte","6 ud af 10 i glidende tempo","+ mindst 3 til hver side","+ maks 1 berøring efter dribling før afslutning"],Sølv:["”Dobbelt Step over” finte","7 ud af 10 forbi i glidende tempo","+ 3 til hver side","+ 1 berøring efter dribling før afslutning","+ 1 scoring i top"],Guld:["”Laudrup Finte”","8 ud af 10","+ 3 til hver side","+ 1 berøring efter dribling før afslutning","+ 2 i top"]}},
- "Kontrol": {1:{Bronze:["5 ud af 10","+ maks 3 berøringer"],Sølv:["6 ud af 10","+ maks 2 berøringer"],Guld:["7 ud af 10","+ maks 2 berøringer"]},2:{Bronze:["5 ud af 10","+ maks 2 berøringer","+ 1 dårligt ben"],Sølv:["6 ud af 10","+ maks 2 berøringer","+ 2 dårligt ben"],Guld:["7 ud af 10","+ 3 til hver side","+ inderside og yderside","+ 2 berøringer efter vending før afslutning"]},3:{Bronze:["6 ud af 10","+ maks 1 berøring","+ 2 med dårligt ben","+ 1 top"],Sølv:["7 ud af 10","+ maks 1 berøring","+ 3 med dårligt ben","+ 2 top"],Guld:["8 ud af 10","+ maks 1 berøring","+ 3 med dårligt ben","+ 4 top"]}}
+ "Kontrol": {1:{Bronze:["5 ud af 10","+ maks 3 berøringer"],Sølv:["6 ud af 10","+ maks 2 berøringer"],Guld:["7 ud af 10","+ maks 2 berøringer"]},2:{Bronze:["5 ud af 10","+ maks 2 berøringer","+ 1 dårligt ben"],Sølv:["6 ud af 10","+ maks 1 berøring","+ 2 dårligt ben"],Guld:["7 ud af 10","+ maks 1 berøring","+ 2 dårligt ben","+ 1 lår"]},3:{Bronze:["7 ud af 10","+ maks 2 berøringer","+ 2 dårligt ben","+ 1 lår"],Sølv:["8 ud af 10","+ maks 1 berøring","+ 3 dårligt ben","+ 2 lår"],Guld:["9 ud af 10","+ maks 1 berøring","+ 4 dårligt ben","+ 3 lår","+ 1 bryst"]}}
 };
 
 const POINT_BASE = {Bronze:10, Sølv:20, Guld:35};
@@ -507,7 +507,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.4 · ikke logget ind");
+    setSyncStatus("v15.5 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -552,9 +552,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.4 · live database aktiv");
+    setSyncStatus("v15.5 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.4 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.5 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -959,11 +959,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.4 · migrering færdig");
+    setSyncStatus("v15.5 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.4 · migrering fejlede");
+    setSyncStatus("v15.5 · migrering fejlede");
   }
 }
 
@@ -1064,7 +1064,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.4 · uploader video...");
+    setSyncStatus("v15.5 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1085,12 +1085,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.4 · live database aktiv");
+    setSyncStatus("v15.5 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.4 · live database aktiv");
+    setSyncStatus("v15.5 · live database aktiv");
   }
 }
 
