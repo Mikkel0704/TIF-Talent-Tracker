@@ -3,42 +3,42 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f5132" />
+  <meta name="theme-color" content="#6d1b3a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="TIF Talent" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.8</title>
+  <title>TIF Talent Tracker v15.9</title>
   <style>
     :root{
-      --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
-      --text:#173b2f; --muted:#6b7280; --line:#e5dcc7; --gold:#f5c542; --silver:#cfd4da; --bronze:#c9823b;
+      --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#f4f1ef; --card:#ffffff;
+      --text:#2b1420; --muted:#6b7280; --line:#e0dedd; --gold:#f5c542; --silver:#cfd4da; --bronze:#c9823b;
       --ok:#198754; --not:#e5e7eb;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--cream);color:var(--text)}
-    header{position:sticky;top:0;z-index:2;background:var(--green);color:white;padding:14px 16px 10px}
+    header{position:sticky;top:0;z-index:2;background:var(--maroon);color:white;padding:14px 16px 10px}
     header h1{font-size:20px;margin:0 0 4px}
     header p{margin:0;font-size:13px;opacity:.9}
     .headerstatusrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
     #headerLogout{background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800;flex-shrink:0}
     .syncstatus{display:inline-block;font-size:12px;color:#064e3b;background:#d1fae5;padding:4px 8px;border-radius:999px;font-weight:800}
-    nav{display:flex;gap:8px;overflow-x:auto;padding:10px 12px;background:#e9dfc8;border-bottom:1px solid var(--line)}
-    nav button{position:relative;border:0;border-radius:999px;padding:10px 13px;background:white;color:var(--green);font-weight:700;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-    nav button.active{background:var(--green2);color:white}
-    .navbadge{position:absolute;top:-4px;right:-4px;background:#dc2626;color:white;border-radius:999px;min-width:18px;height:18px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 0 0 2px #e9dfc8}
+    nav{display:flex;gap:8px;overflow-x:auto;padding:10px 12px;background:#e7eef5;border-bottom:1px solid var(--line)}
+    nav button{position:relative;border:0;border-radius:999px;padding:10px 13px;background:white;color:var(--maroon);font-weight:700;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+    nav button.active{background:var(--blue);color:white}
+    .navbadge{position:absolute;top:-4px;right:-4px;background:#dc2626;color:white;border-radius:999px;min-width:18px;height:18px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 0 0 2px #e7eef5}
     main{padding:14px;max-width:980px;margin:0 auto}
     .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin:0 0 14px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
     h2{font-size:20px;margin:0 0 10px} h3{font-size:16px;margin:12px 0 8px}
     label{font-size:13px;font-weight:700;display:block;margin:8px 0 5px}
-    input,select,textarea{width:100%;font-size:16px;border:1px solid #d6ccb8;border-radius:12px;padding:11px;background:white;color:var(--text)}
+    input,select,textarea{width:100%;font-size:16px;border:1px solid #cac6c4;border-radius:12px;padding:11px;background:white;color:var(--text)}
     textarea{min-height:90px}
     .row{display:grid;grid-template-columns:1fr;gap:10px}
     @media(min-width:700px){.row.two{grid-template-columns:1fr 1fr}.row.three{grid-template-columns:1fr 1fr 1fr}}
-    .btn{border:0;border-radius:12px;padding:11px 13px;font-weight:800;background:var(--green);color:white;font-size:15px;margin:4px 4px 4px 0}
-    .btn.secondary{background:white;color:var(--green);border:1px solid var(--green)}
+    .btn{border:0;border-radius:12px;padding:11px 13px;font-weight:800;background:var(--maroon);color:white;font-size:15px;margin:4px 4px 4px 0}
+    .btn.secondary{background:white;color:var(--maroon);border:1px solid var(--maroon)}
     .btn.danger{background:#b42318;color:white}
     .btn.smallbtn{padding:7px 9px;font-size:12px;border-radius:999px}
     .player,.coachrow{display:flex;justify-content:space-between;gap:10px;align-items:center;border-top:1px solid var(--line);padding:10px 0}
@@ -48,7 +48,7 @@
     .guld{background:var(--gold);color:#4b3600}.sølv{background:var(--silver);color:#263238}.bronze{background:var(--bronze);color:white}.none{background:#e5e7eb;color:#555}.greenpill{background:#d1fae5;color:#065f46}.pill.red{background:#fee2e2;color:#991b1b}
     table{width:100%;border-collapse:collapse;font-size:14px;overflow:hidden;border-radius:12px;background:white}
     th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:middle}
-    th{background:#efe5cf}
+    th{background:#e7eef5}
     .exercise-block{border:1px solid var(--line);border-radius:14px;padding:10px;margin:10px 0;background:white}
     .hidden{display:none!important}
     .footer-note{font-size:12px;color:var(--muted);padding:10px;text-align:center}
@@ -57,8 +57,8 @@
     .stepbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 0 12px}
     .step{border-radius:10px;padding:8px 4px;text-align:center;font-size:13px;font-weight:800;background:#eee;color:#555;border:1px solid #ddd}
     .step.done{background:#d1fae5;color:#065f46;border-color:#85d6a8}
-    .step.current{background:var(--green2);color:white;border-color:var(--green2)}
-    .step.selected{outline:3px solid rgba(15,81,50,.25)}
+    .step.current{background:var(--blue);color:white;border-color:var(--blue)}
+    .step.selected{outline:3px solid rgba(109,27,58,.25)}
     .checkrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
     .checkrow:last-child{border-bottom:0}
     .toggle{border:0;border-radius:999px;padding:9px 13px;font-weight:800;background:var(--not);color:#333;min-width:92px}
@@ -94,7 +94,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.8 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.9 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -304,7 +304,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.8 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.9 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -518,7 +518,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.8 · ikke logget ind");
+    setSyncStatus("v15.9 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -564,9 +564,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.8 · live database aktiv");
+    setSyncStatus("v15.9 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.8 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.9 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -971,11 +971,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.8 · migrering færdig");
+    setSyncStatus("v15.9 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.8 · migrering fejlede");
+    setSyncStatus("v15.9 · migrering fejlede");
   }
 }
 
@@ -1076,7 +1076,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.8 · uploader video...");
+    setSyncStatus("v15.9 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1097,12 +1097,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.8 · live database aktiv");
+    setSyncStatus("v15.9 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.8 · live database aktiv");
+    setSyncStatus("v15.9 · live database aktiv");
   }
 }
 
@@ -1585,7 +1585,7 @@ function renderPlayerProfile(){
   const rankBox = `<div class="profilebox">
     <h3>${tier.icon} ${tier.name}</h3>
     <p class="small">${points} point ${next ? `· ${next.min - points} point til ${next.icon} ${next.name}` : "· Højeste rang opnået!"}</p>
-    <div style="background:#eee;border-radius:999px;height:10px;overflow:hidden"><div style="background:var(--green2);height:100%;width:${progressPct}%"></div></div>
+    <div style="background:#eee;border-radius:999px;height:10px;overflow:hidden"><div style="background:var(--blue);height:100%;width:${progressPct}%"></div></div>
   </div>`;
   const history = (p.history || []).slice(0,25).map(h=>{
     const date = h.at ? new Date(h.at).toLocaleString("da-DK") : "";
