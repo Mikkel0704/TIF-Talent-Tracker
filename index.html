@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.5</title>
+  <title>TIF Talent Tracker v15.6</title>
   <style>
     :root{
       --green:#0f5132; --green2:#198754; --cream:#f7f1df; --card:#fffaf0;
@@ -94,7 +94,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.5 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.6 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -107,10 +107,10 @@
   <button onclick="showPage('training')" id="tab-training" class="hidden">Træning</button>
   <button onclick="showPage('challenges')" id="tab-challenges" class="hidden">Udfordringer<span id="challengeBadge" class="navbadge hidden"></span></button>
   <button onclick="showPage('leaderboard')" id="tab-leaderboard">Rangliste</button>
-  <button onclick="showPage('profile')" id="tab-profile" class="hidden">Spillerprofil</button>
   <button onclick="showPage('criteria')" id="tab-criteria">Kriterier</button>
   <button onclick="showPage('guide')" id="tab-guide">Guide</button>
   <button onclick="showPage('admin')" id="tab-admin">Admin</button>
+  <button onclick="showPage('profile')" id="tab-profile" class="hidden">Spillerprofil</button>
   <button onclick="showPage('settings')" id="tab-settings">Indstillinger</button>
 </nav>
 
@@ -293,7 +293,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.5 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.6 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -507,7 +507,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.5 · ikke logget ind");
+    setSyncStatus("v15.6 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -552,9 +552,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.5 · live database aktiv");
+    setSyncStatus("v15.6 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.5 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.6 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -959,11 +959,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.5 · migrering færdig");
+    setSyncStatus("v15.6 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.5 · migrering fejlede");
+    setSyncStatus("v15.6 · migrering fejlede");
   }
 }
 
@@ -1064,7 +1064,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.5 · uploader video...");
+    setSyncStatus("v15.6 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1085,12 +1085,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.5 · live database aktiv");
+    setSyncStatus("v15.6 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.5 · live database aktiv");
+    setSyncStatus("v15.6 · live database aktiv");
   }
 }
 
