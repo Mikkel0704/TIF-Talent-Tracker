@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.21</title>
+  <title>TIF Talent Tracker v15.22</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -103,7 +103,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.21 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.22 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -321,7 +321,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.21 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.22 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -391,9 +391,9 @@ const steps = [
 const exerciseDescriptions = {
  "Jonglering": {"Formål":"Udvikle boldkontrol, koordination og føling med bolden.","Opsætning":["Spiller står frit med en bold.","Fladt underlag."],"Udførsel":["Spilleren jonglerer bolden uden at den rammer jorden.","Bolden må spilles med begge fødder, lår og hoved."],"Trænerfokus":["Roligt tempo.","Små, kontrollerede berøringer.","Kropsposition og balance."]},
  "Præcision": {"Formål":"Udvikle præcision, afslutningsteknik og brug af begge ben.","Opsætning":["Kan bygges i haven med kegler/spande.","Bund-målzoner: 2 kegler/spande med 70 cm mellem dem i hver side af målet.","Opsætningen følger niveauet - ikke medaljen. Den står altså ens for bronze, sølv og guld på samme niveau.","Niveau 1: bund-zoner med ca. 1,5 m mellem de to zoners inderste kegler. Afstand til skud 8 m. (Ingen top-zoner.)","Niveau 2: bund-zoner med ca. 3,5 m mellem de to zoners inderste kegler, plus top-zoner (hjørne ca. 70x70 cm i hver side, kræver en overkant - mål, plankeværk eller en snor/tørresnor) med overligger i 2 m højde. Afstand til skud 10 m.","Niveau 3: bund-zoner med ca. 7 m mellem de to zoners inderste kegler, plus top-zoner (samme hjørne-mål som niveau 2) med overligger i 2,5 m højde. Afstand til skud 12 m."],"Udførsel":["Spilleren skyder 10 bolde mod målzonerne som frispark."],"Trænerfokus":["Teknik frem for kraft.","Bevidst sigte.","Ro før hvert skud."]},
- "Modtag & Afslut": {"Formål":"Udvikle retningsbestemt tæmning, timing og afslutning i fart.","Opsætning":["Bronze: 5-mandsmål og to 3-mandsmål udenfor hver stolpe som målzoner. Startkegle ca. 12 m fra målstregen.","Sølv: 8-mandsmål med målzoner i bund og top. Startkegle ca. 14 m fra målstregen.","Guld: 11-mandsmål, samme 4 målzoner som sølv. Afstand 16 m."],"Udførsel":["Spilleren starter ved keglen og løber mod mål.","Modtager aflevering fra træner.","Førsteberøring skal være retningsbestemt mod mål.","Afslutning før 8 m, 10 m og 12 m."],"Trænerfokus":["Timing af løb.","Førsteberøring fremad.","Hurtig beslutning før afslutning."]},
+ "Modtag & Afslut": {"Formål":"Udvikle retningsbestemt tæmning, timing og afslutning i fart.","Opsætning":["Opsætningen følger niveauet - ikke medaljen. Den står altså ens for bronze, sølv og guld på samme niveau.","Niveau 1: 5-mandsmål og to 3-mandsmål udenfor hver stolpe som målzoner. Startkegle ca. 12 m fra målstregen.","Niveau 2: 8-mandsmål med målzoner i bund og top. Startkegle ca. 14 m fra målstregen.","Niveau 3: 11-mandsmål, samme 4 målzoner som niveau 2. Startkegle ca. 16 m fra målstregen."],"Udførsel":["Spilleren starter ved keglen og løber mod mål.","Modtager aflevering fra træner.","Førsteberøring skal være retningsbestemt mod mål.","Afslutning før 8 m på niveau 1, før 10 m på niveau 2 og før 12 m på niveau 3."],"Trænerfokus":["Timing af løb.","Førsteberøring fremad.","Hurtig beslutning før afslutning."]},
  "Finter": {"Formål":"Udvikle driblefærdigheder, kropsfinter og evnen til at vende fra modstander.","Opsætning":["Spiller starter med bold 5-8 m fra træner/modstander.","Træner står ca. 12-14 m fra mål.","5- eller 8-mandsmål.","Målzoner i bund og top."],"Udførsel":["Spilleren dribler mod træneren.","Udfører finte eller vending.","Kommer forbi træneren.","Afslutter mod mål."],"Trænerfokus":["Mod i driblingen.","Timing af finte.","Balance og kropskontrol."]},
- "Kontrol": {"Formål":"Udvikle førsteberøring, boldkontrol og orientering.","Opsætning":["Bronze: firkant 2x2 m, træner (eller mur/rebounder) 3-5 m fra zonen.","Sølv/Guld: firkant 1,5x1,5 m, træner (eller mur/rebounder) 3-5 m fra zonen."],"Udførsel":["Med træner: Træneren laver 10 afleveringer - 5 langs jorden og 5 kastet ind med underhånd. Spilleren tæmmer bolden, så den ligger død i firkanten.","Alene (mur/rebounder): Spilleren sparker eller kaster 10 bolde mod muren/rebounderen - 5 langs jorden og 5 kastet ind med underhånd. Bolden tæmmes, så den ligger død i firkanten, når den kommer retur."],"Trænerfokus":["Blød førsteberøring.","Retning på tæmning.","Hurtig reaktion."]}
+ "Kontrol": {"Formål":"Udvikle førsteberøring, boldkontrol og orientering.","Opsætning":["Opsætningen følger niveauet - ikke medaljen. Den står altså ens for bronze, sølv og guld på samme niveau.","Niveau 1: firkant 2x2 m, træner (eller mur/rebounder) 3-5 m fra zonen.","Niveau 2 og 3: firkant 1,5x1,5 m, træner (eller mur/rebounder) 3-5 m fra zonen."],"Udførsel":["Med træner: Træneren laver 10 afleveringer - 5 langs jorden og 5 kastet ind med underhånd. Spilleren tæmmer bolden, så den ligger død i firkanten.","Alene (mur/rebounder): Spilleren sparker eller kaster 10 bolde mod muren/rebounderen - 5 langs jorden og 5 kastet ind med underhånd. Bolden tæmmes, så den ligger død i firkanten, når den kommer retur."],"Trænerfokus":["Blød førsteberøring.","Retning på tæmning.","Hurtig reaktion."]}
 };
 
 const criteria = {
@@ -573,7 +573,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.21 · ikke logget ind");
+    setSyncStatus("v15.22 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -619,9 +619,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.21 · live database aktiv");
+    setSyncStatus("v15.22 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.21 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.22 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -1105,11 +1105,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.21 · migrering færdig");
+    setSyncStatus("v15.22 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.21 · migrering fejlede");
+    setSyncStatus("v15.22 · migrering fejlede");
   }
 }
 
@@ -1213,7 +1213,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.21 · uploader video...");
+    setSyncStatus("v15.22 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1234,12 +1234,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.21 · live database aktiv");
+    setSyncStatus("v15.22 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.21 · live database aktiv");
+    setSyncStatus("v15.22 · live database aktiv");
   }
 }
 
