@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.15</title>
+  <title>TIF Talent Tracker v15.16</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -103,7 +103,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.15 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.16 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -321,12 +321,12 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.15 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.16 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc, deleteField, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
 const firebaseConfig = {
@@ -573,7 +573,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.15 · ikke logget ind");
+    setSyncStatus("v15.16 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -619,9 +619,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.15 · live database aktiv");
+    setSyncStatus("v15.16 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.15 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.16 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -776,8 +776,50 @@ function renderTracking(){
     ${exercises.map(ex=>{
       const on=!!p.passed[getKey(selected,ex)];
       return `<div class="checkrow"><div><b>${ex}</b><div class="small">${criteria[ex][s.level][s.medal].join(" · ")}</div></div><button class="toggle ${on?'on':''}" ${isFuture?'disabled':''} onclick="togglePassed('${p.id}',${selected},'${ex}')">${on?'Bestået':isFuture?'Låst':'Ikke endnu'}</button></div>`;
-    }).join("")}</div>`;
+    }).join("")}
+    ${isStepComplete(p, selected) ? `<div class="checkrow" style="border-bottom:0;border-top:2px solid var(--line);margin-top:8px;padding-top:14px">
+      <div><b>🏅 ${s.label}-medalje</b><div class="small">${medalHandedOver(p,selected) ? escapeHtml(medalHandoverText(p,selected)) : "Optjent - klar til at blive overrakt til træning"}</div></div>
+      <button class="toggle ${medalHandedOver(p,selected)?'on':''}" onclick="toggleMedalHandedOver('${p.id}',${selected})">${medalHandedOver(p,selected)?'Overrakt':'Ikke overrakt'}</button>
+    </div>` : ""}</div>`;
 }
+// Medaljer: en medalje er OPTJENT, når alle 5 øvelser på et trin er bestået, men den
+// tæller først som OVERRAKT, når træneren har givet den fysisk til spilleren og klikket
+// den af her. De to tilstande holdes adskilt, så ingen spiller tror, medaljen er glemt.
+function medalHandedOver(p, si){ return !!p?.medals?.[String(si)]; }
+function earnedMedals(p){ return steps.map((s,i)=>i).filter(i=>isStepComplete(p,i)); }
+function pendingMedals(p){ return earnedMedals(p).filter(i=>!medalHandedOver(p,i)); }
+function medalHandoverText(p, si){
+  const m = p?.medals?.[String(si)];
+  if(!m) return "";
+  const date = m.at ? new Date(m.at).toLocaleDateString("da-DK") : "";
+  return `Overrakt ${date}${m.by ? ` af ${m.by}` : ""}`;
+}
+
+async function toggleMedalHandedOver(pid, si){
+  const p = players.find(x=>x.id===pid);
+  if(!p || !canAccessYear(p.year)) return alert("Ingen adgang");
+  if(isPlayer()) return alert("Kun trænere kan registrere, at en medalje er overrakt.");
+  if(!isStepComplete(p, si)) return alert("Medaljen er ikke optjent endnu - alle 5 øvelser på trinnet skal være bestået først.");
+  const step = steps[si];
+  const key = String(si);
+  const wasHandedOver = medalHandedOver(p, si);
+  if(wasHandedOver && !confirm(`Fjern registreringen af, at ${p.name} har fået sin ${step.label}-medalje?`)) return;
+  const history = [...(p.history||[])];
+  history.unshift({
+    type: wasHandedOver ? "medal_undone" : "medal_handed_over",
+    text: wasHandedOver ? `${step.label}-medalje: registrering af overrækkelse fjernet` : `🏅 ${step.label}-medalje overrakt`,
+    by: currentUser?.email || "",
+    at: new Date().toISOString()
+  });
+  // deleteField() frem for at udelade nøglen: med {merge:true} fjerner en udeladt
+  // nøgle i et map ikke feltet på serveren, den bliver bare stående.
+  await setDoc(doc(db,"players",pid), {
+    medals: {[key]: wasHandedOver ? deleteField() : {at: new Date().toISOString(), by: currentUser?.email || ""}},
+    history: history.slice(0,100),
+    updatedAt: serverTimestamp()
+  }, {merge:true});
+}
+
 async function togglePassed(pid, si, ex){
   const p=players.find(x=>x.id===pid);
   if(!p || !canAccessYear(p.year)) return alert("Ingen adgang");
@@ -803,7 +845,16 @@ function renderOverview(){
   const done=list.filter(p=>countPassed(p,si)===5).length;
   const progress=list.filter(p=>{const c=countPassed(p,si); return c>0 && c<5;}).length;
   const none=list.filter(p=>countPassed(p,si)===0).length;
-  area.innerHTML = `<div class="statuscards"><div class="statuscard status-done"><b>✓ Bestået</b>${done}</div><div class="statuscard status-progress"><b>● I gang</b>${progress}</div><div class="statuscard status-none"><b>○ Ikke startet</b>${none}</div></div>
+  // Årgangs-bred liste (ikke bundet til det valgte trin): det er den, man pakker
+  // medaljer efter inden næste træning.
+  const awaiting = list.map(p=>({p, medals: pendingMedals(p)})).filter(x=>x.medals.length);
+  const awaitingBox = awaiting.length ? `<div class="mutedbox" style="margin-bottom:12px">
+    <h3 style="margin-top:0">🏅 Medaljer der mangler at blive overrakt (${awaiting.reduce((n,x)=>n+x.medals.length,0)})</h3>
+    <p class="small">Alle 5 øvelser er bestået - medaljen er optjent, men endnu ikke klikket af som overrakt. Marker den under Registrering, når den er givet.</p>
+    ${awaiting.map(x=>`<div class="yearline"><div><b>${escapeHtml(x.p.name)}</b><div class="small">${x.medals.map(i=>steps[i].label).join(" · ")}</div></div><button class="btn secondary smallbtn" onclick="selectProfileForTracking('${x.p.id}')">Åbn</button></div>`).join("")}
+  </div>` : "";
+
+  area.innerHTML = `${awaitingBox}<div class="statuscards"><div class="statuscard status-done"><b>✓ Bestået</b>${done}</div><div class="statuscard status-progress"><b>● I gang</b>${progress}</div><div class="statuscard status-none"><b>○ Ikke startet</b>${none}</div></div>
   <div class="tablewrap"><table><thead><tr><th>Spiller</th><th>Status</th><th>Bestået</th></tr></thead><tbody>${list.map(p=>{
     const cnt=countPassed(p,si);
     const status=cnt===5?'<span class="pill greenpill">✓ Bestået</span>':cnt>0?'<span class="pill guld">● I gang</span>':'<span class="pill none">○ Ikke startet</span>';
@@ -1047,11 +1098,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.15 · migrering færdig");
+    setSyncStatus("v15.16 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.15 · migrering fejlede");
+    setSyncStatus("v15.16 · migrering fejlede");
   }
 }
 
@@ -1155,7 +1206,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.15 · uploader video...");
+    setSyncStatus("v15.16 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1176,12 +1227,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.15 · live database aktiv");
+    setSyncStatus("v15.16 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.15 · live database aktiv");
+    setSyncStatus("v15.16 · live database aktiv");
   }
 }
 
@@ -1530,8 +1581,20 @@ async function reviewSubmission(id, approve){
   if(!p || !canAccessYear(s.year)) return alert("Ingen adgang");
   let pointsAwarded = 0;
   if(approve){
+    // Niveauet på videoen er skrevet af spillerens egen browser og kan derfor ikke
+    // stoles på alene. Det tjekkes her mod spillerens faktiske status, så en video
+    // hverken kan udløse point for et niveau, spilleren ikke har låst op endnu,
+    // eller point igen for en øvelse, der allerede er registreret bestået.
     const step = steps[s.stepIndex];
-    pointsAwarded = pointsForStep(step);
+    if(!step) return alert("Videoen har et ugyldigt niveau og kan ikke godkendes. Afvis den i stedet.");
+    const reached = currentStepIndex(p);
+    if(s.stepIndex > reached){
+      const reachedText = reached >= steps.length ? "alle niveauer gennemført" : steps[reached].label;
+      return alert(`Videoen er markeret som ${step.label}, men ${p.name} er kun nået til ${reachedText}.\n\nDen kan ikke godkendes på det niveau. Afvis den, og bed spilleren uploade igen fra sit aktuelle niveau.`);
+    }
+    const alreadyPassed = !!p.passed?.[getKey(s.stepIndex, s.exercise)];
+    if(alreadyPassed && !confirm(`${s.exercise} · ${step.label} er allerede registreret bestået for ${p.name}.\n\nGodkend videoen uden at give point igen?`)) return;
+    pointsAwarded = alreadyPassed ? 0 : pointsForStep(step);
     const passed = {...(p.passed||{})};
     passed[getKey(s.stepIndex, s.exercise)] = true;
     const history = [...(p.history||[])];
@@ -1546,7 +1609,7 @@ async function reviewSubmission(id, approve){
     }
     history.unshift({
       type: "submission_approved",
-      text: `${s.exercise} · ${step.label} godkendt via video${bonusText}: +${pointsAwarded} point`,
+      text: `${s.exercise} · ${step.label} godkendt via video${bonusText}: ${alreadyPassed && !bonusText ? "allerede bestået, ingen nye point" : `+${pointsAwarded} point`}`,
       by: currentUser?.email || "",
       at: new Date().toISOString()
     });
@@ -1687,6 +1750,15 @@ function renderPlayerProfile(){
         <h3>Niveauer</h3>
         ${stepSummary}
       </div>
+      <div class="profilebox">
+        <h3>Medaljer</h3>
+        ${earnedMedals(p).length
+          ? earnedMedals(p).map(i=>medalHandedOver(p,i)
+              ? `<div class="historyitem" style="border-top:0;padding:6px 0"><b>🏅 ${steps[i].label}</b><div class="small">${escapeHtml(medalHandoverText(p,i))}</div></div>`
+              : `<div class="historyitem" style="border-top:0;padding:6px 0"><b>🏅 ${steps[i].label}</b><div class="small">Optjent - du får den overrakt til træning</div></div>`
+            ).join("")
+          : '<p class="small">Ingen medaljer endnu. Bestå alle 5 øvelser på et niveau, så er den optjent.</p>'}
+      </div>
     </div>
     <div class="profilebox" style="margin-top:10px">
       <h3>Historik</h3>
@@ -1767,7 +1839,7 @@ function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); ren
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,resetPassword,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{login,logout,resetPassword,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>
