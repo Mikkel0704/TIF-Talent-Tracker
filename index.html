@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.16</title>
+  <title>TIF Talent Tracker v15.17</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -103,7 +103,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.16 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.17 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -321,7 +321,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.16 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.17 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -573,7 +573,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.16 · ikke logget ind");
+    setSyncStatus("v15.17 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -619,9 +619,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.16 · live database aktiv");
+    setSyncStatus("v15.17 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.16 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.17 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -770,17 +770,24 @@ function renderTracking(){
   if(selectedStepByPlayer[p.id] === undefined) selectedStepByPlayer[p.id] = Math.min(current, steps.length-1);
   const selected = Math.min(selectedStepByPlayer[p.id], steps.length-1);
   const s = steps[selected], isFuture = selected > current, isPast = selected < current;
-  area.innerHTML = `${renderStepbar(p)}<div class="exercise-block">
+  // Medaljeblokken står uden for trin-blokken med vilje: en netop optjent medalje hører til
+  // trinnet FØR det aktuelle, så hvis den kun blev vist ved det valgte trin, ville træneren
+  // aldrig få den at se uden først at klikke tilbage.
+  const earned = earnedMedals(p);
+  const medalBlock = earned.length ? `<div class="exercise-block">
+    <h3 style="margin-top:0">🏅 Medaljer</h3>
+    <p class="small">Klik af, når medaljen er overrakt fysisk til spilleren.</p>
+    ${earned.map(i=>`<div class="checkrow">
+      <div><b>${steps[i].label}-medalje</b><div class="small">${medalHandedOver(p,i) ? escapeHtml(medalHandoverText(p,i)) : "Optjent - klar til at blive overrakt til træning"}</div></div>
+      <button class="toggle ${medalHandedOver(p,i)?'on':''}" onclick="toggleMedalHandedOver('${p.id}',${i})">${medalHandedOver(p,i)?'Overrakt':'Ikke overrakt'}</button>
+    </div>`).join("")}</div>` : "";
+  area.innerHTML = `${renderStepbar(p)}${medalBlock}<div class="exercise-block">
     <h3>${selected===current ? "Aktuelt trin" : isPast ? "Rediger tidligere trin" : "Kommende trin"}: Niveau ${s.level} · ${s.medal}</h3>
     <p class="small">${isFuture ? "Dette trin åbner først, når tidligere trin er bestået." : "Marker de øvelser spilleren har bestået."}</p>
     ${exercises.map(ex=>{
       const on=!!p.passed[getKey(selected,ex)];
       return `<div class="checkrow"><div><b>${ex}</b><div class="small">${criteria[ex][s.level][s.medal].join(" · ")}</div></div><button class="toggle ${on?'on':''}" ${isFuture?'disabled':''} onclick="togglePassed('${p.id}',${selected},'${ex}')">${on?'Bestået':isFuture?'Låst':'Ikke endnu'}</button></div>`;
-    }).join("")}
-    ${isStepComplete(p, selected) ? `<div class="checkrow" style="border-bottom:0;border-top:2px solid var(--line);margin-top:8px;padding-top:14px">
-      <div><b>🏅 ${s.label}-medalje</b><div class="small">${medalHandedOver(p,selected) ? escapeHtml(medalHandoverText(p,selected)) : "Optjent - klar til at blive overrakt til træning"}</div></div>
-      <button class="toggle ${medalHandedOver(p,selected)?'on':''}" onclick="toggleMedalHandedOver('${p.id}',${selected})">${medalHandedOver(p,selected)?'Overrakt':'Ikke overrakt'}</button>
-    </div>` : ""}</div>`;
+    }).join("")}</div>`;
 }
 // Medaljer: en medalje er OPTJENT, når alle 5 øvelser på et trin er bestået, men den
 // tæller først som OVERRAKT, når træneren har givet den fysisk til spilleren og klikket
@@ -1098,11 +1105,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.16 · migrering færdig");
+    setSyncStatus("v15.17 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.16 · migrering fejlede");
+    setSyncStatus("v15.17 · migrering fejlede");
   }
 }
 
@@ -1206,7 +1213,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.16 · uploader video...");
+    setSyncStatus("v15.17 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1227,12 +1234,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.16 · live database aktiv");
+    setSyncStatus("v15.17 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.16 · live database aktiv");
+    setSyncStatus("v15.17 · live database aktiv");
   }
 }
 
