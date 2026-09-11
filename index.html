@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.14</title>
+  <title>TIF Talent Tracker v15.15</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -103,7 +103,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.14 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.15 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -131,7 +131,8 @@
     <label>Email</label><input id="loginEmail" type="email" placeholder="din@email.dk" />
     <label>Password</label><input id="loginPassword" type="password" placeholder="Password" />
     <button class="btn" onclick="login()">Log ind</button>
-    <p class="small">Første gang skal brugeren være oprettet i Firebase Authentication.</p>
+    <button class="btn secondary" onclick="resetPassword()">Glemt adgangskode?</button>
+    <p class="small">Har du glemt din adgangskode, så skriv din email i feltet ovenfor og tryk "Glemt adgangskode?" - så sender vi et link til at vælge en ny.</p>
   </div>
 </section>
 
@@ -320,11 +321,11 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.14 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.15 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
@@ -521,13 +522,47 @@ function countPassed(p, si){ return exercises.filter(ex=>p.passed?.[getKey(si,ex
 function isStepComplete(p, si){ return countPassed(p, si) === exercises.length; }
 function currentStepIndex(p){ for(let i=0;i<steps.length;i++){ if(!isStepComplete(p,i)) return i; } return steps.length; }
 
+// Firebase's egne fejl er engelske og tekniske ("auth/invalid-credential") - her
+// oversættes de til noget, en forælder kan handle på. Ukendte koder falder tilbage
+// til en generel besked med koden i parentes, så den stadig kan fejlsøges.
+function authErrorText(e){
+  switch(e?.code){
+    case "auth/invalid-email": return "Email-adressen ser ikke rigtig ud. Tjek om den er stavet korrekt.";
+    case "auth/missing-password": return "Du mangler at skrive din adgangskode.";
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found": return "Forkert email eller adgangskode. Tjek om der er slået caps lock til - ellers brug \"Glemt adgangskode?\" nedenfor.";
+    case "auth/too-many-requests": return "Der er prøvet for mange gange. Vent et par minutter, eller brug \"Glemt adgangskode?\" for at vælge en ny.";
+    case "auth/user-disabled": return "Denne bruger er spærret. Kontakt din træner.";
+    case "auth/network-request-failed": return "Ingen forbindelse til nettet. Tjek din internetforbindelse og prøv igen.";
+    default: return "Der skete en fejl. Prøv igen - hvis den bliver ved, så kontakt din træner." + (e?.code ? ` (${e.code})` : "");
+  }
+}
+
 async function login(){
   try{
     const email = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value;
     await signInWithEmailAndPassword(auth, email, password);
   }catch(e){
-    alert("Login fejlede: " + e.message);
+    console.error(e);
+    alert(authErrorText(e));
+  }
+}
+
+async function resetPassword(){
+  const email = document.getElementById("loginEmail").value.trim();
+  if(!email) return alert("Skriv først din email i feltet ovenfor - så sender vi et link til at vælge en ny adgangskode.");
+  try{
+    await sendPasswordResetEmail(auth, email);
+    // Bekræfter altid, uanset om emailen findes: ellers kan man bruge siden til at
+    // gætte sig frem til, hvilke emails der er oprettet i klubben.
+    alert("Hvis der findes en bruger med " + email + ", er der nu sendt en email med et link til at vælge en ny adgangskode.\n\nTjek også spam-mappen - den kommer fra Firebase.");
+  }catch(e){
+    console.error(e);
+    if(e?.code === "auth/invalid-email") return alert("Email-adressen ser ikke rigtig ud. Tjek om den er stavet korrekt.");
+    if(e?.code === "auth/too-many-requests") return alert("Der er sendt for mange anmodninger. Vent et par minutter og prøv igen.");
+    alert("Hvis der findes en bruger med " + email + ", er der nu sendt en email med et link til at vælge en ny adgangskode.\n\nTjek også spam-mappen - den kommer fra Firebase.");
   }
 }
 async function logout(){ await signOut(auth); location.reload(); }
@@ -538,7 +573,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.14 · ikke logget ind");
+    setSyncStatus("v15.15 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -584,9 +619,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.14 · live database aktiv");
+    setSyncStatus("v15.15 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.14 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.15 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -1012,11 +1047,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.14 · migrering færdig");
+    setSyncStatus("v15.15 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.14 · migrering fejlede");
+    setSyncStatus("v15.15 · migrering fejlede");
   }
 }
 
@@ -1120,7 +1155,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.14 · uploader video...");
+    setSyncStatus("v15.15 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1141,12 +1176,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.14 · live database aktiv");
+    setSyncStatus("v15.15 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.14 · live database aktiv");
+    setSyncStatus("v15.15 · live database aktiv");
   }
 }
 
@@ -1732,7 +1767,7 @@ function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); ren
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{login,logout,resetPassword,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>
