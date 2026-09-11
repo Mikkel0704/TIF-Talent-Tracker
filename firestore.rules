@@ -29,6 +29,17 @@ service cloud.firestore {
       return isActive() && userDoc().data.role == "player";
     }
 
+    // Et demo-login (users/{uid}.demo == true) er en spiller, der må se alt i sin
+    // aargang, men ikke maa sende noget ind: ingen videoer, ingen udfordringer, ingen
+    // svar paa udfordringer. Brugt til foraeldremoeder og til familier, der vil se
+    // appen an. Klienten viser knapperne og forklarer det - her bliver det haandhaevet.
+    // Manglende felt betyder ikke-demo, saa alle eksisterende logins er uaendrede.
+    function isDemo() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userDoc().data.demo == true;
+    }
+
     function myPlayerId() {
       return userDoc().data.playerId;
     }
@@ -102,6 +113,7 @@ service cloud.firestore {
       allow read: if signedIn() && hasFullAccess(resource.data.year, resource.data.gender);
 
       allow create: if isPlayerRole()
+        && !isDemo()
         && request.resource.data.playerId == myPlayerId()
         && request.resource.data.status == "pending"
         && hasFullAccess(request.resource.data.year, request.resource.data.gender);
@@ -132,6 +144,7 @@ service cloud.firestore {
       allow read: if signedIn() && hasFullAccess(resource.data.year, resource.data.gender);
 
       allow create: if isPlayerRole()
+        && !isDemo()
         && request.resource.data.challengerId == myPlayerId()
         && hasFullAccess(request.resource.data.year, request.resource.data.gender);
 
@@ -139,6 +152,7 @@ service cloud.firestore {
         (!isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender))
         || (
           isPlayerRole()
+          && !isDemo()
           && resource.data.opponentId == myPlayerId()
           && resource.data.status == "pending"
           && request.resource.data.status in ["active", "declined"]

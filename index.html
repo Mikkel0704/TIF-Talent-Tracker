@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.33</title>
+  <title>TIF Talent Tracker v15.34</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -70,6 +70,7 @@
     .step.done{background:#d1fae5;color:#065f46;border-color:#85d6a8}
     .step.current{background:var(--blue);color:white;border-color:var(--blue)}
     .step.selected{outline:3px solid rgba(109,27,58,.25)}
+    .demobanner{margin:0;padding:10px 14px;background:#fff4d6;border-bottom:1px solid #f0d99a;color:#6b4d00;font-size:14px;line-height:1.45}
     .checkrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
     .checkrow:last-child{border-bottom:0}
     .toggle{border:0;border-radius:999px;padding:9px 13px;font-weight:800;background:var(--not);color:#333;min-width:92px}
@@ -105,10 +106,12 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.33 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.34 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
+
+<div id="demoBanner" class="demobanner hidden">👀 <b>Demo-login</b> - her kan I se, hvordan appen fungerer. Knapperne er der, men videoer og udfordringer bliver ikke sendt ind.</div>
 
 <nav id="mainNav" class="hidden">
   <button onclick="showPage('players')" id="tab-players" class="active">Spillere</button>
@@ -280,6 +283,8 @@
       <label>Vælg spiller</label><select id="newPlayerLoginPlayer"></select>
       <label>Email</label><input id="newPlayerLoginEmail" placeholder="spiller@email.dk">
       <label>Midlertidigt password</label><input id="newPlayerLoginPassword" type="password" placeholder="Min. 6 tegn">
+      <label class="checkpill" style="margin:8px 0"><input type="checkbox" id="newPlayerLoginDemo"> Demo-login (må kigge, men ikke uploade eller udfordre)</label>
+      <p class="small">Brug demo til forældremøder og til familier, der vil se appen an. Alle knapper er der, men de sender ingenting ind - og spilleren kan ikke udfordres af de rigtige spillere.</p>
       <button class="btn" onclick="createPlayerLoginFromAdmin()">Opret spillerlogin</button>
     </div>
     <h3>Spillerlogins</h3>
@@ -323,7 +328,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.33 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.34 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -486,6 +491,16 @@ function setSyncStatus(text){
 }
 function isAdmin(){ return currentUserDoc?.role === "admin"; }
 function isPlayer(){ return currentUserDoc?.role === "player"; }
+// Demo-login: en spiller-bruger, der må kigge på alt, men ikke må sende noget ind.
+// Tænkt til forældremøder og til nye familier, der vil se appen an, før de får et
+// rigtigt login. Knapperne bliver stående, så de kan se, hvordan det fungerer - men
+// både klienten her og firestore.rules afviser selve handlingen.
+function isDemoUser(){ return currentUserDoc?.demo === true; }
+function demoBlocked(what){
+  if(!isDemoUser()) return false;
+  alert(`Det her er en demo-bruger, så I kan se, hvordan appen ser ud.\n\n${what}\n\nMed et rigtigt spillerlogin ville det virke helt som forventet.`);
+  return true;
+}
 function allowedYears(){ return isAdmin() ? allKnownYears() : normalizeYearsList(currentUserDoc?.years || []); }
 function canAccessYear(y){ return isAdmin() || allowedYears().includes(normalizeYearValue(y)); }
 function genderRestrictionFor(y){
@@ -589,8 +604,9 @@ onAuthStateChanged(auth, async (user)=>{
   if(!user){
     document.getElementById("login").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
+    document.getElementById("demoBanner").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.33 · ikke logget ind");
+    setSyncStatus("v15.34 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -608,6 +624,7 @@ onAuthStateChanged(auth, async (user)=>{
   }
   document.getElementById("login").classList.add("hidden");
   document.getElementById("mainNav").classList.remove("hidden");
+  document.getElementById("demoBanner").classList.toggle("hidden", !isDemoUser());
   document.getElementById("headerLogout").classList.remove("hidden");
   const coachOnlyTabs = ["tab-players","tab-track","tab-overview","tab-review"];
   const playerOnlyTabs = ["tab-training","tab-challenges"];
@@ -636,9 +653,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.33 · live database aktiv");
+    setSyncStatus("v15.34 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.33 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.34 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -1004,7 +1021,7 @@ function renderAdmin(){
     const playerLogins = users.filter(u=>u.role==="player");
     playerLoginsArea.innerHTML = playerLogins.length ? playerLogins.map(u=>{
       const linkedPlayer = players.find(p=>p.id===u.playerId);
-      return `<div class="coachrow"><div><b>${escapeHtml(u.email)}</b><div class="small">UID: ${u.uid}<br>Spiller: ${linkedPlayer ? escapeHtml(linkedPlayer.name) + " (" + yearLabel(linkedPlayer.year) + ")" : "ukendt spiller"}${u.active===false ? " · Inaktiv" : ""}</div></div>
+      return `<div class="coachrow"><div><b>${escapeHtml(u.email)}</b><div class="small">UID: ${u.uid}<br>Spiller: ${linkedPlayer ? escapeHtml(linkedPlayer.name) + " (" + yearLabel(linkedPlayer.year) + ")" : "ukendt spiller"}${u.active===false ? " · Inaktiv" : ""}${u.demo===true ? " · 👀 Demo (kan ikke uploade eller udfordre)" : ""}</div></div>
         <div style="display:flex;gap:8px;flex-shrink:0">${accountActionButtons(u)}</div>
       </div>`;
     }).join("") : '<p class="small">Ingen spillerlogins oprettet endnu.</p>';
@@ -1122,11 +1139,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.33 · migrering færdig");
+    setSyncStatus("v15.34 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.33 · migrering fejlede");
+    setSyncStatus("v15.34 · migrering fejlede");
   }
 }
 
@@ -1173,6 +1190,7 @@ async function createPlayerLoginFromAdmin(){
   const playerId = document.getElementById("newPlayerLoginPlayer").value;
   const email = document.getElementById("newPlayerLoginEmail").value.trim();
   const password = document.getElementById("newPlayerLoginPassword").value;
+  const demo = !!document.getElementById("newPlayerLoginDemo")?.checked;
   const p = players.find(x=>x.id===playerId);
   if(!p) return alert("Vælg en spiller.");
   if(!email) return alert("Skriv spillerens email.");
@@ -1189,17 +1207,21 @@ async function createPlayerLoginFromAdmin(){
       // deres egen årgang, indtil migreringen er lavet.
       yearGenders: p.gender ? {[p.year]: p.gender} : {},
       active: true,
+      demo,
       createdBy: currentUser?.email || "",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     }, {merge:true});
     // Denormaliseret på spilleren, så andre spillere (som ikke må læse users/) kan se
     // hvem der har et aktivt login og dermed kan udfordres - se opponentsForCurrentPlayer().
-    await setDoc(doc(db, "players", p.id), {hasActiveLogin: true, updatedAt: serverTimestamp()}, {merge:true});
+    // Et demo-login tæller IKKE som aktivt her: så slipper de rigtige spillere for at få
+    // demo-brugeren op i deres modstanderliste og vente på et svar, der aldrig kommer.
+    if(!demo) await setDoc(doc(db, "players", p.id), {hasActiveLogin: true, updatedAt: serverTimestamp()}, {merge:true});
     await signOut(secondaryAuth);
     document.getElementById("newPlayerLoginEmail").value = "";
     document.getElementById("newPlayerLoginPassword").value = "";
-    alert("Spillerlogin oprettet til " + p.name + ": " + email);
+    document.getElementById("newPlayerLoginDemo").checked = false;
+    alert((demo ? "Demo-login" : "Spillerlogin") + " oprettet til " + p.name + ": " + email);
   }catch(e){
     console.error(e);
     alert("Kunne ikke oprette spillerlogin: " + e.message);
@@ -1230,7 +1252,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.33 · uploader video...");
+    setSyncStatus("v15.34 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1251,16 +1273,17 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.33 · live database aktiv");
+    setSyncStatus("v15.34 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.33 · live database aktiv");
+    setSyncStatus("v15.34 · live database aktiv");
   }
 }
 
 async function submitTraining(playerId, stepIndex, exercise){
+  if(demoBlocked("Videoen bliver ikke sendt til træneren herfra.")) return;
   const input = document.getElementById(`upload_${stepIndex}_${exercise}`);
   const file = input?.files?.[0];
   if(!file) return alert("Vælg en video først.");
@@ -1417,6 +1440,7 @@ function fillFreestylePreset(text){
 }
 
 async function createChallenge(playerId){
+  if(demoBlocked("Udfordringen bliver ikke sendt til nogen herfra.")) return;
   const p = currentPlayerLink;
   const opponentId = document.getElementById("challengeOpponent").value;
   const opponent = players.find(x=>x.id===opponentId);
@@ -1452,10 +1476,12 @@ async function createChallenge(playerId){
 }
 
 async function respondChallenge(challengeId, accept){
+  if(demoBlocked("Svaret bliver ikke gemt herfra.")) return;
   await setDoc(doc(db, "challenges", challengeId), {status: accept?"active":"declined", respondedAt: serverTimestamp()}, {merge:true});
 }
 
 async function submitChallengeVideo(challengeId){
+  if(demoBlocked("Videoen bliver ikke sendt ind herfra.")) return;
   const c = challenges.find(x=>x.id===challengeId);
   if(!c || !currentPlayerLink) return;
   const input = document.getElementById(`chupload_${challengeId}`);
