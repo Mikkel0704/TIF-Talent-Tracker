@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.35</title>
+  <title>TIF Talent Tracker v15.36</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -106,12 +106,23 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.35 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.36 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
 
 <div id="demoBanner" class="demobanner hidden">👀 <b>Demo-login</b> - her kan I se, hvordan appen fungerer. Knapperne er der, men videoer og udfordringer bliver ikke sendt ind.</div>
+
+<section id="forcePassword" class="page hidden">
+  <div class="card">
+    <h2 style="margin-top:0">Vælg din egen adgangskode</h2>
+    <p>Du er logget ind med en midlertidig kode, som din træner har sendt dig. Vælg din egen, før du går videre - så er det kun dig, der kender den.</p>
+    <label>Ny adgangskode</label><input id="forcePasswordInput" type="password" placeholder="Mindst 6 tegn">
+    <label>Gentag adgangskoden</label><input id="forcePasswordInput2" type="password" placeholder="Skriv den samme igen">
+    <button class="btn" onclick="changeForcedPassword()">Gem og fortsæt</button>
+    <p class="small">Glemmer du den, kan du altid vælge en ny med "Glemt adgangskode?" på login-siden.</p>
+  </div>
+</section>
 
 <nav id="mainNav" class="hidden">
   <button onclick="showPage('players')" id="tab-players" class="active">Spillere</button>
@@ -330,7 +341,7 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.35 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+<div class="footer-note">TIF Talent Tracker v15.36 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -613,7 +624,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("demoBanner").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.35 · ikke logget ind");
+    setSyncStatus("v15.36 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -630,6 +641,14 @@ onAuthStateChanged(auth, async (user)=>{
     return;
   }
   document.getElementById("login").classList.add("hidden");
+  if(currentUserDoc.mustChangePassword === true){
+    document.getElementById("headerLogout").classList.remove("hidden");
+    document.getElementById("mainNav").classList.add("hidden");
+    document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
+    document.getElementById("forcePassword").classList.remove("hidden");
+    setSyncStatus("v15.36 · vælg din egen adgangskode");
+    return;
+  }
   document.getElementById("mainNav").classList.remove("hidden");
   document.getElementById("demoBanner").classList.toggle("hidden", !isDemoUser());
   document.getElementById("headerLogout").classList.remove("hidden");
@@ -660,9 +679,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.35 · live database aktiv");
+    setSyncStatus("v15.36 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.35 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.36 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -1189,11 +1208,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.35 · migrering færdig");
+    setSyncStatus("v15.36 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.35 · migrering fejlede");
+    setSyncStatus("v15.36 · migrering fejlede");
   }
 }
 
@@ -1217,6 +1236,7 @@ async function createCoachFromAdmin(){
     await setDoc(doc(db, "users", cred.user.uid), {
       email,
       role: "coach",
+      mustChangePassword: true,
       years: selectedYears,
       yearGenders,
       active: true,
@@ -1258,6 +1278,8 @@ async function createPlayerLoginFromAdmin(){
       yearGenders: p.gender ? {[p.year]: p.gender} : {},
       active: true,
       demo,
+      // Den kode, admin sender i en mail, skal ikke kunne stå ved magt for altid.
+      mustChangePassword: true,
       createdBy: currentUser?.email || "",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -1284,10 +1306,31 @@ async function changeOwnPassword(){
   try{
     await updatePassword(currentUser, pw);
     document.getElementById("newPasswordInput").value = "";
+    if(currentUserDoc?.mustChangePassword){
+      await setDoc(doc(db, "users", currentUser.uid), {mustChangePassword: false}, {merge:true});
+      alert("Adgangskode ændret. Så er du klar - god fornøjelse!");
+      // Genindlæs i stedet for at pille ved fanerne i hånden: login-flowet sætter roller,
+      // faner og lyttere op ét sted, og det skal ikke duplikeres her.
+      location.reload();
+      return;
+    }
     alert("Adgangskode ændret.");
   }catch(e){
     alert("Kunne ikke skifte adgangskode: " + e.message + ". Log evt. ud og ind igen, og prøv igen.");
   }
+}
+// Første login: koden kom fra en mail, så den skal skiftes, før man kommer videre.
+// Sikkerheden ligger ikke her - den ligger i, at koden faktisk bliver ændret i Firebase
+// Auth. Skærmen er det, der får folk til rent faktisk at gøre det.
+async function changeForcedPassword(){
+  const pw = document.getElementById("forcePasswordInput").value;
+  const pw2 = document.getElementById("forcePasswordInput2").value;
+  if(!pw || pw.length < 6) return alert("Adgangskoden skal være mindst 6 tegn.");
+  if(pw !== pw2) return alert("De to adgangskoder er ikke ens. Prøv igen.");
+  document.getElementById("newPasswordInput").value = pw;
+  document.getElementById("forcePasswordInput").value = "";
+  document.getElementById("forcePasswordInput2").value = "";
+  await changeOwnPassword();
 }
 
 function submissionStatusPill(sub){
@@ -1302,7 +1345,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.35 · uploader video...");
+    setSyncStatus("v15.36 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1323,12 +1366,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.35 · live database aktiv");
+    setSyncStatus("v15.36 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.35 · live database aktiv");
+    setSyncStatus("v15.36 · live database aktiv");
   }
 }
 
@@ -1428,7 +1471,7 @@ function challengeStatsFor(playerId){
 function renderChallenges(){
   const area = document.getElementById("challengesArea");
   if(!area) return;
-  sweepExpiredChallengeVideos();
+  sweepExpiredVideos();
   const p = currentPlayerLink;
   if(!p){ area.innerHTML = '<p class="small">Din spillerprofil blev ikke fundet.</p>'; return; }
   const si = Math.min(currentStepIndex(p), steps.length-1);
@@ -1568,8 +1611,13 @@ async function deleteViewedSubmissionVideo(id){
   }
 }
 const CHALLENGE_VIDEO_MAX_AGE_MS = 2*24*60*60*1000;
+// Enhver video har en yderste holdbarhed, uanset om nogen rører den. Uden den her ville
+// "videoen slettes efter godkendelse" kun holde, hvis der FAKTISK kom en godkendelse - en
+// video, træneren aldrig nåede at se på, ville ligge i skyen for altid. Nu sletter den sig
+// selv efter 7 dage, og spilleren kan uploade igen.
+const VIDEO_MAX_AGE_MS = 7*24*60*60*1000;
 let lastChallengeVideoSweep = 0;
-function sweepExpiredChallengeVideos(){
+function sweepExpiredVideos(){
   // Submissions-listener snapshot may not have arrived yet on a fresh page load (this can
   // run off the players/challenges listeners too, via renderAll()) - skip silently rather
   // than spending the rate-limit slot below on an empty array, which would otherwise block
@@ -1579,10 +1627,27 @@ function sweepExpiredChallengeVideos(){
   if(now - lastChallengeVideoSweep < 5*60*1000) return;
   lastChallengeVideoSweep = now;
   submissions.forEach(s=>{
-    if(!s.challengeId || !s.videoURL || !s.videoPath || s.status==="pending" || !s.reviewedAt) return;
-    const reviewedAt = s.reviewedAt.toDate ? s.reviewedAt.toDate() : new Date(s.reviewedAt);
-    if(now - reviewedAt.getTime() > CHALLENGE_VIDEO_MAX_AGE_MS) deleteViewedSubmissionVideo(s.id);
+    if(!s.videoURL || !s.videoPath) return;
+
+    // Ubehandlet video: 7 dage fra upload, uanset type.
+    if(s.status === "pending"){
+      const submittedAt = s.submittedAt ? new Date(s.submittedAt).getTime() : 0;
+      if(submittedAt && now - submittedAt > VIDEO_MAX_AGE_MS) deleteViewedSubmissionVideo(s.id);
+      return;
+    }
+
+    // Behandlet udfordringsvideo: modstanderen har 2 dage fra trænerens afgørelse.
+    if(s.challengeId && s.reviewedAt){
+      const reviewedAt = s.reviewedAt.toDate ? s.reviewedAt.toDate() : new Date(s.reviewedAt);
+      if(now - reviewedAt.getTime() > CHALLENGE_VIDEO_MAX_AGE_MS) deleteViewedSubmissionVideo(s.id);
+    }
   });
+}
+function videoExpiryNote(s){
+  if(s.status !== "pending" || !s.submittedAt) return "";
+  const daysLeft = Math.ceil((VIDEO_MAX_AGE_MS - (Date.now() - new Date(s.submittedAt).getTime())) / (24*60*60*1000));
+  if(daysLeft > 3 || daysLeft < 0) return "";
+  return `<p class="small" style="color:#b42318;margin:4px 0">Videoen slettes automatisk om ${daysLeft} ${daysLeft===1?"dag":"dage"}.</p>`;
 }
 
 function reviewCard(s, readOnly){
@@ -1592,7 +1657,10 @@ function reviewCard(s, readOnly){
     <div class="small">${escapeHtml(yearLabel(s.year))} · Uploadet ${s.submittedAt ? new Date(s.submittedAt).toLocaleString("da-DK") : ""}</div>
     ${s.videoURL
       ? `<video controls preload="metadata" style="width:100%;border-radius:10px;margin:8px 0;background:#000" src="${s.videoURL}"></video>`
-      : `<p class="small" style="margin:8px 0">Videoen er slettet efter behandling.</p>`}
+      : `<p class="small" style="margin:8px 0">${s.status==="pending"
+          ? "Videoen er udløbet og slettet efter 7 dage. Bed spilleren uploade igen - afvis den her, så den forsvinder fra listen."
+          : "Videoen er slettet efter behandling."}</p>`}
+    ${videoExpiryNote(s)}
     ${readOnly ? `<div class="small">${submissionStatusPill(s)}</div>` : `
       <button class="btn smallbtn" onclick="reviewSubmission('${s.id}',true)">Godkend</button>
       <button class="btn danger smallbtn" onclick="reviewSubmission('${s.id}',false)">Afvis</button>
@@ -1660,7 +1728,7 @@ async function judgeFreestyleChallenge(challengeId, winnerId){
 function renderReview(){
   const area = document.getElementById("reviewArea");
   if(!area) return;
-  sweepExpiredChallengeVideos();
+  sweepExpiredVideos();
   const freestyleReady = freestyleChallengesReadyForJudging();
   const pending = submissions.filter(s=>canAccessYear(s.year) && s.status==="pending" && !isFreestyleChallengeSubmission(s))
     .sort((a,b)=>(a.submittedAt||"").localeCompare(b.submittedAt||""));
@@ -1970,7 +2038,7 @@ function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); ren
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,resetPassword,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{login,logout,resetPassword,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>

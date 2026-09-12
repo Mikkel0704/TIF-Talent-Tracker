@@ -77,7 +77,18 @@ service cloud.firestore {
     // Users/adgangsstyring
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+
+      // Admin maa alt. Derudover maa en bruger rydde sit eget mustChangePassword-flag,
+      // og KUN det, naar den midlertidige kode fra traenerens mail er skiftet ud. Uden
+      // det ville flaget staa for evigt, for en spiller maa ellers ikke roere users/.
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["mustChangePassword"])
+          && request.resource.data.mustChangePassword == false
+        );
     }
 
     // Ny struktur: én spiller pr. dokument
@@ -132,6 +143,16 @@ service cloud.firestore {
           && resource.data.status != "pending"
           && (resource.data.challengerId == myPlayerId() || resource.data.opponentId == myPlayerId())
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["viewedAt", "videoURL", "videoDeletedAt"])
+        )
+        // En spiller maa desuden FJERNE sin egen video - aldrig aendre noget andet ved
+        // indsendelsen. Det er det, der lader 7-dages-udloebet rydde op i spillerens egen
+        // browser, saa en ubehandlet video ikke bliver liggende, fordi ingen traener har
+        // aabnet appen i mellemtiden.
+        || (
+          isPlayerRole()
+          && resource.data.playerId == myPlayerId()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["videoURL", "videoDeletedAt"])
+          && request.resource.data.videoURL == null
         )
       );
 
