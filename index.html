@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.49</title>
+  <title>TIF Talent Tracker v15.50</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -106,7 +106,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.49 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.50 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -345,6 +345,8 @@
       <summary><span>Øvrige værktøjer</span></summary>
       <div class="accordion-body">
         <p class="small">Vedligeholdelse og engangs-migreringer. Bruges sjældent.</p>
+        <button class="btn secondary" onclick="moveNotesOffPlayers()">Flyt trænernoter væk fra spillerne</button>
+        <p class="small">Ældre spillere har trænerens note liggende på selve spillerdokumentet, som spillere har læseadgang til. Denne knap flytter noterne til det trænerbeskyttede felt og fjerner dem fra spilleren. Kør den én gang.</p>
         <button class="btn secondary" onclick="rebuildClubRanking()">Genopbyg klub-rangliste</button>
         <p class="small">Genskaber klub-ranglisten ud fra spillerne. Brug den første gang, og hvis noget ser forkert ud.</p>
         <button class="btn secondary" onclick="syncPlayerLoginFlags()">Synkronisér spilleres login-status</button>
@@ -402,10 +404,10 @@
     <p>Appen er lavet og drives af <b>Mikkel Brogaard Pedersen</b>, som også er den, der er ansvarlig for de data, der ligger i den. Den bruges af Tjørring IF, men det er altså ikke klubben, der står for driften.</p><p>Har du spørgsmål, vil se hvad der er registreret om dit barn, have noget rettet eller slettet, så skriv til <b>mikkel0704@hotmail.com</b>. Du får svar, og sletning sker hurtigst muligt.</p>
 
     <h3>Hvad der gemmes</h3>
-    <p><b>Om spilleren:</b> navn, årgang, køn, point, hvilke øvelser der er bestået, hvilke medaljer der er optjent og overrakt, samt en log over hvad der er sket - fx "Jonglering N1 Bronze godkendt, +25 point" med dato og hvilken træner der gjorde det. Træneren kan desuden skrive en kort note på spilleren.</p>
+    <p><b>Om spilleren:</b> navn, årgang, køn, point, hvilke øvelser der er bestået, hvilke medaljer der er optjent og overrakt, samt en log over hvad der er sket - fx "Jonglering N1 Bronze godkendt, +25 point" med dato og hvilken træner der gjorde det. </p><p><b>Trænerens note:</b> træneren kan skrive en kort note om spilleren, fx „venstrebenet“. Den gemmes adskilt fra resten og <b>kan kun ses af trænere</b> - ikke af spilleren selv og ikke af andre familier. Vil I vide, hvad der står om jeres barn, så skriv til adressen ovenfor; I har ret til at få det at vide.</p>
     <p><b>Om login:</b> den email, der er brugt til at oprette adgangen, hvilken rolle kontoen har (spiller, træner eller admin), hvilke årgange den giver adgang til, og om den er aktiv. <b>Adgangskoden gemmer vi ikke.</b> Den håndteres af Google Firebase og kan ikke ses af trænere eller af os - heller ikke i databasen. Derfor kan en glemt kode kun nulstilles, ikke slås op.</p>
     <p><b>Om videoer:</b> selve videofilen, plus hvilken øvelse og hvilket niveau den hører til, hvornår den blev sendt, hvem der behandlede den, og hvor mange point den gav.</p>
-    <p><b>På klub-ranglisten:</b> navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
+    <p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På klub-ranglisten:</b> navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
     <p><b>På din egen telefon:</b> et tidsstempel for, hvornår du sidst åbnede "Udfordringer". Det bruges kun til at vise det lille tal på fanen, og det forlader aldrig enheden.</p>
 
     <h3>Videoer - det vigtigste afsnit</h3>
@@ -455,7 +457,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.49 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.50 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -608,6 +610,7 @@ let submissions = [];
 let challenges = [];
 let clubRanking = [];
 let deletionRequests = [];
+let playerNotes = [];
 let currentPlayerLink = null;
 let selectedStepByPlayer = {};
 let playerListFilterYear = "all";
@@ -623,6 +626,7 @@ let unsubSubmissions = null;
 let unsubChallenges = null;
 let unsubClubRanking = null;
 let unsubDeletionRequests = null;
+let unsubPlayerNotes = null;
 
 function setSyncStatus(text){
   const el = document.getElementById("syncStatus");
@@ -640,6 +644,25 @@ function demoBlocked(what){
   if(!isDemoUser()) return false;
   alert(`Det her er en demo-bruger, så I kan se, hvordan appen ser ud.\n\n${what}\n\nMed et rigtigt spillerlogin ville det virke helt som forventet.`);
   return true;
+}
+// Traenerens note ligger i sin egen samling, ikke paa spilleren. Grunden: en spiller skal
+// kunne se sin aargangs navne og point til ranglisten, og databaseregler kan ikke skjule
+// enkelte felter i et dokument - saa laa noten frit tilgaengelig for ethvert spillerlogin.
+// Nu er den et separat dokument, som spillere slet ikke maa laese.
+function noteFor(pid){ return playerNotes.find(n=>n.id===pid)?.note || ""; }
+async function saveNote(pid){
+  if(isPlayer()) return alert("Kun traenere kan skrive noter.");
+  const p = players.find(x=>x.id===pid);
+  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  const el = document.getElementById("noteInput_"+pid);
+  const note = (el?.value || "").trim().slice(0, 1000);
+  try{
+    await setDoc(doc(db,"playerNotes",pid), {
+      note, year: normalizeYearValue(p.year), gender: p.gender || null,
+      updatedAt: serverTimestamp(), updatedBy: currentUser?.email || ""
+    });
+    alert(note ? "Noten er gemt." : "Noten er slettet.");
+  }catch(e){ console.error(e); alert("Kunne ikke gemme noten: " + (e.message||"ukendt fejl")); }
 }
 function allowedYears(){ return isAdmin() ? allKnownYears() : normalizeYearsList(currentUserDoc?.years || []); }
 function canAccessYear(y){ return isAdmin() || allowedYears().includes(normalizeYearValue(y)); }
@@ -749,7 +772,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.49 · ikke logget ind");
+    setSyncStatus("v15.50 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -775,7 +798,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.49 · bekræft inden I går i gang");
+    setSyncStatus("v15.50 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -783,7 +806,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.49 · vælg din egen adgangskode");
+    setSyncStatus("v15.50 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -819,9 +842,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.49 · live database aktiv");
+    setSyncStatus("v15.50 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.49 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.50 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -851,6 +874,21 @@ function startListeners(){
 
   // Klub-ranglisten er den ene samling, alle må læse på tværs af årgange - den rummer
   // kun navn, årgang og point, så der er ingen årgangsbegrænsning at bygge query'en på.
+  // Noterne hentes kun af traenere og admin - en spiller har ingen laeseadgang, og en
+  // lytter ville bare fejle stoejende i konsollen.
+  if(unsubPlayerNotes) stopListeners(unsubPlayerNotes);
+  if(!isPlayer()){
+    const noteChunks = {};
+    unsubPlayerNotes = subscribeYearScoped("playerNotes", (idx, docs)=>{
+      noteChunks[idx] = docs;
+      playerNotes = Object.values(noteChunks).flat();
+      renderAll();
+    }, (e)=>console.error("playerNotes listener", e));
+  } else {
+    playerNotes = [];
+    unsubPlayerNotes = null;
+  }
+
   // Anmodninger om sletning. Admin ser dem alle; en spiller ser kun sin egen, og laeser
   // den som ét dokument (id = spillerens id) frem for at liste samlingen - reglerne
   // tillader netop ikke en spiller at se de andres.
@@ -950,10 +988,11 @@ async function addPlayer(){
   if(!canAccessPlayer(year, gender)) return alert("Du har ikke adgang til at oprette denne årgang/køn-kombination");
   const id = Date.now().toString();
   await setDoc(doc(db,"players",id), {
-    name, year, gender, note, passed:{}, points:0,
+    name, year, gender, passed:{}, points:0,
     history:[{type:"created", text:"Spiller oprettet", by: currentUser?.email || "", at: new Date().toISOString()}],
     createdAt:serverTimestamp(), updatedAt:serverTimestamp()
   });
+  if(note) await setDoc(doc(db,"playerNotes",id), {note, year, gender: gender||null, updatedAt: serverTimestamp(), updatedBy: currentUser?.email || ""});
   await syncClubRanking(id, name, year, 0);
   document.getElementById("playerName").value=""; document.getElementById("playerNote").value="";
 }
@@ -970,6 +1009,27 @@ async function syncClubRanking(id, name, year, points){
       name, year: normalizeYearValue(year), points: points||0, updatedAt: serverTimestamp()
     });
   }catch(e){ console.error("clubRanking sync fejlede for " + id, e); }
+}
+// Engangsflytning: noter, der ligger paa spillerdokumentet fra foer noterne fik deres
+// egen samling, kopieres over og fjernes fra spilleren. Foerst naar de er FJERNET, er
+// hullet lukket - en kopi loeser ingenting, saa laenge originalen bliver liggende.
+async function moveNotesOffPlayers(){
+  if(!isAdmin()) return alert("Kun admin kan flytte noter.");
+  const withNote = players.filter(p=>typeof p.note === "string" && p.note.trim());
+  if(!withNote.length) return alert("Der er ingen noter tilbage paa spillerdokumenterne. Alt er allerede flyttet.");
+  if(!confirm(`Flyt trænernoter for ${withNote.length} spillere?\n\nNoterne kopieres til det trænerbeskyttede felt og fjernes fra selve spilleren, så spillerlogins ikke længere kan læse dem.`)) return;
+  let moved = 0; const failed = [];
+  for(const p of withNote){
+    try{
+      await setDoc(doc(db,"playerNotes",p.id), {
+        note: p.note.trim().slice(0,1000), year: normalizeYearValue(p.year), gender: p.gender || null,
+        updatedAt: serverTimestamp(), updatedBy: currentUser?.email || ""
+      });
+      await setDoc(doc(db,"players",p.id), {note: deleteField(), updatedAt: serverTimestamp()}, {merge:true});
+      moved++;
+    }catch(e){ console.error(e); failed.push(p.name); }
+  }
+  alert(`Flyttet: ${moved}` + (failed.length ? `\nFejlede: ${failed.join(", ")}` : ""));
 }
 async function rebuildClubRanking(){
   if(!isAdmin()) return alert("Kun admin kan genopbygge klub-ranglisten.");
@@ -1113,15 +1173,16 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.49 · sletter...");
+  setSyncStatus("v15.50 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
   for(const d of userDocs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("login " + d.id); } }
   try{ await deleteDoc(doc(db,"clubRanking",id)); }catch(e){ failed.push("klub-rangliste"); }
+  try{ await deleteDoc(doc(db,"playerNotes",id)); }catch(e){ failed.push("traenernoten"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.49 · live database aktiv");
+  setSyncStatus("v15.50 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -1144,7 +1205,7 @@ function renderPlayers(){
   el.innerHTML = list.map(p=>{
     const si = currentStepIndex(p);
     const status = si >= steps.length ? "Alle niveauer gennemført" : `${steps[si].label} · ${countPassed(p,si)}/5`;
-    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(yearLabel(p.year))} · ${genderLabel(p.gender)} · ${escapeHtml(p.note)} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet alt</button>`:""}</div>`;
+    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(yearLabel(p.year))} · ${genderLabel(p.gender)}${noteFor(p.id) ? ' · ' + escapeHtml(noteFor(p.id)) : ''} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet alt</button>`:""}</div>`;
   }).join("");
 }
 function genderLabel(g){ return g==="dreng" ? "Dreng" : g==="pige" ? "Pige" : "Køn ikke sat"; }
@@ -1277,7 +1338,7 @@ function renderOverview(){
   <div class="tablewrap"><table><thead><tr><th>Spiller</th><th>Status</th><th>Bestået</th></tr></thead><tbody>${list.map(p=>{
     const cnt=countPassed(p,si);
     const status=cnt===5?'<span class="pill greenpill">✓ Bestået</span>':cnt>0?'<span class="pill guld">● I gang</span>':'<span class="pill none">○ Ikke startet</span>';
-    return `<tr><td><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(p.note)}</div></td><td>${status}</td><td><b>${cnt}/5</b></td></tr>`;
+    return `<tr><td><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(noteFor(p.id))}</div></td><td>${status}</td><td><b>${cnt}/5</b></td></tr>`;
   }).join("")}</tbody></table></div>`;
 }
 function listItems(arr){ return "<ul>"+arr.map(x=>`<li>${escapeHtml(x)}</li>`).join("")+"</ul>"; }
@@ -1524,11 +1585,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.49 · migrering færdig");
+    setSyncStatus("v15.50 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.49 · migrering fejlede");
+    setSyncStatus("v15.50 · migrering fejlede");
   }
 }
 
@@ -1698,7 +1759,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.49 · uploader video...");
+    setSyncStatus("v15.50 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1720,12 +1781,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.49 · live database aktiv");
+    setSyncStatus("v15.50 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.49 · live database aktiv");
+    setSyncStatus("v15.50 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -2307,7 +2368,12 @@ function renderPlayerProfile(){
     <div class="profilegrid">
       <div class="profilebox">
         <h3>${escapeHtml(p.name)}</h3>
-        <p class="small">Årgang: ${escapeHtml(yearLabel(p.year))}<br>Note: ${escapeHtml(p.note || "")}<br>Status: ${escapeHtml(currentText)}</p>
+        <p class="small">Årgang: ${escapeHtml(yearLabel(p.year))}<br>Status: ${escapeHtml(currentText)}</p>
+        ${isPlayer() ? "" : `<div style="margin-top:8px">
+          <label>Trænernote <span class="small">- kun trænere kan se den</span></label>
+          <input id="noteInput_${p.id}" value="${escapeHtml(noteFor(p.id))}" placeholder="Fx venstrebenet...">
+          <button class="btn secondary smallbtn" onclick="saveNote('${p.id}')">Gem note</button>
+        </div>`}
         ${!isPlayer() ? `<button class="btn secondary" onclick="selectProfileForTracking('${p.id}')">Åbn i registrering</button>` : ""}
       </div>
       ${rankBox}
@@ -2381,7 +2447,7 @@ function exportBackupCsv(){
   players.forEach(p=>{
     const si = currentStepIndex(p);
     const status = si >= steps.length ? "Done" : `${steps[si].label} ${countPassed(p,si)}/5`;
-    rows.push([p.name, p.year, p.note || "", status, p.updatedAt?.toDate ? p.updatedAt.toDate().toISOString() : "", (p.history || []).length]);
+    rows.push([p.name, p.year, noteFor(p.id), status, p.updatedAt?.toDate ? p.updatedAt.toDate().toISOString() : "", (p.history || []).length]);
   });
   document.getElementById("backupBox").value = rows.map(r=>r.map(csvEscape).join(",")).join("\n");
 }
@@ -2426,7 +2492,7 @@ function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); ren
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>

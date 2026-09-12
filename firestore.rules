@@ -173,6 +173,24 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Traenerens note om en spiller. Ligger SEPARAT fra spilleren med vilje: spillere skal
+    // kunne laese deres aargangs spillere (navne og point til ranglisten), og regler kan
+    // ikke skjule enkelte felter i et dokument. Laa noten paa spilleren, kunne ethvert
+    // spillerlogin laese den. Her har spillere ingen adgang overhovedet.
+    // aar og koen er denormaliseret fra spilleren, saa aargangs- og koensadgangen kan
+    // tjekkes uden et ekstra opslag - samme moenster som submissions.
+    match /playerNotes/{playerId} {
+      allow read: if signedIn()
+        && !isPlayerRole()
+        && hasFullAccess(resource.data.year, resource.data.gender);
+
+      allow create, update: if signedIn()
+        && !isPlayerRole()
+        && hasFullAccess(request.resource.data.year, request.resource.data.gender);
+
+      allow delete: if signedIn() && !isPlayerRole();
+    }
+
     // Anmodninger om sletning. Dokument-id ER spillerens id, saa der kun kan ligge én
     // anmodning per barn. En spiller maa oprette og trekke sin EGEN tilbage; kun admin
     // maa se dem alle og behandle dem. Tidsstemplet skal vaere serverens eget, saa en
