@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.50</title>
+  <title>TIF Talent Tracker v15.51</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -106,7 +106,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.50 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.51 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -168,6 +168,13 @@
     <button class="btn" onclick="login()">Log ind</button>
     <button class="btn secondary" onclick="resetPassword()">Glemt adgangskode?</button>
     <p class="small">Har du glemt din adgangskode, så skriv din email i feltet ovenfor og tryk "Glemt adgangskode?" - så sender vi et link til at vælge en ny.</p>
+
+    <div class="mutedbox" style="margin-top:18px">
+      <h3 style="margin-top:0">Har I ikke et login endnu?</h3>
+      <p class="small">Logins oprettes kun til de familier, der selv beder om det. Vil I være med, så send en mail til <b>mikkel0704@hotmail.com</b> med spillerens navn, årgang og den mailadresse, I vil bruge. Så får I et login og en midlertidig kode.</p>
+      <p class="small">Vil I se appen an først, er I velkomne til at kigge med som gæst - spørg efter demo-adgangen i samme mail.</p>
+      <p class="small">Under alle omstændigheder kan I læse, hvad appen gemmer om jeres barn, med knappen nederst på siden - også uden at logge ind.</p>
+    </div>
   </div>
 </section>
 
@@ -457,7 +464,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.50 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.51 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -772,7 +779,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.50 · ikke logget ind");
+    setSyncStatus("v15.51 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -798,7 +805,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.50 · bekræft inden I går i gang");
+    setSyncStatus("v15.51 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -806,7 +813,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.50 · vælg din egen adgangskode");
+    setSyncStatus("v15.51 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -842,9 +849,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.50 · live database aktiv");
+    setSyncStatus("v15.51 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.50 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.51 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -1173,7 +1180,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.50 · sletter...");
+  setSyncStatus("v15.51 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -1182,7 +1189,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"playerNotes",id)); }catch(e){ failed.push("traenernoten"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.50 · live database aktiv");
+  setSyncStatus("v15.51 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -1585,11 +1592,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.50 · migrering færdig");
+    setSyncStatus("v15.51 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.50 · migrering fejlede");
+    setSyncStatus("v15.51 · migrering fejlede");
   }
 }
 
@@ -1759,7 +1766,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.50 · uploader video...");
+    setSyncStatus("v15.51 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1781,12 +1788,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.50 · live database aktiv");
+    setSyncStatus("v15.51 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.50 · live database aktiv");
+    setSyncStatus("v15.51 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
