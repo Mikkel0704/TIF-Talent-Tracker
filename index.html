@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.39</title>
+  <title>TIF Talent Tracker v15.40</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -106,7 +106,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.39 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.40 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -350,7 +350,7 @@
     <div class="accordion" open style="background:#e7eef5;border-color:#c9d8e8">
       <div class="accordion-body">
         <p style="margin-top:0"><b>Den korte version</b></p>
-        <p>Der gemmes dit barns navn, årgang, point og hvilke øvelser der er bestået. Træningsvideoer ses kun af træneren - og ved udfordringer af den ene holdkammerat, dit barn selv har valgt - og de slettes automatisk, senest efter 7 dage. Navne og point ligger på europæiske servere; videoerne ligger i USA, mens de findes. Der er ingen reklamer, ingen sporing og ingen deling med andre. Det er frivilligt at uploade video.</p>
+        <p>Der gemmes dit barns navn, årgang, point og hvilke øvelser der er bestået. Træningsvideoer ses kun af træneren - og ved udfordringer af den ene holdkammerat, dit barn selv har valgt - og de slettes automatisk, senest efter 7 dage. Alt ligger på servere i EU. Der er ingen reklamer, ingen sporing og ingen deling med andre. Det er frivilligt at uploade video.</p>
       </div>
     </div>
 
@@ -387,7 +387,7 @@
     <p class="small">Det er ikke kun menuerne, der er skjult - serveren afviser selve forespørgslen, hvis man ikke har adgang. Det gælder også, hvis man prøver udenom appen.</p>
 
     <h3>Hvilke tjenester bruges</h3>
-    <p><b>Google Firebase</b> står for login, database og opbevaring af videoer. Google behandler data på vegne af den dataansvarlige og bruger dem ikke til egne formål.</p><p><b>Databasen</b> - navne, point, niveauer, medaljer og historik - ligger i Googles <b>europæiske datacentre (eur3)</b> og forlader ikke EU.</p><p><b>Videoerne</b> ligger derimod på en server i <b>det vestlige USA (us-west1)</b>. I den korte tid en video findes - højst 7 dage - opbevares den altså uden for EU. Det er lovligt: Google er certificeret under EU-US Data Privacy Framework, som er den aftale, der tillader den slags overførsler, og der er indgået databehandleraftale. Men det skal siges rent ud, så I ved det.</p>
+    <p><b>Google Firebase</b> står for login, database og opbevaring af videoer. Google behandler data på vegne af den dataansvarlige og bruger dem ikke til egne formål.</p><p><b>Databasen</b> - navne, point, niveauer, medaljer og historik - ligger i Googles <b>europæiske datacentre (eur3)</b> og forlader ikke EU.</p><p><b>Videoerne</b> ligger på en server i <b>Belgien (europe-west1)</b>. Hverken videoer eller øvrige data forlader altså EU.</p>
     <p><b>Google reCAPTCHA Enterprise</b> bruges til at afvise henvendelser, der ikke kommer fra denne side. Det er det, der forhindrer fremmede i at hente videoer ud af systemet. Den sætter en cookie fra google.com.</p>
     <p><b>GitHub Pages</b> leverer selve hjemmesiden - altså den kode, din browser henter. Der ligger ingen persondata dér. GitHub og deres leverandør Fastly ser din IP-adresse, når siden hentes, præcis som enhver anden hjemmeside.</p>
     <p><b>Og så er der ikke mere.</b> Ingen Google Analytics, ingen Facebook-pixel, ingen annoncenetværk, ingen cookies til sporing, og ingen videregivelse af data til nogen tredjepart.</p>
@@ -403,7 +403,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.39 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.40 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -418,7 +418,9 @@ const firebaseConfig = {
   apiKey: "AIzaSyD-nsf6aP_l9fSA_kGRIAAHiHSvtgmDOlI",
   authDomain: "tif-talent-tracker.firebaseapp.com",
   projectId: "tif-talent-tracker",
-  storageBucket: "tif-talent-tracker.firebasestorage.app",
+  // Videoerne ligger i europe-west1, saa de ikke forlader EU. Den oprindelige boette
+  // (tif-talent-tracker.firebasestorage.app) laa i us-west1 og bruges ikke laengere.
+  storageBucket: "tif-talent-tracker",
   messagingSenderId: "727656181039",
   appId: "1:727656181039:web:3be0054db82f85f415c5da"
 };
@@ -688,7 +690,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("demoBanner").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.39 · ikke logget ind");
+    setSyncStatus("v15.40 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -710,7 +712,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.39 · vælg din egen adgangskode");
+    setSyncStatus("v15.40 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -743,9 +745,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.39 · live database aktiv");
+    setSyncStatus("v15.40 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.39 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.40 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -1289,11 +1291,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.39 · migrering færdig");
+    setSyncStatus("v15.40 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.39 · migrering fejlede");
+    setSyncStatus("v15.40 · migrering fejlede");
   }
 }
 
@@ -1426,7 +1428,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.39 · uploader video...");
+    setSyncStatus("v15.40 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1447,12 +1449,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.39 · live database aktiv");
+    setSyncStatus("v15.40 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.39 · live database aktiv");
+    setSyncStatus("v15.40 · live database aktiv");
   }
 }
 
