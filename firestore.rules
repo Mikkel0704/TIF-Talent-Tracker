@@ -92,6 +92,16 @@ service cloud.firestore {
           && request.auth.uid == userId
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["mustChangePassword"])
           && request.resource.data.mustChangePassword == false
+        )
+        // Samtykke til databehandling. Tidsstemplet SKAL vaere serverens eget
+        // (request.time), saa registreringen ikke kan antedateres fra en browser -
+        // det er hele pointen med at gemme den.
+        || (
+          signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["privacyAcceptedAt", "privacyVersion"])
+          && request.resource.data.privacyAcceptedAt == request.time
+          && request.resource.data.privacyVersion is string
         );
     }
 
