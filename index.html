@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.45</title>
+  <title>TIF Talent Tracker v15.46</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -106,7 +106,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.45 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.46 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -412,7 +412,7 @@
     <p><b>Og så er der ikke mere.</b> Ingen Google Analytics, ingen Facebook-pixel, ingen annoncenetværk, ingen cookies til markedsføring eller til at følge jeres adfærd, og ingen videregivelse af data til nogen tredjepart. Den sikkerhedscookie, der er nævnt ovenfor, er den eneste cookie på siden.</p>
 
     <h3>Hvor længe det gemmes</h3>
-    <p><b>Videoer: højst 7 dage</b>, ofte kun timer. Det er den eneste faste frist, systemet selv håndhæver.</p><p><b>Point, niveauer, medaljer, noter og historik har i dag ingen fast slettefrist.</b> De gemmes, så længe barnet bruger appen, og slettes når I beder om det. Der er ikke sat en automatisk oprydning op, som fjerner data for børn, der er stoppet i klubben - det skal gøres manuelt. Det er en kendt mangel, og det er noteret som noget, der skal forbedres.</p>
+    <p><b>Videoer: højst 7 dage</b>, ofte kun timer. Det er den eneste faste frist, systemet selv håndhæver.</p><p><b>Point, niveauer, medaljer, noter og historik har i dag ingen fast slettefrist.</b> De gemmes, så længe barnet bruger appen, og slettes når I beder om det. Der er ikke sat en automatisk oprydning op, som af sig selv fjerner data for børn, der er stoppet i klubben - nogen skal sætte det i gang. Det er en kendt mangel, og det er noteret som noget, der skal forbedres.</p>
 
     <h3>Login og adgangskoder</h3>
     <p>Adgangen oprettes af klubben og sendes til jer med en midlertidig kode. <b>Første gang I logger ind, skal I vælge jeres egen</b> - man kommer ikke videre i appen før. Glemmer I den, kan I vælge en ny via "Glemt adgangskode?" på login-siden. Ingen - heller ikke træneren - kan se jeres kode.</p>
@@ -420,7 +420,7 @@
 
     <h3>Jeres bekræftelse</h3>
     <p>Første gang I logger ind, bliver I bedt om at bekræfte, at I har læst det her. <b>Bekræftelsen gemmes</b> med dato på jeres brugerkonto, så det kan dokumenteres, hvem der har sagt ja og hvornår. Ændres teksten væsentligt, bliver I spurgt igen.</p>
-    <p>I kan til enhver tid trække bekræftelsen tilbage ved at skrive til adressen ovenfor. Så lukkes adgangen, og alt om jeres barn bliver slettet: profil, point, medaljer, historik, trænerens noter, eventuelle videoer og selve login'et.</p><p><b>Det sker ikke automatisk.</b> Det er en manuel opgave, som den dataansvarlige udfører i hånden, og den rører flere steder i systemet. I får besked, når det er gjort, og det sker senest 30 dage efter jeres henvendelse.</p>
+    <p>I kan til enhver tid trække bekræftelsen tilbage ved at skrive til adressen ovenfor. Så lukkes adgangen, og alt om jeres barn bliver slettet: profil, point, niveauer, medaljer, historik, trænerens note, alle indsendte videoer, alle videofiler, alle udfordringer og pladsen på ranglisten.</p><p>Det sker i <b>én samlet handling</b> i systemet, så intet bliver glemt undervejs. Men det <b>starter ikke af sig selv</b> - en person skal sætte det i gang, når I henvender jer. I får besked, når det er gjort, og det sker senest 30 dage efter jeres henvendelse.</p><p>Selve login'et lukkes samtidig. Selve brugerkontoen hos Google fjernes i et separat trin bagefter; indtil da giver den ingen adgang til noget som helst.</p>
 
     <h3>Jeres rettigheder</h3>
     <p>I har ret til at få at vide, hvad der er registreret, få rettet noget forkert, få det hele slettet, og at trække et samtykke tilbage - også efter at have sagt ja. Det koster ingenting og kræver ingen begrundelse. Er I utilfredse med måden, det håndteres på, kan I klage til Datatilsynet.</p>
@@ -430,15 +430,15 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.45 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.46 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc, deleteField, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, deleteField, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject, listAll } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app-check.js";
 
 const firebaseConfig = {
@@ -722,7 +722,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.45 · ikke logget ind");
+    setSyncStatus("v15.46 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -748,7 +748,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.45 · bekræft inden I går i gang");
+    setSyncStatus("v15.46 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -756,7 +756,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.45 · vælg din egen adgangskode");
+    setSyncStatus("v15.46 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -789,9 +789,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.45 · live database aktiv");
+    setSyncStatus("v15.46 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.45 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.46 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -940,14 +940,69 @@ async function rebuildClubRanking(){
   }
   alert(`Klub-rangliste opdateret.\n\nSkrevet: ${ok}\nFejlede: ${failed}\nFjernet (slettede spillere): ${removed}`);
 }
+// Sletter ALT om én spiller i én handling. Findes, fordi databehandlingsteksten lover
+// forældrene netop det: profil, point, historik, trænerens noter, videoer, udfordringer
+// og login'et. Tidligere fjernede "Slet" kun spillerdokumentet, og resten blev liggende -
+// et løfte, der ikke kunne indfries.
+//
+// Det ene, browseren IKKE kan gøre, er at slette selve login'et i Firebase Authentication:
+// en klient må kun slette sin egen konto. Derfor slutter funktionen med at fortælle admin,
+// hvilken mail der skal fjernes i Firebase-konsollen, i stedet for at lade som om alt er
+// klaret. Der spørges direkte i databasen frem for i klientens hukommelse, så en liste,
+// der ikke er fuldt indlæst, ikke får noget til at slippe igennem.
 async function deletePlayer(id){
   if(!isAdmin()) return alert("Kun admin kan slette spillere.");
-  const p=players.find(x=>x.id===id);
+  const p = players.find(x=>x.id===id);
   if(!p || !canAccessYear(p.year)) return alert("Ingen adgang");
-  if(confirm("Slet spilleren?")){
-    await deleteDoc(doc(db,"players",id));
-    try{ await deleteDoc(doc(db,"clubRanking",id)); }catch(e){ console.error("clubRanking delete fejlede", e); }
+
+  let subs = [], chs = [], userDocs = [], files = [];
+  try{
+    [subs, chs] = await Promise.all([
+      getDocs(query(collection(db,"submissions"), where("playerId","==",id))).then(s=>s.docs),
+      getDocs(query(collection(db,"challenges"), where("challengerId","==",id))).then(s=>s.docs)
+    ]);
+    const chsOpponent = (await getDocs(query(collection(db,"challenges"), where("opponentId","==",id)))).docs;
+    const seen = new Set(chs.map(d=>d.id));
+    chsOpponent.forEach(d=>{ if(!seen.has(d.id)) chs.push(d); });
+    userDocs = (await getDocs(query(collection(db,"users"), where("playerId","==",id)))).docs;
+    files = (await listAll(storageRef(storage, `submissions/${id}`))).items;
+  }catch(e){
+    console.error(e);
+    return alert("Kunne ikke gøre op, hvad der skal slettes: " + (e.message||"ukendt fejl") + "\n\nIntet er slettet. Prøv igen.");
   }
+
+  const logins = userDocs.map(d=>d.data().email).filter(Boolean);
+  if(!confirm(
+    `Slet ALT om ${p.name} (${yearLabel(p.year)})?\n\n`
+    + `Dette fjerner for altid:\n`
+    + `· Profilen med point, niveauer, medaljer, note og historik\n`
+    + `· ${subs.length} indsendte ${subs.length===1?"video":"videoer"} og deres data\n`
+    + `· ${chs.length} ${chs.length===1?"udfordring":"udfordringer"} med ${p.name}\n`
+    + `· ${files.length} ${files.length===1?"videofil":"videofiler"} i skyen\n`
+    + `· Pladsen på klub-ranglisten\n`
+    + (logins.length ? `· Adgangen for ${logins.join(", ")}\n` : "· Ingen login knyttet til spilleren\n")
+    + `\nDet kan ikke fortrydes.`)) return;
+
+  if((prompt(`Skriv spillerens navn for at bekræfte:\n\n${p.name}`) || "").trim() !== p.name.trim()){
+    return alert("Navnet passede ikke. Intet er slettet.");
+  }
+
+  const failed = [];
+  setSyncStatus("v15.46 · sletter...");
+  for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
+  for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
+  for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
+  for(const d of userDocs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("login " + d.id); } }
+  try{ await deleteDoc(doc(db,"clubRanking",id)); }catch(e){ failed.push("klub-rangliste"); }
+  try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
+  setSyncStatus("v15.46 · live database aktiv");
+
+  alert(
+    (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
+    + (logins.length
+        ? `TILBAGE AT GØRE I HÅNDEN:\nSelve login'et kan kun fjernes i Firebase Console under Authentication. Slet denne bruger dér:\n\n${logins.join("\n")}\n\nIndtil da kan mailen ikke bruges til at oprette en ny bruger - men den giver ingen adgang, fordi brugerdokumentet er væk.`
+        : `Der var intet login knyttet til spilleren, så der er ikke mere at gøre.`)
+  );
 }
 function renderPlayers(){
   const el = document.getElementById("playerList");
@@ -962,7 +1017,7 @@ function renderPlayers(){
   el.innerHTML = list.map(p=>{
     const si = currentStepIndex(p);
     const status = si >= steps.length ? "Alle niveauer gennemført" : `${steps[si].label} · ${countPassed(p,si)}/5`;
-    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(yearLabel(p.year))} · ${genderLabel(p.gender)} · ${escapeHtml(p.note)} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet</button>`:""}</div>`;
+    return `<div class="player"><div><button class="linkbtn" onclick="openPlayerProfile('${p.id}')">${escapeHtml(p.name)}</button><div class="small">${escapeHtml(yearLabel(p.year))} · ${genderLabel(p.gender)} · ${escapeHtml(p.note)} · ${status}</div></div>${isAdmin()?`<button class="btn danger smallbtn" onclick="deletePlayer('${p.id}')">Slet alt</button>`:""}</div>`;
   }).join("");
 }
 function genderLabel(g){ return g==="dreng" ? "Dreng" : g==="pige" ? "Pige" : "Køn ikke sat"; }
@@ -1342,11 +1397,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.45 · migrering færdig");
+    setSyncStatus("v15.46 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.45 · migrering fejlede");
+    setSyncStatus("v15.46 · migrering fejlede");
   }
 }
 
@@ -1516,7 +1571,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.45 · uploader video...");
+    setSyncStatus("v15.46 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1538,12 +1593,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.45 · live database aktiv");
+    setSyncStatus("v15.46 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.45 · live database aktiv");
+    setSyncStatus("v15.46 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
