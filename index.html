@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.47</title>
+  <title>TIF Talent Tracker v15.48</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -106,7 +106,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.47 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.48 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -363,7 +363,7 @@
     <h2>Indstillinger</h2>
     <p id="userInfo" class="small"></p>
     <div class="backupgrid">
-      <div class="mutedbox">
+      <div class="mutedbox" id="backupBoxCard">
         <h3>Backup</h3>
         <p class="small">Kopier data ud som JSON eller CSV. JSON kan bruges som fuld backup. CSV er nemmere at åbne i Excel.</p>
         <button class="btn secondary" onclick="exportBackupJson()">Eksportér JSON</button>
@@ -455,7 +455,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.47 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.48 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -749,7 +749,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.47 · ikke logget ind");
+    setSyncStatus("v15.48 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -775,7 +775,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.47 · bekræft inden I går i gang");
+    setSyncStatus("v15.48 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -783,7 +783,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.47 · vælg din egen adgangskode");
+    setSyncStatus("v15.48 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -794,6 +794,9 @@ onAuthStateChanged(auth, async (user)=>{
   coachOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.toggle("hidden", isPlayer()); });
   playerOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.toggle("hidden", !isPlayer()); });
   document.getElementById("parentGuideCard").classList.toggle("hidden", !isPlayer());
+  // Backup traekker HELE den indlaeste spillerliste ud i ét felt - for en spiller er
+  // det hele aargangen med traenerens noter og historik. Det er et traenervaerktoej.
+  document.getElementById("backupBoxCard").classList.toggle("hidden", isPlayer());
   document.getElementById("tab-admin").classList.toggle("hidden", !isAdmin());
   document.getElementById("userInfo").textContent = `${user.email} · ${currentUserDoc.role || "coach"} · adgang: ${allowedYears().join(", ") || "ingen årgange endnu"}`;
   showPage(isPlayer() ? "training" : "players");
@@ -816,9 +819,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.47 · live database aktiv");
+    setSyncStatus("v15.48 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.47 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.48 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -1099,7 +1102,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.47 · sletter...");
+  setSyncStatus("v15.48 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -1107,7 +1110,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"clubRanking",id)); }catch(e){ failed.push("klub-rangliste"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.47 · live database aktiv");
+  setSyncStatus("v15.48 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -1509,11 +1512,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.47 · migrering færdig");
+    setSyncStatus("v15.48 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.47 · migrering fejlede");
+    setSyncStatus("v15.48 · migrering fejlede");
   }
 }
 
@@ -1683,7 +1686,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.47 · uploader video...");
+    setSyncStatus("v15.48 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1705,12 +1708,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.47 · live database aktiv");
+    setSyncStatus("v15.48 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.47 · live database aktiv");
+    setSyncStatus("v15.48 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -2345,6 +2348,7 @@ function selectProfileForTracking(pid){
 }
 
 function exportBackupJson(){
+  if(isPlayer()) return alert("Backup er et trænerværktøj og kan ikke bruges fra et spillerlogin.");
   const payload = {
     exportedAt: new Date().toISOString(),
     exportedBy: currentUser?.email || "",
@@ -2360,6 +2364,7 @@ function csvEscape(value){
 }
 
 function exportBackupCsv(){
+  if(isPlayer()) return alert("Backup er et trænerværktøj og kan ikke bruges fra et spillerlogin.");
   const rows = [["name","year","note","current_step","created_or_updated","history_count"]];
   players.forEach(p=>{
     const si = currentStepIndex(p);
