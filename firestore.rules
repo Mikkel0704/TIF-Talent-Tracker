@@ -18,7 +18,7 @@ service cloud.firestore {
     function isActive() {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && userDoc().data.active != false;
+        && (!("active" in userDoc().data) || userDoc().data.active != false);
     }
 
     function isAdmin() {
@@ -34,9 +34,13 @@ service cloud.firestore {
     // svar paa udfordringer. Brugt til foraeldremoeder og til familier, der vil se
     // appen an. Klienten viser knapperne og forklarer det - her bliver det haandhaevet.
     // Manglende felt betyder ikke-demo, saa alle eksisterende logins er uaendrede.
+    // VIGTIGT: feltet SKAL tjekkes med "in" foerst. Laeser en regel et felt, der ikke
+    // findes paa dokumentet, fejler hele udtrykket, og skrivningen bliver naegtet - det
+    // spaerrede for uploads fra logins oprettet foer demo-funktionen fandtes.
     function isDemo() {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && ("demo" in userDoc().data)
         && userDoc().data.demo == true;
     }
 
