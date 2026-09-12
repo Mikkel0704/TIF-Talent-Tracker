@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.36</title>
+  <title>TIF Talent Tracker v15.37</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -106,7 +106,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.36 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.37 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -341,7 +341,71 @@
   </div>
 </section>
 </main>
-<div class="footer-note">TIF Talent Tracker v15.36 · gamification til spillere: træningsvideoer, point, rang og udfordringer.</div>
+
+<section id="privacy" class="page hidden">
+  <div class="card">
+    <h2 style="margin-top:0">Sådan behandler vi jeres data</h2>
+    <p class="small">Tjørring IF · TIF Talent Tracker · senest opdateret 12. september 2026</p>
+
+    <div class="accordion" open style="background:#e7eef5;border-color:#c9d8e8">
+      <div class="accordion-body">
+        <p style="margin-top:0"><b>Den korte version</b></p>
+        <p>Vi gemmer dit barns navn, årgang, point og hvilke øvelser der er bestået. Træningsvideoer ses kun af træneren - og ved udfordringer af den ene holdkammerat, dit barn selv har valgt - og de slettes automatisk, senest efter 7 dage. Der er ingen reklamer, ingen sporing og ingen deling med andre. Det er frivilligt at uploade video.</p>
+      </div>
+    </div>
+
+    <h3>Hvem er ansvarlig</h3>
+    <p>Tjørring IF står bag appen. Har du spørgsmål, vil se hvad vi har registreret om dit barn, have noget rettet eller slettet, så skriv til <b>mikkel0704@hotmail.com</b>. Du får svar, og sletning sker hurtigst muligt.</p>
+
+    <h3>Hvad vi gemmer</h3>
+    <p><b>Om spilleren:</b> navn, årgang, køn, point, hvilke øvelser der er bestået, hvilke medaljer der er optjent og overrakt, samt en log over hvad der er sket - fx "Jonglering N1 Bronze godkendt, +25 point" med dato og hvilken træner der gjorde det. Træneren kan desuden skrive en kort note på spilleren.</p>
+    <p><b>Om login:</b> den email, der er brugt til at oprette adgangen, hvilken rolle kontoen har (spiller, træner eller admin), hvilke årgange den giver adgang til, og om den er aktiv. <b>Adgangskoden gemmer vi ikke.</b> Den håndteres af Google Firebase og kan ikke ses af trænere eller af os - heller ikke i databasen. Derfor kan en glemt kode kun nulstilles, ikke slås op.</p>
+    <p><b>Om videoer:</b> selve videofilen, plus hvilken øvelse og hvilket niveau den hører til, hvornår den blev sendt, hvem der behandlede den, og hvor mange point den gav.</p>
+    <p><b>På klub-ranglisten:</b> navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
+    <p><b>På din egen telefon:</b> et tidsstempel for, hvornår du sidst åbnede "Udfordringer". Det bruges kun til at vise det lille tal på fanen, og det forlader aldrig enheden.</p>
+
+    <h3>Videoer - det vigtigste afsnit</h3>
+    <p><b>Det er frivilligt.</b> Man kan bruge appen uden nogensinde at uploade en video. Træneren kan i stedet godkende øvelser direkte til træning.</p>
+    <p><b>Hvem ser en træningsvideo?</b> Kun trænere og administratorer med adgang til netop dit barns årgang og køn. Ikke andre forældre, ikke andre børn.</p>
+    <p><b>Hvem ser en udfordringsvideo?</b> Udover træneren ser <b>én</b> holdkammerat den: den, dit barn selv har valgt at udfordre, eller som har udfordret dit barn. Det sker først, når begge har uploadet hver sin video, og først når træneren har afgjort udfordringen. Det er en anden situation end en almindelig træningsvideo, og det er værd at tale med sit barn om.</p>
+    <p><b>Hvornår slettes videoen?</b></p>
+    <ul>
+      <li>En træningsvideo slettes i samme øjeblik, træneren godkender eller afviser den.</li>
+      <li>En udfordringsvideo slettes, når modparten har set den færdig - og senest 2 døgn efter trænerens afgørelse.</li>
+      <li><b>Under alle omstændigheder slettes enhver video senest 7 dage efter upload</b>, også hvis ingen har nået at se på den. Så må man uploade igen.</li>
+    </ul>
+    <p><b>Én ting du skal vide:</b> mens videoen findes, har den en webadresse med en lang, tilfældig kode i. Adressen kan ikke gættes, men den er ikke hemmelig: får en person adressen udleveret, kan videoen ses uden at logge ind. Derfor sletter vi videoerne så hurtigt, som vi gør - og derfor bør man ikke videresende links til andres videoer.</p>
+
+    <h3>Hvem kan se hvad</h3>
+    <table>
+      <tr><th>Rolle</th><th>Kan se</th></tr>
+      <tr><td>Spiller</td><td>Sin egen profil og sin egen årgang. Klub-ranglistens top 10 med navn, årgang og point. En udfordringsvideo fra den ene modpart.</td></tr>
+      <tr><td>Træner</td><td>Alt om spillerne i de årgange, træneren har fået adgang til - inklusive noter, historik og videoer til godkendelse.</td></tr>
+      <tr><td>Administrator</td><td>Alle årgange, samt hvem der har login til systemet.</td></tr>
+      <tr><td>Alle andre</td><td>Ingenting. Man skal have et login oprettet af klubben for at se noget som helst.</td></tr>
+    </table>
+    <p class="small">Det er ikke kun menuerne, der er skjult - serveren afviser selve forespørgslen, hvis man ikke har adgang. Det gælder også, hvis man prøver udenom appen.</p>
+
+    <h3>Hvilke tjenester bruger vi</h3>
+    <p><b>Google Firebase</b> står for login, database og opbevaring af videoer. Data ligger i Googles datacentre i <b>[INDSÆT REGION]</b>. Google behandler data på vores vegne og bruger dem ikke til egne formål.</p>
+    <p><b>Google reCAPTCHA Enterprise</b> bruges til at afvise henvendelser, der ikke kommer fra denne side. Det er det, der forhindrer fremmede i at hente videoer ud af systemet. Den sætter en cookie fra google.com.</p>
+    <p><b>GitHub Pages</b> leverer selve hjemmesiden. GitHub ser din IP-adresse, når siden hentes, som enhver anden hjemmeside gør.</p>
+    <p><b>Og så er der ikke mere.</b> Ingen Google Analytics, ingen Facebook-pixel, ingen annoncenetværk, ingen cookies til sporing, og ingen videregivelse af data til nogen tredjepart.</p>
+
+    <h3>Hvor længe gemmer vi det</h3>
+    <p>Videoer: højst 7 dage, ofte kun timer. Point, niveauer, medaljer og historik gemmes, indtil en forælder beder om at få det slettet, eller indtil klubben rydder op. Skriv til adressen ovenfor, så sletter vi.</p>
+
+    <h3>Jeres rettigheder</h3>
+    <p>I har ret til at få at vide, hvad vi har registreret, få rettet noget forkert, få det hele slettet, og at trække et samtykke tilbage - også efter at have sagt ja. Det koster ingenting og kræver ingen begrundelse. Er I utilfredse med måden, vi håndterer det på, kan I klage til Datatilsynet.</p>
+
+    <div style="margin-top:18px"><button class="btn secondary" onclick="closePrivacy()">Tilbage</button></div>
+  </div>
+</section>
+
+<div class="footer-note">
+  TIF Talent Tracker v15.37 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
@@ -624,7 +688,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("demoBanner").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.36 · ikke logget ind");
+    setSyncStatus("v15.37 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -646,7 +710,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.36 · vælg din egen adgangskode");
+    setSyncStatus("v15.37 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -679,9 +743,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.36 · live database aktiv");
+    setSyncStatus("v15.37 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.36 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.37 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -718,6 +782,23 @@ function startListeners(){
   }, (e)=>console.error("clubRanking listener", e));
 }
 
+// Databehandlingssiden skal kunne læses UDEN login - forældre skal kunne se den, før de
+// takker ja til en konto. Derfor er den ikke en fane, men en knap i bunden af enhver side,
+// og den husker, hvor man kom fra.
+let privacyReturnTo = null;
+function openPrivacy(){
+  privacyReturnTo = Array.from(document.querySelectorAll(".page")).find(p=>!p.classList.contains("hidden"))?.id || null;
+  document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
+  document.getElementById("privacy").classList.remove("hidden");
+  window.scrollTo(0,0);
+}
+function closePrivacy(){
+  document.getElementById("privacy").classList.add("hidden");
+  const back = privacyReturnTo && privacyReturnTo !== "privacy" ? privacyReturnTo : (currentUser ? (isPlayer() ? "training" : "players") : "login");
+  document.getElementById(back)?.classList.remove("hidden");
+  privacyReturnTo = null;
+  window.scrollTo(0,0);
+}
 function showPage(id){
   document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
@@ -1208,11 +1289,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.36 · migrering færdig");
+    setSyncStatus("v15.37 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.36 · migrering fejlede");
+    setSyncStatus("v15.37 · migrering fejlede");
   }
 }
 
@@ -1345,7 +1426,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
   try{
-    setSyncStatus("v15.36 · uploader video...");
+    setSyncStatus("v15.37 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1366,12 +1447,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.36 · live database aktiv");
+    setSyncStatus("v15.37 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error(e);
     alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.36 · live database aktiv");
+    setSyncStatus("v15.37 · live database aktiv");
   }
 }
 
@@ -2038,7 +2119,7 @@ function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); ren
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,resetPassword,showPage,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>
