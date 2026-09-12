@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.40</title>
+  <title>TIF Talent Tracker v15.41</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -106,7 +106,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.40 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.41 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -403,7 +403,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.40 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.41 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -690,7 +690,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("demoBanner").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.40 · ikke logget ind");
+    setSyncStatus("v15.41 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -712,7 +712,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.40 · vælg din egen adgangskode");
+    setSyncStatus("v15.41 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -745,9 +745,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.40 · live database aktiv");
+    setSyncStatus("v15.41 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.40 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.41 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -1291,11 +1291,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.40 · migrering færdig");
+    setSyncStatus("v15.41 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.40 · migrering fejlede");
+    setSyncStatus("v15.41 · migrering fejlede");
   }
 }
 
@@ -1427,12 +1427,17 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   if(file.size > 200*1024*1024) return alert("Videoen er for stor (maks 200 MB).");
   const p = currentPlayerLink;
   if(!p) return alert("Din spillerprofil blev ikke fundet.");
+  // Hvilket trin vi er naaet til. Bruges i fejlbeskeden, for "permission denied" siger
+  // intet om, hvorvidt det var selve videoen eller registreringen bagefter, der fejlede -
+  // og de to ting fejler af vidt forskellige grunde.
+  let stage = "video";
   try{
-    setSyncStatus("v15.40 · uploader video...");
+    setSyncStatus("v15.41 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
     const url = await getDownloadURL(sref);
+    stage = "registrering";
     const step = stepIndex!=null ? steps[stepIndex] : null;
     // Udfordringens deltagere denormaliseres på submission, så modstanderen kan få
     // lov til at se (og senere selv slette) netop denne video via sikkerhedsreglerne,
@@ -1449,13 +1454,25 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.40 · live database aktiv");
+    setSyncStatus("v15.41 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
-    console.error(e);
-    alert("Upload fejlede: " + e.message);
-    setSyncStatus("v15.40 · live database aktiv");
+    console.error("upload fejlede i trin:", stage, e);
+    alert(uploadErrorText(stage, e));
+    setSyncStatus("v15.41 · live database aktiv");
   }
+}
+function uploadErrorText(stage, e){
+  const code = e?.code || "";
+  if(code === "permission-denied" || code === "storage/unauthorized"){
+    return stage === "video"
+      ? "Videoen kunne ikke sendes. Din bruger har ikke adgang til at uploade lige nu - kontakt din træner.\n\n(teknisk: " + code + " ved upload)"
+      : "Videoen blev sendt, men kunne ikke registreres hos træneren, så den tæller ikke. Kontakt din træner - det er ikke noget, du har gjort forkert.\n\n(teknisk: " + code + " ved registrering)";
+  }
+  if(code === "storage/quota-exceeded") return "Der er ikke plads til flere videoer lige nu. Kontakt din træner.";
+  if(code === "storage/retry-limit-exceeded" || code === "unavailable") return "Forbindelsen holdt ikke hele vejen. Prøv igen - gerne på wifi, hvis du kan.";
+  if(code === "storage/canceled") return "Uploaden blev afbrudt. Prøv igen.";
+  return "Upload fejlede under " + stage + ": " + (e?.message || "ukendt fejl") + (code ? " (" + code + ")" : "");
 }
 
 async function submitTraining(playerId, stepIndex, exercise){
