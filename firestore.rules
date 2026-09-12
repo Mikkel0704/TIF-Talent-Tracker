@@ -138,6 +138,17 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Klub-rangliste: en spejl-tabel med KUN navn, aargang og point, saa spillerne kan se
+    // en top-10 paa tvaers af hele klubben. players/ kan ikke bruges til det, fordi en
+    // spiller kun maa laese sin egen aargang - og den begraensning skal blive staaende,
+    // fordi players/ ogsaa rummer noter og historik. Her staar der intet foelsomt.
+    // Skrives kun af traenere/admin (se syncClubRanking i index.html); en spiller kan
+    // altsaa ikke skrive sig selv oeverst.
+    match /clubRanking/{playerId} {
+      allow read: if isActive();
+      allow write: if isActive() && !isPlayerRole();
+    }
+
     // Spiller-mod-spiller udfordringer. gender er den udfordrende spillers køn,
     // denormaliseret ligesom på submissions.
     match /challenges/{challengeId} {
