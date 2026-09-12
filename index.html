@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.46</title>
+  <title>TIF Talent Tracker v15.47</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -106,7 +106,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.46 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.47 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -292,44 +292,69 @@
 <section id="admin" class="page hidden">
   <div class="card">
     <h2>Admin</h2>
-    <p class="small">Kun admin kan tildele trænere adgang til årgange. Trænere skal først være oprettet i Firebase Authentication og have logget ind én gang.</p>
-    <div class="yearcontrol">
-      <h3>Årgange</h3>
-      <p class="small">Admin kan tilføje årgange og åbne/lukke for oprettelse af nye spillere. Lukkede årgange kan stadig vises, hvis der allerede findes spillere.</p>
-      <div id="yearControlArea"></div>
-      <label>Tilføj ny årgang</label><input id="newAdminYear" placeholder="Fx 2019">
-      <button class="btn secondary" onclick="addAdminYear()">Tilføj / åbn årgang</button>
-    </div>
-    <div class="createcoach">
-      <h3>Tilføj ny træner</h3>
-      <p class="small">Opretter både Firebase-login og adgang i appen. Træneren bør skifte password efter første login.</p>
-      <label>Email</label><input id="newCoachEmail" placeholder="traener@email.dk">
-      <label>Midlertidigt password</label><input id="newCoachPassword" type="password" placeholder="Min. 6 tegn">
-      <div class="yearchecks" id="newCoachYears"></div>
-      <button class="btn" onclick="createCoachFromAdmin()">Opret træner</button>
-    </div>
-    <div class="createcoach">
-      <h3>Opret spillerlogin</h3>
-      <p class="small">Giver en eksisterende spiller sit eget login til at åbne appen derhjemme, uploade træningsvideoer, udfordre holdkammerater og se ranglisten. Spilleren bør skifte password efter første login under Indstillinger.</p>
-      <label>Vælg spiller</label><select id="newPlayerLoginPlayer"></select>
-      <label>Email</label><input id="newPlayerLoginEmail" placeholder="spiller@email.dk">
-      <label>Midlertidigt password</label><input id="newPlayerLoginPassword" type="password" placeholder="Min. 6 tegn">
-      <label class="checkpill" style="margin:8px 0"><input type="checkbox" id="newPlayerLoginDemo"> Demo-login (må kigge, men ikke uploade eller udfordre)</label>
-      <p class="small">Brug demo til forældremøder og til familier, der vil se appen an. Alle knapper er der, men de sender ingenting ind - og spilleren kan ikke udfordres af de rigtige spillere.</p>
-      <button class="btn" onclick="createPlayerLoginFromAdmin()">Opret spillerlogin</button>
-    </div>
-    <h3>Spillerlogins</h3>
-    <div id="playerLoginsArea"></div>
-    <button class="btn secondary" onclick="migrateOldPlayers()">Migrér gamle spillere fra sharedState</button>
-    <button class="btn secondary" onclick="migrateYearsToBirthYears()">Migrér årgange til årstal</button>
-    <p class="small">Brug kun knappen én gang. Den flytter gamle spillere fra tifTalentTracker/sharedState til players collection og sætter årgang ud fra note-feltet, fx U9.</p>
-    <button class="btn secondary" onclick="syncPlayerLoginFlags()">Synkronisér spilleres login-status</button>
-    <button class="btn secondary" onclick="rebuildClubRanking()">Genopbyg klub-rangliste</button>
-    <p class="small">Brug denne, hvis udfordringslisten ikke matcher, hvem der reelt har et aktivt spillerlogin (fx efter denne opdatering, eller hvis noget virker forkert). Fremover holdes det automatisk opdateret.</p>
-    <div id="genderMigrationArea"></div>
-    <h3>Trænere</h3>
-    <div id="adminArea"></div>
-    <div id="adminEditArea"></div>
+    <p class="small">Klik på en overskrift for at folde den ud.</p>
+
+    <details class="accordion" id="adminRequests">
+      <summary><span>Afventende anmodninger om sletning<span id="deletionBadge" class="navbadge hidden"></span></span></summary>
+      <div class="accordion-body">
+        <p class="small">Når en familie beder om at få alt om deres barn slettet, lander anmodningen her. Godkender du den, slettes profil, videoer, udfordringer, ranglisteplads og login i én handling.</p>
+        <div id="deletionRequestsArea"></div>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary><span>Opret spillerlogin</span></summary>
+      <div class="accordion-body">
+        <p class="small">Giver en eksisterende spiller sit eget login til at åbne appen derhjemme, uploade træningsvideoer, udfordre holdkammerater og se ranglisten.</p>
+        <label>Vælg spiller</label><select id="newPlayerLoginPlayer"></select>
+        <label>Email</label><input id="newPlayerLoginEmail" placeholder="spiller@email.dk">
+        <label>Midlertidigt password</label><input id="newPlayerLoginPassword" type="password" placeholder="Min. 6 tegn">
+        <label class="checkpill" style="margin:8px 0"><input type="checkbox" id="newPlayerLoginDemo"> Demo-login (må kigge, men ikke uploade eller udfordre)</label>
+        <p class="small">Brug demo til forældremøder og til familier, der vil se appen an. Alle knapper er der, men de sender ingenting ind - og spilleren kan ikke udfordres af de rigtige spillere.</p>
+        <button class="btn" onclick="createPlayerLoginFromAdmin()">Opret spillerlogin</button>
+        <h3 style="margin-top:22px">Oprettede spillerlogins</h3>
+        <div id="playerLoginsArea"></div>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary><span>Årgange</span></summary>
+      <div class="accordion-body">
+        <p class="small">Tilføj årgange og åbn/luk for oprettelse af nye spillere. Lukkede årgange kan stadig vises, hvis der allerede findes spillere.</p>
+        <div id="yearControlArea"></div>
+        <label>Tilføj ny årgang</label><input id="newAdminYear" placeholder="Fx 2019">
+        <button class="btn secondary" onclick="addAdminYear()">Tilføj / åbn årgang</button>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary><span>Tilføj ny træner</span></summary>
+      <div class="accordion-body">
+        <p class="small">Opretter både login og adgang i appen. Træneren skal vælge sin egen adgangskode ved første login.</p>
+        <label>Email</label><input id="newCoachEmail" placeholder="traener@email.dk">
+        <label>Midlertidigt password</label><input id="newCoachPassword" type="password" placeholder="Min. 6 tegn">
+        <div class="yearchecks" id="newCoachYears"></div>
+        <button class="btn" onclick="createCoachFromAdmin()">Opret træner</button>
+        <h3 style="margin-top:22px">Trænere</h3>
+        <div id="adminArea"></div>
+        <div id="adminEditArea"></div>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary><span>Øvrige værktøjer</span></summary>
+      <div class="accordion-body">
+        <p class="small">Vedligeholdelse og engangs-migreringer. Bruges sjældent.</p>
+        <button class="btn secondary" onclick="rebuildClubRanking()">Genopbyg klub-rangliste</button>
+        <p class="small">Genskaber klub-ranglisten ud fra spillerne. Brug den første gang, og hvis noget ser forkert ud.</p>
+        <button class="btn secondary" onclick="syncPlayerLoginFlags()">Synkronisér spilleres login-status</button>
+        <p class="small">Brug denne, hvis udfordringslisten ikke matcher, hvem der reelt har et aktivt spillerlogin.</p>
+        <div id="genderMigrationArea"></div>
+        <button class="btn secondary" onclick="migrateOldPlayers()">Migrér gamle spillere fra sharedState</button>
+        <button class="btn secondary" onclick="migrateYearsToBirthYears()">Migrér årgange til årstal</button>
+        <p class="small">Engangsknapper fra dengang data blev flyttet. Brug dem kun én gang.</p>
+      </div>
+    </details>
   </div>
 </section>
 
@@ -420,7 +445,7 @@
 
     <h3>Jeres bekræftelse</h3>
     <p>Første gang I logger ind, bliver I bedt om at bekræfte, at I har læst det her. <b>Bekræftelsen gemmes</b> med dato på jeres brugerkonto, så det kan dokumenteres, hvem der har sagt ja og hvornår. Ændres teksten væsentligt, bliver I spurgt igen.</p>
-    <p>I kan til enhver tid trække bekræftelsen tilbage ved at skrive til adressen ovenfor. Så lukkes adgangen, og alt om jeres barn bliver slettet: profil, point, niveauer, medaljer, historik, trænerens note, alle indsendte videoer, alle videofiler, alle udfordringer og pladsen på ranglisten.</p><p>Det sker i <b>én samlet handling</b> i systemet, så intet bliver glemt undervejs. Men det <b>starter ikke af sig selv</b> - en person skal sætte det i gang, når I henvender jer. I får besked, når det er gjort, og det sker senest 30 dage efter jeres henvendelse.</p><p>Selve login'et lukkes samtidig. Selve brugerkontoen hos Google fjernes i et separat trin bagefter; indtil da giver den ingen adgang til noget som helst.</p>
+    <p><b>I appen:</b> under "Min profil" er der en knap, der hedder "Anmod om at blive slettet". Den sender anmodningen til jeres træner, som godkender den. I kan fortryde, indtil den er behandlet.</p><p>I kan også bare skrive til adressen ovenfor. Så lukkes adgangen, og alt om jeres barn bliver slettet: profil, point, niveauer, medaljer, historik, trænerens note, alle indsendte videoer, alle videofiler, alle udfordringer og pladsen på ranglisten.</p><p>Det sker i <b>én samlet handling</b> i systemet, så intet bliver glemt undervejs. Men det <b>starter ikke af sig selv</b> - en person skal sætte det i gang, når I henvender jer. I får besked, når det er gjort, og det sker senest 30 dage efter jeres henvendelse.</p><p>Selve login'et lukkes samtidig. Selve brugerkontoen hos Google fjernes i et separat trin bagefter; indtil da giver den ingen adgang til noget som helst.</p>
 
     <h3>Jeres rettigheder</h3>
     <p>I har ret til at få at vide, hvad der er registreret, få rettet noget forkert, få det hele slettet, og at trække et samtykke tilbage - også efter at have sagt ja. Det koster ingenting og kræver ingen begrundelse. Er I utilfredse med måden, det håndteres på, kan I klage til Datatilsynet.</p>
@@ -430,7 +455,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.46 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.47 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -582,6 +607,7 @@ let users = [];
 let submissions = [];
 let challenges = [];
 let clubRanking = [];
+let deletionRequests = [];
 let currentPlayerLink = null;
 let selectedStepByPlayer = {};
 let playerListFilterYear = "all";
@@ -596,6 +622,7 @@ let unsubUsers = null;
 let unsubSubmissions = null;
 let unsubChallenges = null;
 let unsubClubRanking = null;
+let unsubDeletionRequests = null;
 
 function setSyncStatus(text){
   const el = document.getElementById("syncStatus");
@@ -722,7 +749,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.46 · ikke logget ind");
+    setSyncStatus("v15.47 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -748,7 +775,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.46 · bekræft inden I går i gang");
+    setSyncStatus("v15.47 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -756,7 +783,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.46 · vælg din egen adgangskode");
+    setSyncStatus("v15.47 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -789,9 +816,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.46 · live database aktiv");
+    setSyncStatus("v15.47 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.46 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.47 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -821,6 +848,24 @@ function startListeners(){
 
   // Klub-ranglisten er den ene samling, alle må læse på tværs af årgange - den rummer
   // kun navn, årgang og point, så der er ingen årgangsbegrænsning at bygge query'en på.
+  // Anmodninger om sletning. Admin ser dem alle; en spiller ser kun sin egen, og laeser
+  // den som ét dokument (id = spillerens id) frem for at liste samlingen - reglerne
+  // tillader netop ikke en spiller at se de andres.
+  if(unsubDeletionRequests) unsubDeletionRequests();
+  if(isAdmin()){
+    unsubDeletionRequests = onSnapshot(collection(db, "deletionRequests"), (snap)=>{
+      deletionRequests = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      renderAll();
+    }, (e)=>console.error("deletionRequests listener", e));
+  } else if(isPlayer() && currentUserDoc?.playerId){
+    unsubDeletionRequests = onSnapshot(doc(db, "deletionRequests", currentUserDoc.playerId), (snap)=>{
+      deletionRequests = snap.exists() ? [{id:snap.id, ...snap.data()}] : [];
+      renderAll();
+    }, (e)=>console.error("deletionRequest listener", e));
+  } else {
+    deletionRequests = [];
+  }
+
   if(unsubClubRanking) unsubClubRanking();
   unsubClubRanking = onSnapshot(collection(db, "clubRanking"), (snap)=>{
     clubRanking = snap.docs.map(d=>({id:d.id, ...d.data()}));
@@ -940,6 +985,72 @@ async function rebuildClubRanking(){
   }
   alert(`Klub-rangliste opdateret.\n\nSkrevet: ${ok}\nFejlede: ${failed}\nFjernet (slettede spillere): ${removed}`);
 }
+// Anmodning om sletning. Familien kan ikke slette selv - det ville lade ét barn slette
+// sin egen historik i vrede, og det ville omgaa den kontrol, en voksen skal lave. I
+// stedet laegges en anmodning, som admin behandler. Doknummeret ER spillerens id, saa
+// der aldrig kan ligge to anmodninger for samme barn.
+function myDeletionRequest(){
+  if(!isPlayer() || !currentPlayerLink) return null;
+  return deletionRequests.find(r=>r.id===currentPlayerLink.id) || null;
+}
+async function requestOwnDeletion(){
+  if(!isPlayer() || !currentPlayerLink) return;
+  if(demoBlocked("Anmodningen bliver ikke sendt herfra.")) return;
+  const p = currentPlayerLink;
+  if(!confirm(`Bed om at få slettet alt om ${p.name}?\n\nDin træner får besked og godkender det. Når det er gjort, forsvinder profil, point, medaljer, historik, videoer og adgangen til appen - for altid.\n\nDu kan fortryde anmodningen, indtil den er behandlet.`)) return;
+  const reason = (prompt("Vil du skrive hvorfor? (frivilligt - tryk OK for at springe over)") || "").trim();
+  try{
+    await setDoc(doc(db, "deletionRequests", p.id), {
+      playerId: p.id, playerName: p.name, year: p.year,
+      requestedBy: currentUser?.email || "", requestedAt: serverTimestamp(),
+      reason: reason.slice(0,500), status: "pending"
+    });
+    alert("Din anmodning er sendt. Din træner behandler den hurtigst muligt og senest inden for 30 dage.");
+  }catch(e){
+    console.error(e);
+    alert("Kunne ikke sende anmodningen: " + (e.message||"ukendt fejl") + "\n\nDu kan i stedet skrive til mikkel0704@hotmail.com.");
+  }
+}
+async function cancelOwnDeletionRequest(){
+  const r = myDeletionRequest();
+  if(!r) return;
+  if(!confirm("Fortryd anmodningen om sletning?\n\nAlt bliver, som det er, og du kan altid anmode igen senere.")) return;
+  try{ await deleteDoc(doc(db, "deletionRequests", r.id)); alert("Anmodningen er trukket tilbage."); }
+  catch(e){ console.error(e); alert("Kunne ikke trække anmodningen tilbage: " + (e.message||"ukendt fejl")); }
+}
+async function declineDeletionRequest(pid){
+  if(!isAdmin()) return alert("Kun admin kan behandle anmodninger.");
+  const r = deletionRequests.find(x=>x.id===pid);
+  if(!r) return;
+  if(!confirm(`Afvis anmodningen fra ${r.playerName}?\n\nAnmodningen forsvinder fra listen, og intet bliver slettet. Kontakt familien, så de ved hvorfor - appen sender ingen besked.`)) return;
+  try{ await deleteDoc(doc(db, "deletionRequests", pid)); }
+  catch(e){ console.error(e); alert("Kunne ikke afvise: " + (e.message||"ukendt fejl")); }
+}
+function renderDeletionRequests(){
+  const area = document.getElementById("deletionRequestsArea");
+  const badge = document.getElementById("deletionBadge");
+  if(!area) return;
+  if(!isAdmin()){ area.innerHTML = ""; if(badge) badge.classList.add("hidden"); return; }
+  const list = deletionRequests.filter(r=>players.some(p=>p.id===r.id));
+  if(badge){
+    badge.classList.toggle("hidden", list.length===0);
+    badge.textContent = list.length;
+  }
+  const open = document.getElementById("adminRequests");
+  if(open && list.length) open.open = true;
+  area.innerHTML = list.length ? list.map(r=>{
+    const at = r.requestedAt?.toDate ? r.requestedAt.toDate().toLocaleString("da-DK") : "";
+    return `<div class="exercise-block">
+      <b>${escapeHtml(r.playerName||"Ukendt spiller")}</b> · ${escapeHtml(yearLabel(r.year))}
+      <div class="small">Anmodet ${escapeHtml(at)} af ${escapeHtml(r.requestedBy||"ukendt")}</div>
+      ${r.reason ? `<p class="small" style="margin:8px 0"><b>Begrundelse:</b> ${escapeHtml(r.reason)}</p>` : ""}
+      <div style="margin-top:8px">
+        <button class="btn danger smallbtn" onclick="deletePlayer('${r.id}')">Godkend og slet alt</button>
+        <button class="btn secondary smallbtn" onclick="declineDeletionRequest('${r.id}')">Afvis</button>
+      </div>
+    </div>`;
+  }).join("") : '<p class="small">Ingen afventende anmodninger.</p>';
+}
 // Sletter ALT om én spiller i én handling. Findes, fordi databehandlingsteksten lover
 // forældrene netop det: profil, point, historik, trænerens noter, videoer, udfordringer
 // og login'et. Tidligere fjernede "Slet" kun spillerdokumentet, og resten blev liggende -
@@ -988,14 +1099,15 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.46 · sletter...");
+  setSyncStatus("v15.47 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
   for(const d of userDocs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("login " + d.id); } }
   try{ await deleteDoc(doc(db,"clubRanking",id)); }catch(e){ failed.push("klub-rangliste"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
-  setSyncStatus("v15.46 · live database aktiv");
+  try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
+  setSyncStatus("v15.47 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -1397,11 +1509,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.46 · migrering færdig");
+    setSyncStatus("v15.47 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.46 · migrering fejlede");
+    setSyncStatus("v15.47 · migrering fejlede");
   }
 }
 
@@ -1571,7 +1683,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.46 · uploader video...");
+    setSyncStatus("v15.47 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1593,12 +1705,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.46 · live database aktiv");
+    setSyncStatus("v15.47 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.46 · live database aktiv");
+    setSyncStatus("v15.47 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -2202,7 +2314,27 @@ function renderPlayerProfile(){
       <h3>Historik</h3>
       ${history}
     </div>
+    ${isPlayer() && currentPlayerLink && p.id===currentPlayerLink.id ? deletionRequestBox() : ""}
   `;
+}
+// Retten til at blive slettet, som en knap og ikke kun som en mailadresse i en tekst.
+// Spilleren sletter ikke selv - der laegges en anmodning, som en voksen behandler.
+function deletionRequestBox(){
+  const r = myDeletionRequest();
+  if(r){
+    const at = r.requestedAt?.toDate ? r.requestedAt.toDate().toLocaleString("da-DK") : "";
+    return `<div class="profilebox" style="margin-top:10px;border:1px solid #f0d99a;background:#fff4d6">
+      <h3 style="margin-top:0">Anmodning om sletning sendt</h3>
+      <p class="small">Sendt ${escapeHtml(at)}. Din træner behandler den hurtigst muligt og senest inden for 30 dage. Indtil da kan du bruge appen som normalt.</p>
+      <button class="btn secondary smallbtn" onclick="cancelOwnDeletionRequest()">Fortryd anmodningen</button>
+    </div>`;
+  }
+  return `<div class="profilebox" style="margin-top:10px">
+    <h3>Få slettet alt om dig</h3>
+    <p class="small">I kan når som helst bede om at få fjernet alt: profil, point, niveauer, medaljer, historik, trænerens note, videoer og adgangen til appen. Det koster ingenting og kræver ingen begrundelse.</p>
+    <p class="small">Anmodningen går til jeres træner, som godkender den. Det kan ikke fortrydes, når den først er gennemført.</p>
+    <button class="btn danger smallbtn" onclick="requestOwnDeletion()">Anmod om at blive slettet</button>
+  </div>`;
 }
 
 function selectProfileForTracking(pid){
@@ -2271,13 +2403,13 @@ function renderChallengeBadge(){
   badge.textContent = count > 9 ? "9+" : String(count);
   badge.classList.toggle("hidden", count === 0);
 }
-function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); }
+function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); renderDeletionRequests(); }
 // Static content (never changes at runtime) - rendered once so the accordion's open/closed
 // state isn't wiped out every time an unrelated Firestore snapshot triggers renderAll().
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>
