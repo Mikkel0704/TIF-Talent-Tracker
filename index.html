@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.42</title>
+  <title>TIF Talent Tracker v15.43</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -106,7 +106,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.42 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.43 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -136,7 +136,7 @@
     <div class="checkrow" style="border-bottom:0"><div><b>Alt ligger i EU</b><div class="small">Ingen reklamer, ingen sporing, ingen deling med andre.</div></div></div>
 
     <p style="margin-top:14px"><button class="btn secondary" onclick="openPrivacy()">Læs hele teksten</button></p>
-    <p class="small">Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?</p>
+    <p class="small" id="consentQuestion">Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?</p>
     <button class="btn" onclick="acceptPrivacy()">Ja, det er i orden</button>
     <button class="btn secondary" onclick="logout()">Nej tak - log mig ud</button>
     <p class="small" style="margin-top:12px">Fortryder du senere, så skriv til mikkel0704@hotmail.com, så bliver alt om dit barn slettet.</p>
@@ -430,7 +430,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.42 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.43 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -719,7 +719,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.getElementById("demoBanner").classList.add("hidden");
     document.getElementById("headerLogout").classList.add("hidden");
-    setSyncStatus("v15.42 · ikke logget ind");
+    setSyncStatus("v15.43 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -737,12 +737,15 @@ onAuthStateChanged(auth, async (user)=>{
   }
   document.getElementById("login").classList.add("hidden");
   // Samtykke foerst: det afgoer, om man overhovedet skal bruge appen. Derefter koden.
-  if(!currentUserDoc.privacyAcceptedAt || currentUserDoc.privacyVersion !== PRIVACY_VERSION){
+  if(needsPrivacyConsent()){
     document.getElementById("headerLogout").classList.remove("hidden");
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("consentGate").classList.remove("hidden");
-    setSyncStatus("v15.42 · bekræft inden I går i gang");
+    document.getElementById("consentQuestion").textContent = isDemoUser()
+      ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
+      : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
+    setSyncStatus("v15.43 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -750,7 +753,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.42 · vælg din egen adgangskode");
+    setSyncStatus("v15.43 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -783,9 +786,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.42 · live database aktiv");
+    setSyncStatus("v15.43 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.42 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.43 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -1218,6 +1221,7 @@ function renderAdmin(){
   }
 }
 function consentLabel(u){
+  if(u.demo === true) return 'Demo - samtykket vises ved hvert besøg og gemmes ikke';
   if(!u.privacyAcceptedAt) return '<span style="color:#b42318">Har ikke bekræftet databehandling endnu</span>';
   const at = u.privacyAcceptedAt.toDate ? u.privacyAcceptedAt.toDate() : new Date(u.privacyAcceptedAt);
   const stale = u.privacyVersion !== PRIVACY_VERSION;
@@ -1335,11 +1339,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.42 · migrering færdig");
+    setSyncStatus("v15.43 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.42 · migrering fejlede");
+    setSyncStatus("v15.43 · migrering fejlede");
   }
 }
 
@@ -1452,8 +1456,25 @@ async function changeOwnPassword(){
 // Samtykke: registreres paa brugerens eget dokument med serverens tidsstempel, saa der
 // staar SORT PAA HVIDT hvem der har sagt ja og hvornaar - ikke bare et flueben i en
 // browser. Aendres teksten vaesentligt, haeves PRIVACY_VERSION, og alle spoerges igen.
+// Demo-brugeren skal se samtykket HVER gang. Den findes netop for at vise foraeldre,
+// hvordan appen tager imod dem, og den foerste skaerm er en del af det. Derfor gemmes
+// demo-accepten kun for den aabne fane (sessionStorage) og aldrig i databasen - ellers
+// ville den staa som en rigtig bekraeftelse paa en konto, ingen bestemt person ejer.
+const DEMO_CONSENT_KEY = "tif-demo-consent-seen";
+function needsPrivacyConsent(){
+  if(isDemoUser()){
+    try{ return sessionStorage.getItem(DEMO_CONSENT_KEY) !== PRIVACY_VERSION; }
+    catch{ return false; }   // ingen sessionStorage (privat vindue): spaer ikke demoen ude
+  }
+  return !currentUserDoc?.privacyAcceptedAt || currentUserDoc.privacyVersion !== PRIVACY_VERSION;
+}
 async function acceptPrivacy(){
   if(!currentUser) return;
+  if(isDemoUser()){
+    try{ sessionStorage.setItem(DEMO_CONSENT_KEY, PRIVACY_VERSION); }catch{}
+    location.reload();
+    return;
+  }
   try{
     await setDoc(doc(db, "users", currentUser.uid), {
       privacyAcceptedAt: serverTimestamp(),
@@ -1492,7 +1513,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.42 · uploader video...");
+    setSyncStatus("v15.43 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1514,12 +1535,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.42 · live database aktiv");
+    setSyncStatus("v15.43 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.42 · live database aktiv");
+    setSyncStatus("v15.43 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
