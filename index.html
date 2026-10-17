@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.52</title>
+  <title>TIF Talent Tracker v15.53</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -70,6 +70,19 @@
     .step.done{background:#d1fae5;color:#065f46;border-color:#85d6a8}
     .step.current{background:var(--blue);color:white;border-color:var(--blue)}
     .step.selected{outline:3px solid rgba(109,27,58,.25)}
+    .ladderrow{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;margin-bottom:5px;border:1px solid var(--line);background:var(--card)}
+    .ladderrow.done{background:#eef7f1;border-color:#cfe6da}
+    .ladderrow.next{border-color:var(--maroon);box-shadow:0 0 0 2px rgba(109,27,58,.12)}
+    .ladderrow.locked{opacity:.5}
+    .laddernum{flex:0 0 58px;font-weight:800;font-size:17px;text-align:right;font-variant-numeric:tabular-nums}
+    .laddermid{flex:1;min-width:0}
+    .ladderstep{font-size:12px;color:var(--muted)}
+    .laddergate{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;margin-bottom:5px;border:1px dashed var(--maroon);background:#fdf3f7}
+    .phasehead{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--maroon);margin:14px 0 6px}
+    .phasehead span{display:block;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);font-size:12.5px;margin-top:2px}
+    .medalmark{display:inline-block;font-size:11px;font-weight:700;color:var(--blue);background:#dbe9fa;border-radius:999px;padding:1px 7px;margin-left:6px}
+    .ladderwrap{display:grid;gap:14px}
+    @media(min-width:760px){.ladderwrap{grid-template-columns:1fr 1fr}}
     .demobanner{margin:0;padding:10px 14px;background:#fff4d6;border-bottom:1px solid #f0d99a;color:#6b4d00;font-size:14px;line-height:1.45}
     .checkrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
     .checkrow:last-child{border-bottom:0}
@@ -106,7 +119,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.52 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.53 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -129,7 +142,7 @@
     <h2 style="margin-top:0">Inden I går i gang</h2>
     <p>Appen gemmer oplysninger om dit barn, og der kan uploades video. Læs det her igennem, og bekræft, at det er i orden. Du kan altid trække det tilbage igen.</p>
 
-    <div class="checkrow"><div><b>Hvad der gemmes</b><div class="small">Navn, årgang, point, hvilke øvelser der er bestået, medaljer og en log over det. Træneren kan skrive en kort note.</div></div></div>
+    <div class="checkrow"><div><b>Hvad der gemmes</b><div class="small">Navn, årgang, point, hvilke øvelser der er bestået, medaljer, fremdrift på Jongleringsstigen og en log over det. Træneren kan skrive en kort note.</div></div></div>
     <div class="checkrow"><div><b>Videoer er frivillige</b><div class="small">Man kan bruge appen uden nogensinde at uploade. Træneren kan i stedet godkende øvelser til træning.</div></div></div>
     <div class="checkrow"><div><b>Hvem der ser en video</b><div class="small">Træneren. Og ved udfordringer: den ene holdkammerat, dit barn selv har valgt - først når begge har uploadet.</div></div></div>
     <div class="checkrow"><div><b>Videoer slettes automatisk</b><div class="small">Når træneren har set dem, og under alle omstændigheder senest 7 dage efter upload.</div></div></div>
@@ -149,6 +162,7 @@
   <button onclick="showPage('overview')" id="tab-overview">Overblik</button>
   <button onclick="showPage('review')" id="tab-review">Godkendelser</button>
   <button onclick="showPage('training')" id="tab-training" class="hidden">Træning</button>
+  <button onclick="showPage('juggle')" id="tab-juggle" class="hidden">Stigen</button>
   <button onclick="showPage('challenges')" id="tab-challenges" class="hidden">Udfordringer<span id="challengeBadge" class="navbadge hidden"></span></button>
   <button onclick="showPage('leaderboard')" id="tab-leaderboard">Rangliste</button>
   <button onclick="showPage('criteria')" id="tab-criteria">Kriterier</button>
@@ -231,6 +245,18 @@
     <h2>Træning</h2>
     <p class="small">Se dine øvelser, øv derhjemme og upload en video af dig selv, så din træner kan godkende den.</p>
     <div id="trainingArea"></div>
+  </div>
+</section>
+
+<section id="juggle" class="page hidden">
+  <div class="card">
+    <h2>Jongleringsstigen</h2>
+    <p class="small">Træn jonglering derhjemme og kravl op ad stigen. Hvert trin giver point på ranglisten. Stigen giver ikke medaljer - den gør dig klar til dem.</p>
+    <div id="juggleArea"></div>
+    <details class="accordion" style="margin-top:14px">
+      <summary><span>Reglerne</span></summary>
+      <div class="accordion-body" id="juggleRulesArea"></div>
+    </details>
   </div>
 </section>
 
@@ -414,7 +440,7 @@
     <p><b>Om spilleren:</b> navn, årgang, køn, point, hvilke øvelser der er bestået, hvilke medaljer der er optjent og overrakt, samt en log over hvad der er sket - fx "Jonglering N1 Bronze godkendt, +25 point" med dato og hvilken træner der gjorde det. </p><p><b>Trænerens note:</b> træneren kan skrive en kort note om spilleren, fx „venstrebenet“. Den gemmes adskilt fra resten og <b>kan kun ses af trænere</b> - ikke af spilleren selv og ikke af andre familier. Vil I vide, hvad der står om jeres barn, så skriv til adressen ovenfor; I har ret til at få det at vide.</p>
     <p><b>Om login:</b> den email, der er brugt til at oprette adgangen, hvilken rolle kontoen har (spiller, træner eller admin), hvilke årgange den giver adgang til, og om den er aktiv. <b>Adgangskoden gemmer vi ikke.</b> Den håndteres af Google Firebase og kan ikke ses af trænere eller af os - heller ikke i databasen. Derfor kan en glemt kode kun nulstilles, ikke slås op.</p>
     <p><b>Om videoer:</b> selve videofilen, plus hvilken øvelse og hvilket niveau den hører til, hvornår den blev sendt, hvem der behandlede den, og hvor mange point den gav.</p>
-    <p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På klub-ranglisten:</b> navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
+    <p><b>Om Jongleringsstigen:</b> hvor langt barnet er nået på de to stiger, hvilke tricks der er klaret, og en log over hver registrering med tidspunkt og hvilket login der registrerede den. Registreringen sker på tillid hjemmefra - der er ingen video og ingen godkendelse - og træneren kan rette et trin efter en stikprøve til træning. Rettelser logges med trænerens navn. Point udregnes af tallene og gemmes ikke.</p><p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På klub-ranglisten:</b> navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
     <p><b>På din egen telefon:</b> et tidsstempel for, hvornår du sidst åbnede "Udfordringer". Det bruges kun til at vise det lille tal på fanen, og det forlader aldrig enheden.</p>
 
     <h3>Videoer - det vigtigste afsnit</h3>
@@ -464,7 +490,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.52 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.53 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -566,6 +592,192 @@ const criteria = {
  "Kontrol": {1:{Bronze:["5 ud af 10","+ maks 3 berøringer"],Sølv:["6 ud af 10","+ maks 2 berøringer"],Guld:["7 ud af 10","+ maks 2 berøringer"]},2:{Bronze:["6 ud af 10","+ maks 2 berøringer","+ 2 dårligt ben"],Sølv:["7 ud af 10","+ maks 1 berøring","+ 2 dårligt ben"],Guld:["8 ud af 10","+ maks 1 berøring","+ 3 dårligt ben"]},3:{Bronze:["7 ud af 10","+ maks 1 berøring","+ 2 dårligt ben","+ 1 lår"],Sølv:["8 ud af 10","+ maks 1 berøring","+ 3 dårligt ben","+ 2 lår"],Guld:["9 ud af 10","+ maks 1 berøring","+ 4 dårligt ben","+ 2 lår","+ 1 bryst"]}}
 };
 
+// ---------------------------------------------------------------------------
+// JONGLERINGSSTIGEN
+// En stige ved siden af medaljeforloebet: den giver POINT paa ranglisten, men
+// aldrig medaljer. Forældre registrerer paa tillid fra spillerens eget login.
+//
+// Derfor gemmes der ALDRIG point. Kun hvor langt man er naaet - og point regnes
+// ud af det, hver gang de vises. Et spillerlogin kan i forvejen ikke skrive paa
+// sit eget spillerdokument (se firestore.rules), og det skal blive ved med at
+// vaere sandt: fandtes der et pointfelt at skrive i, ville hele den spaerring
+// vaere ligegyldig. Nu er det vaerste, et barn kan goere, at paastaa trin det
+// ikke har taget - hvilket er selve tillidsmodellen, og hvad traeneren retter.
+const JUGGLE_MAIN = [3,5,7,10,15,20,25,30,35,40,55,75,100,125,150];
+const JUGGLE_MAIN_POINTS = 5;
+const JUGGLE_WEAK = [2,3,5,7,10,13,15,20,25,30];
+const JUGGLE_WEAK_POINTS = 8;
+// Opløft er en PORT, ikke bare et trick: fra trin 4 skal bolden vippes op fra
+// jorden, saa den faerdighed skal sidde foerst. Samme startregel som medaljerne.
+const JUGGLE_GATE_AFTER = 3;
+const JUGGLE_TRICKS = [
+  {id:"oploft",      navn:"Opløft",            point:10, tekst:"Vip bolden op fra jorden med foden, og tag mindst 1 berøring mere."},
+  {id:"vrist",       navn:"Stop på vristen",   point:10, tekst:"Stop bolden på vristen, og hold den i 2 sekunder."},
+  {id:"skiftefod",   navn:"Skiftefod",         point:10, tekst:"10 i træk, skiftevis højre og venstre fod."},
+  {id:"laarfod",     navn:"Lår-fod-lår-fod",   point:15, tekst:"10 i træk."},
+  {id:"hoved",       navn:"3 hovedstød",       point:15, tekst:"3 hovedstød i træk."},
+  {id:"jordenrundt", navn:"Jorden rundt",      point:15, tekst:"Før foden hele vejen rundt om bolden i luften, og jongler videre."}
+];
+const JUGGLE_PHASES = [
+  {til:4,  navn:"Find kontakten", tekst:"Lås anklen, tåen lidt op, ram bolden midt under. Bolden højst i knæhøjde."},
+  {til:9,  navn:"Rytme",          tekst:"Små trip på standbenet. Bolden til hoftehøjde. Øjnene på bolden."},
+  {til:12, navn:"Kontrol",        tekst:"Hold bolden lavt. Brug låret til at redde. Prøv det dårlige ben ind imellem."},
+  {til:15, navn:"Udholdenhed",    tekst:"Skift ben bevidst. Hold roen, når tallet bliver højt."}
+];
+const JUGGLE_RULES = [
+  "Alle berøringer med fod, lår og hoved tæller. Arme og hænder tæller ikke.",
+  "Trin 1-3: du må starte med bolden i hånden.",
+  "Fra trin 4 og på hele dårligt ben-stigen: bolden ligger på jorden og vippes op med foden - samme startregel som i medaljeforløbet.",
+  "Serien slutter, når bolden rammer jorden.",
+  "Et trin er klaret, når du har gjort det én gang.",
+  "Trinnene tages i rækkefølge, og hvert trin og trick giver kun point én gang."
+];
+function juggleTrick(id){ return JUGGLE_TRICKS.find(t=>t.id===id) || null; }
+// Naeste trin, eller null naar stigen er faerdig. Raekkefoelgen er indbygget i, at vi
+// kun gemmer HVOR LANGT man er - ikke hvilke trin der er krydset af. Saa kan man ikke
+// springe et over, og et trin kan ikke give point to gange.
+function juggleNextMain(pid){ const n = juggleMainStep(pid); return n < JUGGLE_MAIN.length ? n : null; }
+function juggleNextWeak(pid){ const n = juggleWeakStep(pid); return n < JUGGLE_WEAK.length ? n : null; }
+// Porten: fra trin 4 skal bolden vippes op fra jorden, saa Oploeft skal sidde foerst.
+function juggleGateOpen(pid){ return juggleTricks(pid).includes("oploft"); }
+function juggleMainBlocked(pid){ return juggleMainStep(pid) >= JUGGLE_GATE_AFTER && !juggleGateOpen(pid); }
+
+async function writeJuggle(pid, p, progress, logEntry){
+  await setDoc(doc(db, "juggleLadder", pid), Object.assign({
+    year: normalizeYearValue(p.year), gender: p.gender || null, updatedAt: serverTimestamp()
+  }, progress), {merge:true});
+  const tidligere = juggleLogFor(pid);
+  await setDoc(doc(db, "juggleLog", pid), {
+    year: normalizeYearValue(p.year), gender: p.gender || null, updatedAt: serverTimestamp(),
+    entries: [logEntry, ...tidligere].slice(0, 200)
+  }, {merge:true});
+}
+
+// Registrering sker fra spillerens eget login, paa tillid. Ingen video, ingen godkendelse.
+async function registerJuggle(kind, value){
+  if(!isPlayer() || !currentPlayerLink) return alert("Kun spilleren selv kan registrere trin.");
+  if(demoBlocked("Trinnet bliver ikke registreret herfra.")) return;
+  const p = currentPlayerLink, pid = p.id;
+  let progress = null, hvad = "";
+
+  if(kind === "main"){
+    const n = juggleNextMain(pid);
+    if(n === null) return alert("Du har taget hele hovedstigen. Flot!");
+    if(value !== n) return alert("Tag trinnene i rækkefølge - næste trin er " + JUGGLE_MAIN[n] + " jongleringer.");
+    if(juggleMainBlocked(pid)) return alert("Fra trin 4 skal bolden vippes op fra jorden.\n\nKlar først \"Opløft\" i Tricks - så åbner resten af stigen.");
+    progress = {mainStep: n + 1};
+    hvad = JUGGLE_MAIN[n] + " jongleringer";
+  } else if(kind === "weak"){
+    const n = juggleNextWeak(pid);
+    if(n === null) return alert("Du har taget hele dårligt ben-stigen. Flot!");
+    if(value !== n) return alert("Tag trinnene i rækkefølge - næste trin er " + JUGGLE_WEAK[n] + " med dårligt ben.");
+    progress = {weakStep: n + 1};
+    hvad = JUGGLE_WEAK[n] + " med dårligt ben";
+  } else {
+    const t = juggleTrick(value);
+    if(!t) return;
+    if(juggleTricks(pid).includes(t.id)) return alert("Det trick er allerede registreret.");
+    progress = {tricks: [...juggleTricks(pid), t.id]};
+    hvad = t.navn;
+  }
+
+  const point = kind === "main" ? JUGGLE_MAIN_POINTS : kind === "weak" ? JUGGLE_WEAK_POINTS : juggleTrick(value).point;
+  if(!confirm(`Registrér "${hvad}"?\n\nDet giver ${point} point på ranglisten. Træneren kan tage stikprøver til træning.`)) return;
+  try{
+    await writeJuggle(pid, p, progress, {t: kind, v: value, at: new Date().toISOString(), by: currentUser?.uid || ""});
+  }catch(e){
+    console.error(e);
+    alert("Kunne ikke registrere trinnet: " + (e.message || "ukendt fejl"));
+  }
+}
+
+// Traenerens stikproeve: saet stigen tilbage (eller frem) til et bestemt trin. Point
+// genberegnes af sig selv, fordi de aldrig blev gemt - og de fjernede trin holder op
+// med at taelle med i uge/maaned, uden at loggen skal ryddes.
+async function correctJuggle(pid, kind){
+  if(isPlayer()) return alert("Kun trænere kan rette registreringer.");
+  const p = players.find(x=>x.id===pid);
+  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  const stige = kind === "main" ? JUGGLE_MAIN : JUGGLE_WEAK;
+  const nu = kind === "main" ? juggleMainStep(pid) : juggleWeakStep(pid);
+  const navn = kind === "main" ? "hovedstigen" : "dårligt ben-stigen";
+  const svar = prompt(`Ret ${p.name} på ${navn}.\n\nStår nu på ${nu} af ${stige.length} trin (${nu ? stige[nu-1] : 0} jongleringer).\n\nSkriv hvor mange trin der skal være klaret (0-${stige.length}):`, String(nu));
+  if(svar === null) return;
+  const nyt = parseInt(svar, 10);
+  if(!Number.isFinite(nyt) || nyt < 0 || nyt > stige.length) return alert("Skriv et tal mellem 0 og " + stige.length + ".");
+  if(nyt === nu) return;
+  const diff = (nyt - nu) * (kind === "main" ? JUGGLE_MAIN_POINTS : JUGGLE_WEAK_POINTS);
+  if(!confirm(`Sæt ${navn} til ${nyt} trin?\n\n${diff > 0 ? "+" : ""}${diff} point. Rettelsen bliver logget med dit navn.`)) return;
+  try{
+    await writeJuggle(pid, p, kind === "main" ? {mainStep: nyt} : {weakStep: nyt},
+      {t: "correct", stige: kind, fra: nu, til: nyt, at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""});
+  }catch(e){ console.error(e); alert("Kunne ikke rette: " + (e.message || "ukendt fejl")); }
+}
+async function correctJuggleTrick(pid, trickId){
+  if(isPlayer()) return alert("Kun trænere kan rette registreringer.");
+  const p = players.find(x=>x.id===pid);
+  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  const t = juggleTrick(trickId); if(!t) return;
+  const har = juggleTricks(pid).includes(trickId);
+  if(!confirm(`${har ? "Fjern" : "Giv"} "${t.navn}" for ${p.name}?\n\n${har ? "-" : "+"}${t.point} point. Rettelsen bliver logget med dit navn.`)) return;
+  const tricks = har ? juggleTricks(pid).filter(x=>x!==trickId) : [...juggleTricks(pid), trickId];
+  const progress = {tricks};
+  // Fjernes Oploeft, lukker porten igen - saa skal hovedstigen ogsaa tilbage til trin 3.
+  if(har && trickId === "oploft" && juggleMainStep(pid) > JUGGLE_GATE_AFTER) progress.mainStep = JUGGLE_GATE_AFTER;
+  try{
+    await writeJuggle(pid, p, progress,
+      {t: "correct", stige: "trick", trick: trickId, til: har ? "fjernet" : "givet", at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""});
+  }catch(e){ console.error(e); alert("Kunne ikke rette: " + (e.message || "ukendt fejl")); }
+}
+function jugglePhaseFor(trinNr){ return JUGGLE_PHASES.find(f=>trinNr<=f.til) || JUGGLE_PHASES[JUGGLE_PHASES.length-1]; }
+
+// Medaljemaerkaterne hentes fra de rigtige kriterier frem for at staa to steder:
+// aendrer du kravet til N2 Soelv, flytter maerkatet paa stigen med af sig selv.
+// Trin uden et matchende krav (fx 125) faar ingen maerkat, og det er med vilje.
+function juggleMedalMarks(){
+  const hoved = {}, daarligt = {};
+  steps.forEach(s=>{
+    const krav = criteria["Jonglering"]?.[s.level]?.[s.medal];
+    if(!krav) return;
+    const antal = parseInt(krav[0], 10);
+    if(Number.isFinite(antal)) hoved[antal] = s.label;
+    for(const linje of krav){
+      const m = /mindst\s+(\d+)\s+med andet ben/i.exec(linje);
+      if(m) daarligt[parseInt(m[1],10)] = s.label;
+    }
+  });
+  return {hoved, daarligt};
+}
+
+function juggleFor(pid){ return juggleLadder.find(x=>x.id===pid) || null; }
+function juggleLogFor(pid){ const d = juggleLog.find(x=>x.id===pid); return Array.isArray(d?.entries) ? d.entries : []; }
+function juggleMainStep(pid){ return Math.max(0, Math.min(juggleFor(pid)?.mainStep || 0, JUGGLE_MAIN.length)); }
+function juggleWeakStep(pid){ return Math.max(0, Math.min(juggleFor(pid)?.weakStep || 0, JUGGLE_WEAK.length)); }
+// Dubletter fjernes: listen kommer fra et spillerlogin, og uden det ville det samme
+// trick kunne staa seks gange og give point seks gange. Ukendte id'er ryger ogsaa ud.
+function juggleTricks(pid){ const t = juggleFor(pid)?.tricks; return Array.isArray(t) ? [...new Set(t)].filter(juggleTrick) : []; }
+// Point som ren funktion af fremdrift. Intet gemt tal, intet at forfalske.
+function ladderPoints(pid){
+  return juggleMainStep(pid) * JUGGLE_MAIN_POINTS
+       + juggleWeakStep(pid) * JUGGLE_WEAK_POINTS
+       + juggleTricks(pid).reduce((n,id)=>n + (juggleTrick(id)?.point || 0), 0);
+}
+// Samlet pointtal = det traeneren har tildelt + det stigen har givet.
+function totalPoints(p){ return (p?.points || 0) + ladderPoints(p?.id); }
+// Uge/maaned: et trin taeller kun, hvis det stadig er en del af fremdriften.
+// Retter traeneren et trin ned, holder de fjernede trin op med at taelle - uden
+// at nogen behoever rydde op i loggen.
+function ladderPointsInWindow(pid, since){
+  const naaetHoved = juggleMainStep(pid), naaetSvagt = juggleWeakStep(pid), tricks = juggleTricks(pid);
+  return juggleLogFor(pid).reduce((sum, e)=>{
+    if(!e?.at || new Date(e.at) < since) return sum;
+    if(e.t === "main"  && e.v < naaetHoved) return sum + JUGGLE_MAIN_POINTS;
+    if(e.t === "weak"  && e.v < naaetSvagt) return sum + JUGGLE_WEAK_POINTS;
+    if(e.t === "trick" && tricks.includes(e.v)) return sum + (juggleTrick(e.v)?.point || 0);
+    return sum;
+  }, 0);
+}
+
 const POINT_BASE = {Bronze:10, Sølv:20, Guld:35};
 const CHALLENGE_BONUS = 25;
 function pointsForStep(step){ return step.level*15 + POINT_BASE[step.medal]; }
@@ -616,6 +828,8 @@ let users = [];
 let submissions = [];
 let challenges = [];
 let clubRanking = [];
+let juggleLadder = [];
+let juggleLog = [];
 let deletionRequests = [];
 let playerNotes = [];
 let currentPlayerLink = null;
@@ -632,6 +846,8 @@ let unsubUsers = null;
 let unsubSubmissions = null;
 let unsubChallenges = null;
 let unsubClubRanking = null;
+let unsubJuggleLadder = null;
+let unsubJuggleLog = null;
 let unsubDeletionRequests = null;
 let unsubPlayerNotes = null;
 
@@ -779,7 +995,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.52 · ikke logget ind");
+    setSyncStatus("v15.53 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -805,7 +1021,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.52 · bekræft inden I går i gang");
+    setSyncStatus("v15.53 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -813,14 +1029,14 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.52 · vælg din egen adgangskode");
+    setSyncStatus("v15.53 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
   document.getElementById("demoBanner").classList.toggle("hidden", !isDemoUser());
   document.getElementById("headerLogout").classList.remove("hidden");
   const coachOnlyTabs = ["tab-players","tab-track","tab-overview","tab-review"];
-  const playerOnlyTabs = ["tab-training","tab-challenges"];
+  const playerOnlyTabs = ["tab-training","tab-juggle","tab-challenges"];
   coachOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.toggle("hidden", isPlayer()); });
   playerOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.toggle("hidden", !isPlayer()); });
   document.getElementById("parentGuideCard").classList.toggle("hidden", !isPlayer());
@@ -849,9 +1065,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.52 · live database aktiv");
+    setSyncStatus("v15.53 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.52 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.53 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -881,6 +1097,25 @@ function startListeners(){
 
   // Klub-ranglisten er den ene samling, alle må læse på tværs af årgange - den rummer
   // kun navn, årgang og point, så der er ingen årgangsbegrænsning at bygge query'en på.
+  // Fremdriften paa stigen laeses af ALLE aktive logins: klub-top-10 gaar paa tvaers af
+  // aargange, og uden den ville to ranglister vise to forskellige totaler for samme barn.
+  // Dokumentet rummer derfor kun tal - intet navn, intet bruger-id.
+  if(unsubJuggleLadder) unsubJuggleLadder();
+  unsubJuggleLadder = onSnapshot(collection(db, "juggleLadder"), (snap)=>{
+    juggleLadder = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderAll();
+  }, (e)=>console.error("juggleLadder listener", e));
+
+  // Loggen - hvem registrerede hvad hvornaar - er aargangsbegraenset som alt andet.
+  // Den bruges til uge/maaned-ranglisten og til trænerens stikprøve.
+  if(unsubJuggleLog) stopListeners(unsubJuggleLog);
+  const logChunks = {};
+  unsubJuggleLog = subscribeYearScoped("juggleLog", (idx, docs)=>{
+    logChunks[idx] = docs;
+    juggleLog = Object.values(logChunks).flat();
+    renderAll();
+  }, (e)=>console.error("juggleLog listener", e));
+
   // Noterne hentes kun af traenere og admin - en spiller har ingen laeseadgang, og en
   // lytter ville bare fejle stoejende i konsollen.
   if(unsubPlayerNotes) stopListeners(unsubPlayerNotes);
@@ -1180,16 +1415,18 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.52 · sletter...");
+  setSyncStatus("v15.53 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
   for(const d of userDocs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("login " + d.id); } }
   try{ await deleteDoc(doc(db,"clubRanking",id)); }catch(e){ failed.push("klub-rangliste"); }
   try{ await deleteDoc(doc(db,"playerNotes",id)); }catch(e){ failed.push("traenernoten"); }
+  try{ await deleteDoc(doc(db,"juggleLadder",id)); }catch(e){ failed.push("jongleringsstigen"); }
+  try{ await deleteDoc(doc(db,"juggleLog",id)); }catch(e){ failed.push("loggen for jongleringsstigen"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.52 · live database aktiv");
+  setSyncStatus("v15.53 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -1261,7 +1498,35 @@ function renderTracking(){
       <div><b>${steps[i].label}-medalje</b><div class="small">${medalHandedOver(p,i) ? escapeHtml(medalHandoverText(p,i)) : "Optjent - klar til at blive overrakt til træning"}</div></div>
       <button class="toggle ${medalHandedOver(p,i)?'on':''}" onclick="toggleMedalHandedOver('${p.id}',${i})">${medalHandedOver(p,i)?'Overrakt':'Ikke overrakt'}</button>
     </div>`).join("")}</div>` : "";
-  area.innerHTML = `${renderStepbar(p)}${medalBlock}<div class="exercise-block">
+  // Traenerens stikproeve paa stigen. Den ligger her, hvor traeneren i forvejen sidder
+  // med spilleren foran sig til traening.
+  const jNaaet = juggleMainStep(p.id), jSvag = juggleWeakStep(p.id), jTricks = juggleTricks(p.id);
+  const jLog = juggleLogFor(p.id).slice(0, 5);
+  const juggleBlock = `<div class="exercise-block">
+    <h3 style="margin-top:0">Jongleringsstigen · ${ladderPoints(p.id)} point</h3>
+    <p class="small">Registreret af familien på tillid. Tag en stikprøve til træning, og ret her, hvis tallet ikke holder. Point genberegnes automatisk.</p>
+    <div class="checkrow">
+      <div><b>Hovedstigen</b><div class="small">${jNaaet} af ${JUGGLE_MAIN.length} trin${jNaaet ? " · senest " + JUGGLE_MAIN[jNaaet-1] + " jongleringer" : ""}</div></div>
+      <button class="btn secondary smallbtn" onclick="correctJuggle('${p.id}','main')">Ret</button>
+    </div>
+    <div class="checkrow">
+      <div><b>Dårligt ben</b><div class="small">${jSvag} af ${JUGGLE_WEAK.length} trin${jSvag ? " · senest " + JUGGLE_WEAK[jSvag-1] + " berøringer" : ""}</div></div>
+      <button class="btn secondary smallbtn" onclick="correctJuggle('${p.id}','weak')">Ret</button>
+    </div>
+    ${JUGGLE_TRICKS.map(t=>`<div class="checkrow">
+      <div><b>${escapeHtml(t.navn)}</b><div class="small">${t.point} point${t.id==="oploft" ? " · åbner trin 4" : ""}</div></div>
+      <button class="toggle ${jTricks.includes(t.id)?'on':''}" onclick="correctJuggleTrick('${p.id}','${t.id}')">${jTricks.includes(t.id)?'Klaret':'Ikke endnu'}</button>
+    </div>`).join("")}
+    ${jLog.length ? `<div class="small" style="margin-top:10px"><b>Seneste registreringer</b>${jLog.map(e=>{
+      const naar = e.at ? new Date(e.at).toLocaleString("da-DK") : "";
+      if(e.t === "correct") return `<div>${escapeHtml(naar)} · rettet af ${escapeHtml(e.af || "træner")}${e.stige==="trick" ? ` (${escapeHtml(juggleTrick(e.trick)?.navn || e.trick)} ${escapeHtml(e.til)})` : ` (${e.stige==="main"?"hovedstigen":"dårligt ben"} ${e.fra} → ${e.til})`}</div>`;
+      if(e.t === "trick") return `<div>${escapeHtml(naar)} · ${escapeHtml(juggleTrick(e.v)?.navn || e.v)}</div>`;
+      const stige = e.t === "main" ? JUGGLE_MAIN : JUGGLE_WEAK;
+      return `<div>${escapeHtml(naar)} · ${stige[e.v] ?? "?"} ${e.t === "main" ? "jongleringer" : "med dårligt ben"}</div>`;
+    }).join("")}</div>` : '<p class="small" style="margin-top:10px">Ingen registreringer endnu.</p>'}
+  </div>`;
+
+  area.innerHTML = `${renderStepbar(p)}${medalBlock}${juggleBlock}<div class="exercise-block">
     <h3>${selected===current ? "Aktuelt trin" : isPast ? "Rediger tidligere trin" : "Kommende trin"}: Niveau ${s.level} · ${s.medal}</h3>
     <p class="small">${isFuture ? "Dette trin åbner først, når tidligere trin er bestået." : "Marker de øvelser spilleren har bestået."}</p>
     ${exercises.map(ex=>{
@@ -1592,11 +1857,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.52 · migrering færdig");
+    setSyncStatus("v15.53 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.52 · migrering fejlede");
+    setSyncStatus("v15.53 · migrering fejlede");
   }
 }
 
@@ -1771,7 +2036,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.52 · uploader video...");
+    setSyncStatus("v15.53 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -1793,12 +2058,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.52 · live database aktiv");
+    setSyncStatus("v15.53 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.52 · live database aktiv");
+    setSyncStatus("v15.53 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -1835,11 +2100,11 @@ function renderTraining(){
   const si = currentStepIndex(p);
   const atMax = si >= steps.length;
   const s = atMax ? steps[steps.length-1] : steps[si];
-  const tier = tierForPoints(p.points);
+  const tier = tierForPoints(totalPoints(p));
   area.innerHTML = `
     <div class="profilebox">
       <h3>${tier.icon} ${escapeHtml(p.name)} · ${tier.name}</h3>
-      <p class="small">${p.points||0} point · ${atMax ? "Alle niveauer gennemført" : `Aktuelt niveau: ${s.label}`}</p>
+      <p class="small">${totalPoints(p)} point · ${atMax ? "Alle niveauer gennemført" : `Aktuelt niveau: ${s.label}`}</p>
     </div>
     ${atMax ? '<p class="small">Du har gennemført alle niveauer. Tal med din træner om næste skridt!</p>' : exercises.map(ex=>{
       const d = exerciseDescriptions[ex];
@@ -2261,14 +2526,18 @@ function renderLeaderboard(){
   if(leaderboardScope === "club"){
     if(periodArea) periodArea.innerHTML = '<p class="small">Samlede point for hele klubben på tværs af årgange.</p>';
     if(filterArea) filterArea.innerHTML = "";
-    const top = [...clubRanking].sort((a,b)=>(b.points||0)-(a.points||0)).slice(0, CLUB_TOP_N);
+    // clubRanking skrives kun af traenere, saa stigens point findes ikke i den. De
+    // laegges til her ud fra juggleLadder, som alle aktive logins maa laese - ellers
+    // ville klublisten og aargangslisten vise to forskellige totaler for samme barn.
+    const top = [...clubRanking].map(r=>({...r, total:(r.points||0) + ladderPoints(r.id)}))
+      .sort((a,b)=>b.total-a.total).slice(0, CLUB_TOP_N);
     area.innerHTML = top.map((r,i)=>{
-      const tier = tierForPoints(r.points||0);
+      const tier = tierForPoints(r.total);
       const medalIcon = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`;
       const me = currentPlayerLink && r.id===currentPlayerLink.id;
       return `<div class="player" style="${me?'background:#ecfdf5;border-radius:12px;padding:6px 10px':''}">
         <div><b>${medalIcon} ${escapeHtml(r.name||"Ukendt")}</b><div class="small">${tier.icon} ${tier.name} · ${escapeHtml(yearLabel(r.year))}</div></div>
-        <div class="pill guld">${r.points||0} point</div>
+        <div class="pill guld">${r.total} point</div>
       </div>`;
     }).join("") || '<p class="small">Klub-ranglisten er tom endnu. En admin kan bygge den under Admin → "Genopbyg klub-rangliste".</p>';
     return;
@@ -2294,11 +2563,14 @@ function renderLeaderboard(){
 
   const now = new Date();
   const sinceDate = leaderboardPeriod==="week" ? startOfWeek(now) : leaderboardPeriod==="month" ? startOfMonth(now) : null;
-  const pointsFor = p => sinceDate ? pointsInWindow(p.id, sinceDate) : (p.points||0);
+  // Stigens point regnes med - baade all-time og i uge/maaned-vinduet.
+  const pointsFor = p => sinceDate
+    ? pointsInWindow(p.id, sinceDate) + ladderPointsInWindow(p.id, sinceDate)
+    : totalPoints(p);
 
   const sorted = [...list].sort((a,b)=>pointsFor(b)-pointsFor(a));
   area.innerHTML = sorted.map((p,i)=>{
-    const tier = tierForPoints(p.points); // rang-tier er altid baseret på all-time point
+    const tier = tierForPoints(totalPoints(p)); // rang-tier er altid baseret på all-time point
     const periodPoints = pointsFor(p);
     const medalIcon = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`;
     const me = isPlayer() && currentPlayerLink && p.id===currentPlayerLink.id;
@@ -2362,7 +2634,7 @@ function renderPlayerProfile(){
     const cls = cnt === 5 ? "greenpill" : cnt > 0 ? "guld" : "none";
     return `<span class="pill ${cls}">N${s.level} ${s.medal}: ${cnt}/5</span>`;
   }).join("");
-  const points = p.points || 0;
+  const points = totalPoints(p);
   const tier = tierForPoints(points);
   const next = nextTier(points);
   const progressPct = next ? Math.round(((points - tier.min) / (next.min - tier.min)) * 100) : 100;
@@ -2498,13 +2770,99 @@ function renderChallengeBadge(){
   badge.textContent = count > 9 ? "9+" : String(count);
   badge.classList.toggle("hidden", count === 0);
 }
-function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); renderDeletionRequests(); }
+function renderJuggle(){
+  const area = document.getElementById("juggleArea");
+  if(!area) return;
+  const rules = document.getElementById("juggleRulesArea");
+  if(rules && !rules.dataset.filled){
+    rules.innerHTML = JUGGLE_RULES.map(r=>`<p class="small" style="margin:0 0 8px">${escapeHtml(r)}</p>`).join("");
+    rules.dataset.filled = "1";
+  }
+  if(!isPlayer() || !currentPlayerLink){ area.innerHTML = '<p class="small">Stigen er til spillere.</p>'; return; }
+
+  const p = currentPlayerLink, pid = p.id;
+  const marks = juggleMedalMarks();
+  const naaet = juggleMainStep(pid), svagt = juggleWeakStep(pid), tricks = juggleTricks(pid);
+  const spaerret = juggleMainBlocked(pid);
+  const kanRegistrere = !isDemoUser();
+
+  const knap = (kind, v, tekst) => kanRegistrere
+    ? `<button class="btn smallbtn" onclick="registerJuggle('${kind}',${typeof v === "string" ? `'${v}'` : v})">${tekst}</button>`
+    : "";
+
+  // Hovedstigen, med fase-overskrifter og opløft-porten mellem trin 3 og 4.
+  let hoved = "", sidsteFase = null;
+  JUGGLE_MAIN.forEach((antal, i)=>{
+    const trinNr = i + 1, fase = jugglePhaseFor(trinNr);
+    if(fase !== sidsteFase){
+      hoved += `<div class="phasehead">Trin ${trinNr}-${fase.til} · ${escapeHtml(fase.navn)}<span>${escapeHtml(fase.tekst)}</span></div>`;
+      sidsteFase = fase;
+    }
+    if(trinNr === JUGGLE_GATE_AFTER + 1){
+      const aaben = juggleGateOpen(pid);
+      hoved += `<div class="laddergate">
+        <div style="flex:0 0 auto;font-size:20px">${aaben ? "🔓" : "🔑"}</div>
+        <div class="laddermid"><b>Opløft${aaben ? " · klaret" : ""}</b>
+          <div class="ladderstep">Herfra skal bolden ligge på jorden og vippes op med foden - samme startregel som i medaljeforløbet. Klar Opløft under Tricks for at åbne resten af stigen.</div></div>
+      </div>`;
+    }
+    const klaret = i < naaet, erNaeste = i === naaet;
+    const mark = marks.hoved[antal] ? `<span class="medalmark">${escapeHtml(marks.hoved[antal])}</span>` : "";
+    hoved += `<div class="ladderrow ${klaret ? "done" : erNaeste && !spaerret ? "next" : "locked"}">
+      <div class="laddernum">${antal}</div>
+      <div class="laddermid"><b>${klaret ? "✓ Klaret" : erNaeste ? (spaerret ? "Låst - klar Opløft først" : "Næste trin") : "Trin " + trinNr}</b>${mark}
+        <div class="ladderstep">${antal} jongleringer i én serie · ${JUGGLE_MAIN_POINTS} point</div></div>
+      ${erNaeste && !spaerret ? knap("main", i, "Klaret") : ""}
+    </div>`;
+  });
+
+  let svag = "";
+  JUGGLE_WEAK.forEach((antal, i)=>{
+    const klaret = i < svagt, erNaeste = i === svagt;
+    const mark = marks.daarligt[antal] ? `<span class="medalmark">${escapeHtml(marks.daarligt[antal])}</span>` : "";
+    svag += `<div class="ladderrow ${klaret ? "done" : erNaeste ? "next" : "locked"}">
+      <div class="laddernum">${antal}</div>
+      <div class="laddermid"><b>${klaret ? "✓ Klaret" : erNaeste ? "Næste trin" : "Trin " + (i+1)}</b>${mark}
+        <div class="ladderstep">${antal} berøringer med dårligt ben i én serie · ${JUGGLE_WEAK_POINTS} point</div></div>
+      ${erNaeste ? knap("weak", i, "Klaret") : ""}
+    </div>`;
+  });
+
+  const trickliste = JUGGLE_TRICKS.map(t=>{
+    const klaret = tricks.includes(t.id);
+    return `<div class="ladderrow ${klaret ? "done" : ""}">
+      <div class="laddermid"><b>${klaret ? "✓ " : ""}${escapeHtml(t.navn)}</b>${t.id === "oploft" ? '<span class="medalmark">Åbner trin 4</span>' : ""}
+        <div class="ladderstep">${escapeHtml(t.tekst)} · ${t.point} point</div></div>
+      ${klaret ? "" : knap("trick", t.id, "Klaret")}
+    </div>`;
+  }).join("");
+
+  const total = ladderPoints(pid);
+  area.innerHTML = `
+    <div class="profilebox">
+      <h3 style="margin-top:0">${total} point fra stigen</h3>
+      <p class="small">Hovedstigen ${naaet}/${JUGGLE_MAIN.length} · Dårligt ben ${svagt}/${JUGGLE_WEAK.length} · Tricks ${tricks.length}/${JUGGLE_TRICKS.length}${isDemoUser() ? " · demo: her registreres intet" : ""}</p>
+    </div>
+    <div class="ladderwrap" style="margin-top:12px">
+      <div><h3>Hovedstigen</h3>${hoved}</div>
+      <div>
+        <h3>Dårligt ben</h3>
+        <p class="small">Berøringer med det dårlige ben i én serie - frit hvornår i serien. Bolden vippes op fra jorden.</p>
+        ${svag}
+        <h3 style="margin-top:18px">Tricks</h3>
+        <p class="small">Engangsudfordringer. Tag dem i den rækkefølge du vil.</p>
+        ${trickliste}
+      </div>
+    </div>`;
+}
+
+function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); renderDeletionRequests(); renderJuggle(); }
 // Static content (never changes at runtime) - rendered once so the accordion's open/closed
 // state isn't wiped out every time an unrelated Firestore snapshot triggers renderAll().
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,correctJuggle,correctJuggleTrick,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>

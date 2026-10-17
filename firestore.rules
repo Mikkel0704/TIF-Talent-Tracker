@@ -215,6 +215,56 @@ service cloud.firestore {
         || (isPlayerRole() && playerId == myPlayerId());
     }
 
+    // JONGLERINGSSTIGEN
+    // Fremdrift: KUN tal - hvor langt paa hver stige, og hvilke tricks. Ingen navne,
+    // ingen bruger-id'er. Derfor maa alle aktive logins laese den: klub-top-10 gaar paa
+    // tvaers af aargange og skal kunne laegge stigens point til.
+    //
+    // Der gemmes ALDRIG point. De regnes ud af tallene her (se index.html), saa en
+    // spiller kan ikke skrive sig til point - kun paastaa trin, hvilket er hele
+    // tillidsmodellen og det traeneren tager stikproeve paa. Graenserne nedenfor
+    // bestemmer det absolutte loft: 15 trin + 10 trin + 6 tricks.
+    match /juggleLadder/{playerId} {
+      allow read: if isActive();
+
+      // Spilleren selv: kun sit eget dokument, kun fremdriftsfelterne, og kun inden
+      // for stigernes laengde. En demo-bruger maa ingenting.
+      allow create, update: if isActive() && (
+        (
+          isPlayerRole()
+          && !isDemo()
+          && playerId == myPlayerId()
+          && request.resource.data.diff(resource.data == null ? request.resource.data : resource.data)
+               .affectedKeys().hasOnly(["mainStep","weakStep","tricks","year","gender","updatedAt"])
+          && request.resource.data.mainStep is int
+          && request.resource.data.mainStep >= 0
+          && request.resource.data.mainStep <= 15
+          && request.resource.data.weakStep is int
+          && request.resource.data.weakStep >= 0
+          && request.resource.data.weakStep <= 10
+          && request.resource.data.tricks is list
+          && request.resource.data.tricks.size() <= 6
+        )
+        // Traenere og admin retter frit inden for deres aargang.
+        || (!isPlayerRole() && hasFullAccess(request.resource.data.year, request.resource.data.gender))
+      );
+
+      allow delete: if isActive() && !isPlayerRole();
+    }
+
+    // Loggen - hvem registrerede hvad hvornaar. Her staar der bruger-id'er, saa den er
+    // aargangsbegraenset som alt andet og laeses IKKE paa tvaers af klubben.
+    match /juggleLog/{playerId} {
+      allow read: if isActive() && hasFullAccess(resource.data.year, resource.data.gender);
+
+      allow create, update: if isActive() && (
+        (isPlayerRole() && !isDemo() && playerId == myPlayerId())
+        || !isPlayerRole()
+      ) && hasFullAccess(request.resource.data.year, request.resource.data.gender);
+
+      allow delete: if isActive() && !isPlayerRole();
+    }
+
     // Klub-rangliste: en spejl-tabel med KUN navn, aargang og point, saa spillerne kan se
     // en top-10 paa tvaers af hele klubben. players/ kan ikke bruges til det, fordi en
     // spiller kun maa laese sin egen aargang - og den begraensning skal blive staaende,
