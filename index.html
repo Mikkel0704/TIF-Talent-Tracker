@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.57</title>
+  <title>TIF Talent Tracker v15.58</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -134,7 +134,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.57 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.58 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -527,7 +527,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.57 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.58 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -1583,7 +1583,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.57 · ikke logget ind");
+    setSyncStatus("v15.58 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1609,7 +1609,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.57 · bekræft inden I går i gang");
+    setSyncStatus("v15.58 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1617,7 +1617,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.57 · vælg din egen adgangskode");
+    setSyncStatus("v15.58 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -1653,9 +1653,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.57 · live database aktiv");
+    setSyncStatus("v15.58 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.57 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.58 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2021,7 +2021,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.57 · sletter...");
+  setSyncStatus("v15.58 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -2034,7 +2034,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.57 · live database aktiv");
+  setSyncStatus("v15.58 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -2512,11 +2512,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.57 · migrering færdig");
+    setSyncStatus("v15.58 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.57 · migrering fejlede");
+    setSyncStatus("v15.58 · migrering fejlede");
   }
 }
 
@@ -2691,7 +2691,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.57 · uploader video...");
+    setSyncStatus("v15.58 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -2713,12 +2713,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.57 · live database aktiv");
+    setSyncStatus("v15.58 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.57 · live database aktiv");
+    setSyncStatus("v15.58 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -3455,11 +3455,12 @@ function renderJuggle(){
   const marks = juggleMedalMarks();
   const naaet = juggleMainStep(pid), svagt = juggleWeakStep(pid), tricks = juggleTricks(pid);
   const spaerret = juggleMainBlocked(pid);
-  const kanRegistrere = !isDemoUser();
-
-  const knap = (kind, v, tekst) => kanRegistrere
-    ? `<button class="btn smallbtn" onclick="registerJuggle('${kind}',${typeof v === "string" ? `'${v}'` : v})">${tekst}</button>`
-    : "";
+  // Knapperne vises OGSAA for et demo-login. Spaerringen sidder tre steder: registerJuggle
+  // kalder demoBlocked() som det foerste, og Firestore-reglerne afviser demo-skrivninger
+  // paa serveren. At skjule knappen beskytter altsaa ingenting - den fjerner bare det,
+  // demoen er til for at vise. En foraelder skal kunne se, at der ER noget at trykke paa.
+  const knap = (kind, v, tekst) =>
+    `<button class="btn smallbtn" onclick="registerJuggle('${kind}',${typeof v === "string" ? `'${v}'` : v})">${tekst}</button>`;
 
   // Hovedstigen, med fase-overskrifter og opløft-porten mellem trin 3 og 4.
   let hoved = "", sidsteFase = null;
@@ -3560,7 +3561,9 @@ function renderFootwork(){
   const p = currentPlayerLink, pid = p.id;
   const dato = footworkSelectedDay();
   const iDag = iDagISO();
-  const kanRegistrere = !isDemoUser();
+  // Se noten i renderJuggle: knapperne staar ogsaa for et demo-login, og demoBlocked()
+  // plus reglerne paa serveren staar for spaerringen. Det eneste, der skjuler en knap her,
+  // er en godkendt joker - og den regel gaelder alle, ikke kun demoen.
   const streak = footworkCurrentStreak(pid);
   const naeste = footworkNextStreakBonus(streak.laengde);
 
@@ -3592,7 +3595,7 @@ function renderFootwork(){
       return `<div class="ladderrow ${n?"done":""}">
         <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${n ? `<span class="medalmark">${n * footworkPointsFor(ex)} point</span>` : ""}
           <div class="ladderstep">${footworkBlock(ex)} · ${footworkPointsFor(ex)} point · ${escapeHtml(ex.tekst)}</div></div>
-        ${kanRegistrere && joker !== "approved" ? `<div class="counter">
+        ${joker !== "approved" ? `<div class="counter">
           <button type="button" onclick="registerFootwork('${ex.kode}',-1)" ${n?"":"disabled"} aria-label="Fjern en gennemførelse af ${escapeHtml(ex.navn)}">−</button>
           <b>${n}</b>
           <button type="button" onclick="registerFootwork('${ex.kode}',1)" ${n>=FOOTWORK_MAX_PER_DAY?"disabled":""} aria-label="Tilføj en gennemførelse af ${escapeHtml(ex.navn)}">+</button>
@@ -3606,11 +3609,11 @@ function renderFootwork(){
     : joker === "pending"
     ? `<div class="laddergate"><div style="flex:0 0 auto;font-size:20px">🃏</div><div class="laddermid"><b>Joker sendt - afventer træneren</b>
         <div class="ladderstep">Streaken er ikke brudt, mens I venter. Bonussen for streaken gives først, når træneren har godkendt.</div></div>
-        ${kanRegistrere ? '<button class="btn secondary smallbtn" onclick="cancelFootworkJoker()">Træk tilbage</button>' : ""}</div>`
+        <button class="btn secondary smallbtn" onclick="cancelFootworkJoker()">Træk tilbage</button></div>`
     : joker === "rejected"
     ? `<div class="laddergate"><div style="flex:0 0 auto;font-size:20px">🃏</div><div class="laddermid"><b>Joker afvist</b>
         <div class="ladderstep">Dagen regnes som en almindelig dag. Tal med din træner, hvis det er en misforståelse.</div></div></div>`
-    : dagAntal === 0 && kanRegistrere
+    : dagAntal === 0
     ? `<div class="laddergate"><div style="flex:0 0 auto;font-size:20px">🃏</div><div class="laddermid"><b>Nåede I det ikke?</b>
         <div class="ladderstep">Søg en joker for dagen. Træneren godkender den, og så bliver streaken ikke brudt. Dagen giver ingen point.</div></div>
         <button class="btn secondary smallbtn" onclick="requestFootworkJoker()">Søg joker</button></div>`
