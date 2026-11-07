@@ -71,6 +71,11 @@ service cloud.firestore {
         || !("yearGenders" in userDoc().data)
         || !(year in userDoc().data.yearGenders)
         || userDoc().data.yearGenders[year] == "begge"
+        // Et koen, der ikke er sat paa spilleren, kan ikke filtreres paa. Uden det her
+        // blev en spiller uden koen helt uskrivbar - ogsaa for sig selv - i stedet for
+        // beskyttet, og det var ikke til at gennemskue for nogen. Aargangsadgangen
+        // gaelder stadig, saa det er kun koensopdelingen, der ikke kan haandhaeves.
+        || gender == null
         || userDoc().data.yearGenders[year] == gender;
     }
 
@@ -284,15 +289,19 @@ service cloud.firestore {
           // fordi en registrering paa stigen ogsaa taeller som aktiv dag i fodteknik-
           // streaken, og den skal kunne regnes ud paa tvaers af aargange.
           && request.resource.data.keys().hasOnly(["mainStep","weakStep","tricks","days","year","gender","updatedAt"])
+          //
+          // HVERT felt tjekkes med "in" foerst. Klienten sender ét fremdriftsfelt ad
+          // gangen - registrerer man et trin paa hovedstigen, staar der KUN mainStep i
+          // skrivningen. Ved en oprettelse findes weakStep og tricks derfor ikke, og
+          // "request.resource.data.weakStep is int" fejler saa paa et felt, der ikke er
+          // der. Et udtryk, der fejler, naegter hele skrivningen. Det spaerrede for hver
+          // eneste spillers ALLERFOERSTE registrering, og det blev ikke fanget, fordi
+          // testen seedede alle tre felter paa én gang - noget den rigtige klient aldrig
+          // goer. Samme faelde som med "demo" paa brugerdokumentet.
+          && (!("mainStep" in request.resource.data) || (request.resource.data.mainStep is int && request.resource.data.mainStep >= 0 && request.resource.data.mainStep <= 15))
+          && (!("weakStep" in request.resource.data) || (request.resource.data.weakStep is int && request.resource.data.weakStep >= 0 && request.resource.data.weakStep <= 10))
+          && (!("tricks" in request.resource.data) || (request.resource.data.tricks is list && request.resource.data.tricks.size() <= 6))
           && (!("days" in request.resource.data) || (request.resource.data.days is list && request.resource.data.days.size() <= 400))
-          && request.resource.data.mainStep is int
-          && request.resource.data.mainStep >= 0
-          && request.resource.data.mainStep <= 15
-          && request.resource.data.weakStep is int
-          && request.resource.data.weakStep >= 0
-          && request.resource.data.weakStep <= 10
-          && request.resource.data.tricks is list
-          && request.resource.data.tricks.size() <= 6
           // Spilleren skal skrive SIN egen aargang - samme krav som i juggleLog. Uden det
           // kunne et barn parkere sin stige i en aargang, det ikke hoerer til.
           && hasFullAccess(request.resource.data.year, request.resource.data.gender)
