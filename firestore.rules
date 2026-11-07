@@ -298,8 +298,8 @@ service cloud.firestore {
           && !isDemo()
           && playerId == myPlayerId()
           && request.resource.data.keys().hasOnly(["days","jokerRequests","year","gender","updatedAt"])
-          && (!("days" in request.resource.data) || (request.resource.data.days is map && request.resource.data.days.size() <= 400))
-          && (!("jokerRequests" in request.resource.data) || (request.resource.data.jokerRequests is map && request.resource.data.jokerRequests.size() <= 400))
+          && (!("days" in request.resource.data) || (request.resource.data.days is map && request.resource.data.days.size() <= 1500))
+          && (!("jokerRequests" in request.resource.data) || (request.resource.data.jokerRequests is map && request.resource.data.jokerRequests.size() <= 1500))
           // Spilleren skal skrive SIN egen aargang. Uden det kunne et barn parkere sit
           // dokument i en aargang, det ikke hoerer til - og dermed i en traener, der
           // ikke kan rette det.
@@ -314,8 +314,8 @@ service cloud.firestore {
           && !isDemo()
           && playerId == myPlayerId()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["days","jokerRequests","year","gender","updatedAt"])
-          && (!("days" in request.resource.data) || (request.resource.data.days is map && request.resource.data.days.size() <= 400))
-          && (!("jokerRequests" in request.resource.data) || (request.resource.data.jokerRequests is map && request.resource.data.jokerRequests.size() <= 400))
+          && (!("days" in request.resource.data) || (request.resource.data.days is map && request.resource.data.days.size() <= 1500))
+          && (!("jokerRequests" in request.resource.data) || (request.resource.data.jokerRequests is map && request.resource.data.jokerRequests.size() <= 1500))
           && hasFullAccess(request.resource.data.year, request.resource.data.gender)
         )
         || (!isPlayerRole() && hasFullAccess(request.resource.data.year, request.resource.data.gender))

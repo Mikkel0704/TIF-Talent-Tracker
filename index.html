@@ -845,6 +845,12 @@ function ladderPointsInWindow(pid, since){
 //                        begraenset som alt andet, fordi der staar tekst og uid'er.
 const FOOTWORK_MAX_PER_DAY = 10;    // gennemfoerelser pr. oevelse pr. dag (teknisk vaern)
 const FOOTWORK_BACKDATE_DAYS = 14;  // hvor langt familien selv maa registrere bagud
+// Loft paa antal DAGE i dokumentet. Det er et vaern mod en loebsk klient, ikke en
+// slettepolitik: gamle dage ryddes IKKE automatisk, for de baerer point og streaks, som
+// ville forsvinde med dem. 1500 er over fire aars traening hver eneste dag - men rammer
+// nogen det alligevel, skal de have en besked, de kan forstaa, frem for en afvist
+// skrivning. Samme tal staar i firestore.rules.
+const FOOTWORK_MAX_DAYS = 1500;
 const FOOTWORK_GRADE_POINTS = {let:2, mellem:3, svaer:4};
 const FOOTWORK_GRADE_NAMES = {let:"Let", mellem:"Mellem", svaer:"Svær"};
 // kode: det ene bogstav, dagen gemmes under i databasen. Kortere noegler betyder et
@@ -1147,6 +1153,9 @@ async function registerFootwork(kode, delta){
   if(!footworkDayOpenForPlayer(dato)) return alert(`Dagen er låst.\n\nI kan selv registrere op til ${FOOTWORK_BACKDATE_DAYS} dage tilbage. Ældre dage kan en træner rette.`);
   if(footworkJokerStatus(pid, dato) === "approved") return alert("Dagen er dækket af en godkendt joker, så den giver ingen point.\n\nVil I registrere træning på dagen, skal træneren først fjerne jokeren.");
   const nu = footworkCount(pid, dato, ex.kode);
+  if(delta > 0 && !nu && footworkDays(pid).length >= FOOTWORK_MAX_DAYS){
+    return alert(`Der er registreret ${FOOTWORK_MAX_DAYS} dage, og det er så langt, ét dokument må fylde.\n\nIngen point går tabt - men der kan ikke komme flere dage på. Skriv til mikkel0704@hotmail.com, så bliver der gjort plads.`);
+  }
   const ny = Math.max(0, Math.min(FOOTWORK_MAX_PER_DAY, nu + delta));
   if(ny === nu){
     if(delta > 0) alert(`Der er plads til højst ${FOOTWORK_MAX_PER_DAY} gennemførelser af den samme øvelse på én dag.`);
