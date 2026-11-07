@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.60</title>
+  <title>TIF Talent Tracker v15.61</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -134,7 +134,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.60 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.61 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -528,7 +528,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.60 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.61 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -747,6 +747,57 @@ async function registerJuggle(kind, value){
   }
 }
 
+// Fortryd. Et forkert tryk skal spilleren kunne rette selv - ellers skal en traener
+// ind over en fejl, familien lavede for et sekund siden, og saa staar der et trin,
+// barnet ikke har taget, indtil nogen opdager det.
+//
+// Man kan kun rulle det SENESTE trin tilbage, ikke et midt i stigen. Fremdriften er et
+// antal trin, ikke en liste af afkrydsninger - "trin 3 fortrudt, men 4 og 5 beholdt"
+// findes ikke som tilstand, og det er netop dét, der goer, at et trin ikke kan give
+// point to gange.
+//
+// Point falder tilsvarende, fordi de regnes ud af fremdriften. Og fortryder man for saa
+// at tage trinnet igen, giver det ikke point to gange i uge/maaned - se noten i
+// ladderPointsInWindow.
+async function undoJuggle(kind){
+  if(!isPlayer() || !currentPlayerLink) return alert("Kun spilleren selv kan fortryde her.");
+  if(demoBlocked("Der sker ikke noget herfra.")) return;
+  const p = currentPlayerLink, pid = p.id;
+  const stige = kind === "main" ? JUGGLE_MAIN : JUGGLE_WEAK;
+  const nu = kind === "main" ? juggleMainStep(pid) : juggleWeakStep(pid);
+  if(nu <= 0) return alert("Der er ikke noget at fortryde endnu.");
+  const point = kind === "main" ? juggleMainPoints(nu-1) : juggleWeakPoints(nu-1);
+  const hvad = kind === "main" ? stige[nu-1] + " jongleringer" : stige[nu-1] + " med dårligt ben";
+  if(!confirm(`Fortryd "${hvad}"?\n\nDu mister ${point} point, og trinnet bliver dit næste igen.\n\nDet er kun det senest klarede trin, du kan fortryde.`)) return;
+  try{
+    await writeJuggle(pid, p, kind === "main" ? {mainStep: nu-1} : {weakStep: nu-1},
+      {t: "undo", stige: kind, fra: nu, til: nu-1, at: new Date().toISOString(), by: currentUser?.uid || ""});
+  }catch(e){ console.error(e); alert("Kunne ikke fortryde: " + (e.message || "ukendt fejl")); }
+}
+async function undoJuggleTrick(trickId){
+  if(!isPlayer() || !currentPlayerLink) return alert("Kun spilleren selv kan fortryde her.");
+  if(demoBlocked("Der sker ikke noget herfra.")) return;
+  const p = currentPlayerLink, pid = p.id;
+  const t = juggleTrick(trickId); if(!t) return;
+  if(!juggleTricks(pid).includes(trickId)) return;
+  // Oploeft er porten til trin 4. Fortryder man den, lukker porten igen, og hovedstigen
+  // maa foelge med tilbage - ellers stod der trin, der kraever en faerdighed, spilleren
+  // lige har sagt, den ikke har. Samme opraydning som i traenerens rettelse.
+  const lukkerPorten = trickId === "oploft" && juggleMainStep(pid) > JUGGLE_GATE_AFTER;
+  const tabt = t.point + (lukkerPorten
+    ? JUGGLE_MAIN.slice(JUGGLE_GATE_AFTER, juggleMainStep(pid)).reduce((n,x)=>n+x, 0) : 0);
+  if(!confirm(`Fortryd "${t.navn}"?\n\n`
+    + (lukkerPorten
+        ? `Opløft åbner trin 4 og opefter. Fortryder du den, ruller hovedstigen tilbage til trin ${JUGGLE_GATE_AFTER}, og du mister ${tabt} point i alt.`
+        : `Du mister ${t.point} point.`))) return;
+  const progress = {tricks: juggleTricks(pid).filter(x=>x!==trickId)};
+  if(lukkerPorten) progress.mainStep = JUGGLE_GATE_AFTER;
+  try{
+    await writeJuggle(pid, p, progress,
+      {t: "undo", stige: "trick", trick: trickId, at: new Date().toISOString(), by: currentUser?.uid || ""});
+  }catch(e){ console.error(e); alert("Kunne ikke fortryde: " + (e.message || "ukendt fejl")); }
+}
+
 // Traenerens stikproeve: saet stigen tilbage (eller frem) til et bestemt trin. Point
 // genberegnes af sig selv, fordi de aldrig blev gemt - og de fjernede trin holder op
 // med at taelle med i uge/maaned, uden at loggen skal ryddes.
@@ -831,11 +882,18 @@ function totalPoints(p){ return (p?.points || 0) + ladderPoints(p?.id) + footwor
 // at nogen behoever rydde op i loggen.
 function ladderPointsInWindow(pid, since){
   const naaetHoved = juggleMainStep(pid), naaetSvagt = juggleWeakStep(pid), tricks = juggleTricks(pid);
+  // Hvert trin taeller HOEJST én gang i vinduet. Loggen kan rumme det samme trin flere
+  // gange - spilleren fortryder og tager det igen, eller traeneren ruller tilbage og
+  // spilleren gentager det. Uden det her ville to linjer for samme trin give point to
+  // gange i uge- og maanedslisten, og saa kunne man trykke sig til point ved at
+  // registrere, fortryde og registrere igen. All-time-tallet har aldrig haft problemet,
+  // fordi det regnes ud af fremdriften og ikke af loggen.
+  const settHoved = {}, settSvagt = {}, settTricks = {};
   return juggleLogFor(pid).reduce((sum, e)=>{
     if(!e?.at || new Date(e.at) < since) return sum;
-    if(e.t === "main"  && e.v < naaetHoved) return sum + juggleMainPoints(e.v);
-    if(e.t === "weak"  && e.v < naaetSvagt) return sum + juggleWeakPoints(e.v);
-    if(e.t === "trick" && tricks.includes(e.v)) return sum + (juggleTrick(e.v)?.point || 0);
+    if(e.t === "main"  && e.v < naaetHoved   && !settHoved[e.v]){  settHoved[e.v]  = 1; return sum + juggleMainPoints(e.v); }
+    if(e.t === "weak"  && e.v < naaetSvagt   && !settSvagt[e.v]){  settSvagt[e.v]  = 1; return sum + juggleWeakPoints(e.v); }
+    if(e.t === "trick" && tricks.includes(e.v) && !settTricks[e.v]){ settTricks[e.v] = 1; return sum + (juggleTrick(e.v)?.point || 0); }
     return sum;
   }, 0);
 }
@@ -1652,7 +1710,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.60 · ikke logget ind");
+    setSyncStatus("v15.61 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1678,7 +1736,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.60 · bekræft inden I går i gang");
+    setSyncStatus("v15.61 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1686,7 +1744,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.60 · vælg din egen adgangskode");
+    setSyncStatus("v15.61 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -1723,9 +1781,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.60 · live database aktiv");
+    setSyncStatus("v15.61 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.60 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.61 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2103,7 +2161,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.60 · sletter...");
+  setSyncStatus("v15.61 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -2116,7 +2174,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.60 · live database aktiv");
+  setSyncStatus("v15.61 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -2206,6 +2264,7 @@ function renderTracking(){
     ${jLog.length ? `<div class="small" style="margin-top:10px"><b>Seneste registreringer</b>${jLog.map(e=>{
       const naar = e.at ? new Date(e.at).toLocaleString("da-DK") : "";
       if(e.t === "correct") return `<div>${escapeHtml(naar)} · rettet af ${escapeHtml(e.af || "træner")}${e.stige==="trick" ? ` (${escapeHtml(juggleTrick(e.trick)?.navn || e.trick)} ${escapeHtml(e.til)})` : ` (${e.stige==="main"?"hovedstigen":"dårligt ben"} ${e.fra} → ${e.til})`}</div>`;
+      if(e.t === "undo") return `<div>${escapeHtml(naar)} · spilleren fortrød ${e.stige === "trick" ? escapeHtml(juggleTrick(e.trick)?.navn || e.trick) : `${e.stige === "main" ? "hovedstigen" : "dårligt ben"} ${e.fra} → ${e.til}`}</div>`;
       if(e.t === "trick") return `<div>${escapeHtml(naar)} · ${escapeHtml(juggleTrick(e.v)?.navn || e.v)}</div>`;
       const stige = e.t === "main" ? JUGGLE_MAIN : JUGGLE_WEAK;
       return `<div>${escapeHtml(naar)} · ${stige[e.v] ?? "?"} ${e.t === "main" ? "jongleringer" : "med dårligt ben"}</div>`;
@@ -2613,11 +2672,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.60 · migrering færdig");
+    setSyncStatus("v15.61 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.60 · migrering fejlede");
+    setSyncStatus("v15.61 · migrering fejlede");
   }
 }
 
@@ -2792,7 +2851,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.60 · uploader video...");
+    setSyncStatus("v15.61 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -2814,12 +2873,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.60 · live database aktiv");
+    setSyncStatus("v15.61 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.60 · live database aktiv");
+    setSyncStatus("v15.61 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -3571,6 +3630,10 @@ function renderJuggle(){
   // demoen er til for at vise. En foraelder skal kunne se, at der ER noget at trykke paa.
   const knap = (kind, v, tekst) =>
     `<button class="btn smallbtn" onclick="registerJuggle('${kind}',${typeof v === "string" ? `'${v}'` : v})">${tekst}</button>`;
+  // Fortryd staar kun paa det SENEST klarede trin. Et trin midt i stigen kan ikke
+  // fortrydes, fordi fremdriften er et antal og ikke en raekke afkrydsninger.
+  const fortryd = (kind, titel) =>
+    `<button class="btn secondary smallbtn" onclick="undoJuggle('${kind}')" title="${titel}">Fortryd</button>`;
 
   // Hovedstigen, med fase-overskrifter og opløft-porten mellem trin 3 og 4.
   let hoved = "", sidsteFase = null;
@@ -3594,7 +3657,7 @@ function renderJuggle(){
       <div class="laddernum">${antal}</div>
       <div class="laddermid"><b>${klaret ? "✓ Klaret" : erNaeste ? (spaerret ? "Låst - klar Opløft først" : "Næste trin") : "Trin " + trinNr}</b>${mark}
         <div class="ladderstep">${antal} jongleringer i træk · ${juggleMainPoints(i)} point</div></div>
-      ${erNaeste && !spaerret ? knap("main", i, "Klaret") : ""}
+      ${erNaeste && !spaerret ? knap("main", i, "Klaret") : klaret && i === naaet-1 ? fortryd("main", "Fortryd dette trin") : ""}
     </div>`;
   });
 
@@ -3606,7 +3669,7 @@ function renderJuggle(){
       <div class="laddernum">${antal}</div>
       <div class="laddermid"><b>${klaret ? "✓ Klaret" : erNaeste ? "Næste trin" : "Trin " + (i+1)}</b>${mark}
         <div class="ladderstep">${antal} berøringer med dårligt ben i træk · ${juggleWeakPoints(i)} point</div></div>
-      ${erNaeste ? knap("weak", i, "Klaret") : ""}
+      ${erNaeste ? knap("weak", i, "Klaret") : klaret && i === svagt-1 ? fortryd("weak", "Fortryd dette trin") : ""}
     </div>`;
   });
 
@@ -3615,7 +3678,9 @@ function renderJuggle(){
     return `<div class="ladderrow ${klaret ? "done" : ""}">
       <div class="laddermid"><b>${klaret ? "✓ " : ""}${escapeHtml(t.navn)}</b>${t.id === "oploft" ? '<span class="medalmark">Åbner trin 4</span>' : ""}
         <div class="ladderstep">${escapeHtml(t.tekst)} · ${t.point} point</div></div>
-      ${klaret ? "" : knap("trick", t.id, "Klaret")}
+      ${klaret
+        ? `<button class="btn secondary smallbtn" onclick="undoJuggleTrick('${t.id}')">Fortryd</button>`
+        : knap("trick", t.id, "Klaret")}
     </div>`;
   }).join("");
 
@@ -3758,7 +3823,7 @@ function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); ren
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderGuideLevels,toggleYearTalentmaerke,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,undoJuggle,undoJuggleTrick,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderGuideLevels,toggleYearTalentmaerke,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>
