@@ -463,6 +463,7 @@
   <div class="card">
     <h2 style="margin-top:0">Sådan behandler vi jeres data</h2>
     <p class="small">TIF Talent Tracker · dataansvarlig: Mikkel Brogaard Pedersen · udgave 2026-11-07</p>
+    <p class="small">Denne udgave tilføjer "Daglig fodteknik" - se afsnittet "Hvad der gemmes". Der kommer ikke noget nyt til at ske med de data, I allerede har sagt ja til, så I bliver ikke bedt om at bekræfte igen. Er I alligevel i tvivl, så skriv til adressen nedenfor.</p>
 
     <div class="accordion" open style="background:#e7eef5;border-color:#c9d8e8">
       <div class="accordion-body">
@@ -1400,8 +1401,11 @@ let playerListFilterYear = "all";
 let leaderboardPeriod = "all";
 let leaderboardScope = "own";
 const CLUB_TOP_N = 10;
-// Haeves kun, naar teksten aendrer sig paa en maade, folk boer se igen.
-const PRIVACY_VERSION = "2026-11-07";
+// Haeves kun, naar teksten aendrer sig paa en maade, folk boer se igen. Bemaerk, at det
+// IKKE er det samme som udgavedatoen oeverst paa databehandlingssiden: den foelger
+// teksten, mens dette tal styrer, hvem der bliver spurgt igen. Udgave 2026-11-07 tilfoejede
+// Daglig fodteknik, men uden at kraeve en ny bekraeftelse - derfor staar tallet paa 09-12.
+const PRIVACY_VERSION = "2026-09-12";
 let challengeCreateType = "exercise";
 let unsubPlayers = null;
 let unsubUsers = null;
