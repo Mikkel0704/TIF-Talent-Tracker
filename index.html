@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.59</title>
+  <title>TIF Talent Tracker v15.60</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -134,7 +134,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.59 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.60 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -528,7 +528,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.59 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.60 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -674,7 +674,7 @@ const JUGGLE_RULES = [
   "Alle berøringer med fod, lår og hoved tæller. Arme og hænder tæller ikke.",
   "Trin 1-3: du må starte med bolden i hånden.",
   "Fra trin 4 og på hele dårligt ben-stigen: bolden ligger på jorden og vippes op med foden - samme startregel som i medaljeforløbet.",
-  "Serien slutter, når bolden rammer jorden.",
+  "Du tæller, indtil bolden rammer jorden - så starter du forfra.",
   "Et trin er klaret, når du har gjort det én gang.",
   "Trinnene tages i rækkefølge, og hvert trin og trick giver kun point én gang.",
   "Point: du får lige så mange point, som du jonglerer. 40 jongleringer giver 40 point, 150 giver 150. Med det dårlige ben tæller det dobbelt.",
@@ -1652,7 +1652,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.59 · ikke logget ind");
+    setSyncStatus("v15.60 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1678,7 +1678,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.59 · bekræft inden I går i gang");
+    setSyncStatus("v15.60 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1686,7 +1686,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.59 · vælg din egen adgangskode");
+    setSyncStatus("v15.60 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -1723,9 +1723,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.59 · live database aktiv");
+    setSyncStatus("v15.60 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.59 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.60 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2103,7 +2103,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.59 · sletter...");
+  setSyncStatus("v15.60 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -2116,7 +2116,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.59 · live database aktiv");
+  setSyncStatus("v15.60 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -2613,11 +2613,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.59 · migrering færdig");
+    setSyncStatus("v15.60 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.59 · migrering fejlede");
+    setSyncStatus("v15.60 · migrering fejlede");
   }
 }
 
@@ -2792,7 +2792,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.59 · uploader video...");
+    setSyncStatus("v15.60 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -2814,12 +2814,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.59 · live database aktiv");
+    setSyncStatus("v15.60 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.59 · live database aktiv");
+    setSyncStatus("v15.60 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -3593,7 +3593,7 @@ function renderJuggle(){
     hoved += `<div class="ladderrow ${klaret ? "done" : erNaeste && !spaerret ? "next" : "locked"}">
       <div class="laddernum">${antal}</div>
       <div class="laddermid"><b>${klaret ? "✓ Klaret" : erNaeste ? (spaerret ? "Låst - klar Opløft først" : "Næste trin") : "Trin " + trinNr}</b>${mark}
-        <div class="ladderstep">${antal} jongleringer i én serie · ${juggleMainPoints(i)} point</div></div>
+        <div class="ladderstep">${antal} jongleringer i træk · ${juggleMainPoints(i)} point</div></div>
       ${erNaeste && !spaerret ? knap("main", i, "Klaret") : ""}
     </div>`;
   });
@@ -3605,7 +3605,7 @@ function renderJuggle(){
     svag += `<div class="ladderrow ${klaret ? "done" : erNaeste ? "next" : "locked"}">
       <div class="laddernum">${antal}</div>
       <div class="laddermid"><b>${klaret ? "✓ Klaret" : erNaeste ? "Næste trin" : "Trin " + (i+1)}</b>${mark}
-        <div class="ladderstep">${antal} berøringer med dårligt ben i én serie · ${juggleWeakPoints(i)} point</div></div>
+        <div class="ladderstep">${antal} berøringer med dårligt ben i træk · ${juggleWeakPoints(i)} point</div></div>
       ${erNaeste ? knap("weak", i, "Klaret") : ""}
     </div>`;
   });
@@ -3629,7 +3629,7 @@ function renderJuggle(){
       <div><h3>Hovedstigen</h3>${hoved}</div>
       <div>
         <h3>Dårligt ben</h3>
-        <p class="small">Berøringer med det dårlige ben i én serie - frit hvornår i serien. Bolden vippes op fra jorden. Her tæller hver berøring <b>dobbelt</b>.</p>
+        <p class="small">Berøringer med det dårlige ben i træk - frit hvornår undervejs. Bolden vippes op fra jorden. Her tæller hver berøring <b>dobbelt</b>.</p>
         ${svag}
         <h3 style="margin-top:18px">Tricks</h3>
         <p class="small">Engangsudfordringer. Tag dem i den rækkefølge du vil.</p>
