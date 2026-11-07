@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.55</title>
+  <title>TIF Talent Tracker v15.56</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -134,7 +134,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.55 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.56 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -176,15 +176,14 @@
   <button onclick="showPage('track')" id="tab-track">Registrering</button>
   <button onclick="showPage('overview')" id="tab-overview">Overblik</button>
   <button onclick="showPage('review')" id="tab-review">Godkendelser</button>
-  <button onclick="showPage('training')" id="tab-training" class="hidden">Træning</button>
-  <button onclick="showPage('juggle')" id="tab-juggle" class="hidden">Stigen</button>
+  <button onclick="showPage('training')" id="tab-training" class="hidden">Talentmærket</button>
   <button onclick="showPage('footwork')" id="tab-footwork" class="hidden">Fodteknik</button>
-  <button onclick="showPage('challenges')" id="tab-challenges" class="hidden">Udfordringer<span id="challengeBadge" class="navbadge hidden"></span></button>
+  <button onclick="showPage('juggle')" id="tab-juggle" class="hidden">Jonglering</button>
+  <button onclick="showPage('challenges')" id="tab-challenges" class="hidden">Duel<span id="challengeBadge" class="navbadge hidden"></span></button>
   <button onclick="showPage('leaderboard')" id="tab-leaderboard">Rangliste</button>
-  <button onclick="showPage('criteria')" id="tab-criteria">Kriterier</button>
-  <button onclick="showPage('guide')" id="tab-guide">Guide</button>
+  <button onclick="showPage('guide')" id="tab-guide">Guides</button>
   <button onclick="showPage('admin')" id="tab-admin">Admin</button>
-  <button onclick="showPage('profile')" id="tab-profile" class="hidden">Spillerprofil</button>
+  <button onclick="showPage('profile')" id="tab-profile" class="hidden">Min profil</button>
   <button onclick="showPage('settings')" id="tab-settings">Indstillinger</button>
 </nav>
 
@@ -258,8 +257,8 @@
 
 <section id="training" class="page hidden">
   <div class="card">
-    <h2>Træning</h2>
-    <p class="small">Se dine øvelser, øv derhjemme og upload en video af dig selv, så din træner kan godkende den.</p>
+    <h2>Talentmærket</h2>
+    <p class="small">Her ligger medaljerne. Se øvelserne for dit niveau, øv derhjemme og upload en video af dig selv, så din træner kan godkende den. Det er den eneste del af appen, hvor du optjener bronze, sølv og guld.</p>
     <div id="trainingArea"></div>
   </div>
 </section>
@@ -298,8 +297,8 @@
 
 <section id="challenges" class="page hidden">
   <div class="card">
-    <h2>Udfordringer</h2>
-    <p class="small">Udfordr en holdkammerat i en øvelse. Den der først får sin video godkendt af træneren vinder udfordringen og en bonus.</p>
+    <h2>Duel</h2>
+    <p class="small">Udfordr en holdkammerat til en duel i en øvelse. Den der først får sin video godkendt af træneren vinder duellen og en bonus.</p>
     <div id="challengesArea"></div>
   </div>
 </section>
@@ -316,19 +315,8 @@
 
 <section id="profile" class="page hidden">
   <div class="card">
-    <h2>Spillerprofil</h2>
+    <h2>Min profil</h2>
     <div id="profileArea"></div>
-  </div>
-</section>
-
-<section id="criteria" class="page hidden">
-  <div class="card">
-    <h2>Kriterier</h2>
-    <div class="row two">
-      <div><label>Øvelse</label><select id="criteriaExercise" onchange="renderCriteria()"></select></div>
-      <div><label>Niveau</label><select id="criteriaLevel" onchange="renderCriteria()"><option value="1">Niveau 1</option><option value="2">Niveau 2</option><option value="3">Niveau 3</option></select></div>
-    </div>
-    <div id="criteriaArea"></div>
   </div>
 </section>
 
@@ -338,14 +326,15 @@
     <div class="accordion-body">
       <p class="small">En kort guide til forældre og spillere, der lige har fået deres eget login.</p>
       <p><b>Log ind:</b> Brug den e-mail og adgangskode, som jeres træner har oprettet til jer. I bør skifte adgangskoden under "Indstillinger" efter første login.</p>
-      <p><b>"Træning":</b> Her ser I dagens øvelser for jeres niveau. Optag en kort video, hvor I udfører øvelsen, og upload den. Træneren godkender eller afviser videoen, og I kan følge status direkte under øvelsen.</p>
-      <p><b>"Stigen":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. Der er ingen video - I registrerer selv, og træneren tager en stikprøve til træning. Hvert trin giver point på ranglisten, men ingen medaljer.</p>
-      <p><b>"Fodteknik":</b> Daglig fodteknik. Ti korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Også her er det på tillid, uden video.</p>
-      <p><b>"Udfordringer":</b> Udfordr en holdkammerat i en øvelse - eller en fri udfordring, som "flest jongleringer" eller "fedeste trick". Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
-      <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet.</p>
+      <p class="small">Kort fortalt er der tre slags træning i appen: <b>Talentmærket</b>, hvor træneren bedømmer og der er medaljer på spil · <b>Fodteknik</b> og <b>Jonglering</b>, som I selv registrerer hjemmefra og får point for · og <b>Duel</b>, hvor I måler jer mod en holdkammerat.</p>
+      <p><b>"Talentmærket":</b> Her er medaljerne. I ser øvelserne for jeres niveau, optager en kort video, hvor I udfører øvelsen, og uploader den. Træneren godkender eller afviser, og I kan følge status direkte under øvelsen. Det er den eneste del af appen, der giver bronze, sølv og guld.</p>
+      <p><b>"Fodteknik":</b> Daglig fodteknik. Ti korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning.</p>
+      <p><b>"Jonglering":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. I får lige så mange point, som I jonglerer - 40 jongleringer giver 40 point - og med det dårlige ben tæller det dobbelt. Også her er det på tillid, uden video. Stigen giver point, men ingen medaljer.</p>
+      <p><b>"Duel":</b> Udfordr en holdkammerat i en øvelse - eller i en fri duel, som "flest jongleringer" eller "fedeste trick". Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
+      <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Point fra alle fire dele tæller med.</p>
+      <p><b>"Guides":</b> Her står kravene til hver øvelse på Talentmærket, sammen med beskrivelsen af, hvordan øvelsen sættes op og udføres.</p>
       <p><b>"Min profil":</b> Her ser I jeres point, rang (fra Rookie til Legende) og hvilke øvelser der allerede er bestået.</p>
-      <p><b>"Kriterier" og "Guide":</b> Her kan I se, præcis hvad der kræves for at bestå hver øvelse og medalje.</p>
-      <p class="small"><b>Om videoerne:</b> De bruges kun til godkendelse og slettes automatisk bagefter - ved almindelig træning med det samme, og ved udfordringer senest et par dage efter, at træneren har taget stilling. Vi gemmer ikke børnenes videoer permanent.</p>
+      <p class="small"><b>Om videoerne:</b> De bruges kun til godkendelse og slettes automatisk bagefter - ved Talentmærket med det samme, og ved en duel senest et par dage efter, at træneren har taget stilling. Vi gemmer ikke børnenes videoer permanent.</p>
     </div>
   </details>
   <details class="accordion" open>
@@ -356,8 +345,13 @@
       <p><b>Næste niveau:</b> Spilleren kan skifte fra 1 til 2 og fra 2 til 3, når alle øvelser på guld på foregående niveau er gennemført.</p>
     </div>
   </details>
-  <h2 style="margin:16px 0 8px">Øvelser</h2>
-  <div id="exerciseInfo"></div>
+  <div class="card" style="margin-top:16px">
+    <h2 style="margin-top:0">Øvelserne til Talentmærket</h2>
+    <p class="small">Krav og beskrivelse samlet ét sted. Vælg niveau, og fold en øvelse ud for at se, hvad der skal til for bronze, sølv og guld - og hvordan øvelsen sættes op og udføres.</p>
+    <label>Niveau</label>
+    <select id="criteriaLevel" onchange="renderGuideLevels()"><option value="1">Niveau 1</option><option value="2">Niveau 2</option><option value="3">Niveau 3</option></select>
+    <div id="exerciseInfo" style="margin-top:12px"></div>
+  </div>
 </section>
 
 <section id="admin" class="page hidden">
@@ -482,7 +476,7 @@
     <p><b>Om Jongleringsstigen:</b> hvor langt barnet er nået på de to stiger, hvilke tricks der er klaret, hvilke <b>datoer</b> der er registreret på, og en log over hver registrering med tidspunkt og hvilket login der registrerede den. Registreringen sker på tillid hjemmefra - der er ingen video og ingen godkendelse - og træneren kan rette et trin efter en stikprøve til træning. Rettelser logges med trænerens navn. Point udregnes af tallene og gemmes ikke.</p>
     <p><b>Om Daglig fodteknik:</b> hvilke dage barnet har trænet, hvilke øvelser og hvor mange gange hver øvelse er lavet på hver dag. Også her sker registreringen på tillid hjemmefra uden video, og træneren kan rette eller nulstille en dag efter en stikprøve. Rettelser logges med trænerens navn. Point, kombi-bonus og streak udregnes af tallene og gemmes ikke.</p>
     <p><b>Om jokere i Daglig fodteknik:</b> hvis I søger en joker for en dag, gemmes datoen, om træneren har godkendt eller afvist den, og <b>den korte begrundelse, I selv skriver</b>. Begrundelsen er fritekst og kan kun ses af jer selv og af trænerne i barnets årgang. <b>Den slettes automatisk 3 døgn efter, træneren har afgjort jokeren</b> - datoen og svaret bliver, fordi de skal bruges til at regne streaken ud. Vi beder udtrykkeligt om <b>ikke</b> at skrive helbredsdetaljer; "syg" er nok.</p><p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På klub-ranglisten:</b> navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
-    <p><b>På din egen telefon:</b> et tidsstempel for, hvornår du sidst åbnede "Udfordringer". Det bruges kun til at vise det lille tal på fanen, og det forlader aldrig enheden.</p>
+    <p><b>På din egen telefon:</b> et tidsstempel for, hvornår du sidst åbnede "Duel". Det bruges kun til at vise det lille tal på fanen, og det forlader aldrig enheden.</p>
 
     <h3>Videoer - det vigtigste afsnit</h3>
     <p><b>Det er frivilligt.</b> Man kan bruge appen uden nogensinde at uploade en video. Træneren kan i stedet godkende øvelser direkte til træning.</p>
@@ -533,7 +527,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.55 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.56 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -1579,7 +1573,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.55 · ikke logget ind");
+    setSyncStatus("v15.56 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1605,7 +1599,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.55 · bekræft inden I går i gang");
+    setSyncStatus("v15.56 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1613,7 +1607,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.55 · vælg din egen adgangskode");
+    setSyncStatus("v15.56 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -1649,9 +1643,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.55 · live database aktiv");
+    setSyncStatus("v15.56 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.55 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.56 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2017,7 +2011,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.55 · sletter...");
+  setSyncStatus("v15.56 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -2030,7 +2024,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.55 · live database aktiv");
+  setSyncStatus("v15.56 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -2063,10 +2057,6 @@ function renderSelects(){
   const selected = tp.value;
   tp.innerHTML = players.map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
   if(selected) tp.value=selected;
-  const ce = document.getElementById("criteriaExercise");
-  const selectedEx = ce.value;
-  ce.innerHTML = exercises.map(e=>`<option>${e}</option>`).join("");
-  if(selectedEx) ce.value=selectedEx;
   const os = document.getElementById("overviewStep");
   const selectedOs = os.value || "0";
   os.innerHTML = steps.map((s,i)=>`<option value="${i}">Niveau ${s.level} · ${s.medal}</option>`).join("");
@@ -2251,18 +2241,36 @@ function renderOverview(){
   }).join("")}</tbody></table></div>`;
 }
 function listItems(arr){ return "<ul>"+arr.map(x=>`<li>${escapeHtml(x)}</li>`).join("")+"</ul>"; }
-function renderCriteria(){
-  const ex=document.getElementById("criteriaExercise").value || exercises[0];
-  const level=document.getElementById("criteriaLevel").value || "1";
-  const c=criteria[ex][level];
-  document.getElementById("criteriaArea").innerHTML = `<h3>${ex} · Niveau ${level}</h3><table><tr><th>Medalje</th><th>Kriterier</th></tr>
-  <tr><td><span class="pill bronze">Bronze</span></td><td>${listItems(c.Bronze)}</td></tr><tr><td><span class="pill sølv">Sølv</span></td><td>${listItems(c.Sølv)}</td></tr><tr><td><span class="pill guld">Guld</span></td><td>${listItems(c.Guld)}</td></tr></table>`;
-}
+// Krav og beskrivelse laa foer paa hver sin fane, saa den, der ledte efter "hvad skal
+// jeg kunne", kunne ende to steder. Nu staar de sammen pr. oevelse.
+//
+// Selve harmonikaen bygges ÉN gang, fordi et <details> husker aabent/lukket i DOM'en:
+// genskrev vi den, hver gang nogen skiftede niveau, ville den oevelse, man lige havde
+// foldet ud, klappe sammen igen. Niveauskiftet roerer derfor kun kravtabellerne indeni.
 function renderExerciseInfo(){
- document.getElementById("exerciseInfo").innerHTML = exercises.map(ex=>{
-  const d=exerciseDescriptions[ex];
-  return `<details class="accordion"><summary>${ex}</summary><div class="accordion-body"><p><b>Formål:</b> ${escapeHtml(d.Formål)}</p><p><b>Opsætning:</b>${listItems(d.Opsætning)}</p><p><b>Udførsel:</b>${listItems(d.Udførsel)}</p><p><b>Trænerfokus:</b>${listItems(d.Trænerfokus)}</p></div></details>`;
- }).join("");
+  document.getElementById("exerciseInfo").innerHTML = exercises.map((ex, i)=>{
+    const d = exerciseDescriptions[ex];
+    return `<details class="accordion"><summary>${ex}</summary><div class="accordion-body">
+      <div id="krav-${i}"></div>
+      <p><b>Formål:</b> ${escapeHtml(d.Formål)}</p>
+      <p><b>Opsætning:</b>${listItems(d.Opsætning)}</p>
+      <p><b>Udførsel:</b>${listItems(d.Udførsel)}</p>
+      <p><b>Trænerfokus:</b>${listItems(d.Trænerfokus)}</p>
+    </div></details>`;
+  }).join("");
+  renderGuideLevels();
+}
+function renderGuideLevels(){
+  const level = document.getElementById("criteriaLevel")?.value || "1";
+  exercises.forEach((ex, i)=>{
+    const maal = document.getElementById("krav-" + i);
+    const c = criteria[ex]?.[level];
+    if(!maal || !c) return;
+    maal.innerHTML = `<table><tr><th>Niveau ${level}</th><th>Krav</th></tr>
+      <tr><td><span class="pill bronze">Bronze</span></td><td>${listItems(c.Bronze)}</td></tr>
+      <tr><td><span class="pill sølv">Sølv</span></td><td>${listItems(c.Sølv)}</td></tr>
+      <tr><td><span class="pill guld">Guld</span></td><td>${listItems(c.Guld)}</td></tr></table>`;
+  });
 }
 function renderYearControl(){
   const area = document.getElementById("yearControlArea");
@@ -2494,11 +2502,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.55 · migrering færdig");
+    setSyncStatus("v15.56 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.55 · migrering fejlede");
+    setSyncStatus("v15.56 · migrering fejlede");
   }
 }
 
@@ -2673,7 +2681,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.55 · uploader video...");
+    setSyncStatus("v15.56 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -2695,12 +2703,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.55 · live database aktiv");
+    setSyncStatus("v15.56 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.55 · live database aktiv");
+    setSyncStatus("v15.56 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -3621,13 +3629,13 @@ function renderFootwork(){
     </div>`;
 }
 
-function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); renderDeletionRequests(); renderJuggle(); renderFootwork(); }
+function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); renderDeletionRequests(); renderJuggle(); renderFootwork(); }
 // Static content (never changes at runtime) - rendered once so the accordion's open/closed
 // state isn't wiped out every time an unrelated Firestore snapshot triggers renderAll().
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderGuideLevels,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>
