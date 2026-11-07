@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.56</title>
+  <title>TIF Talent Tracker v15.57</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -134,7 +134,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.56 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.57 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -278,7 +278,7 @@
 <section id="footwork" class="page hidden">
   <div class="card">
     <h2>Daglig fodteknik</h2>
-    <p class="small">Korte øvelser med bolden - 3 × 30 sekunder ad gangen. Det kan laves indendørs på ca. 2 × 2 meter. Hver gennemførelse giver point, og tre om dagen kan give bonus oveni. Her er ingen medaljer - der er en daglig vane.</p>
+    <p class="small">Korte øvelser med bolden - 3 × 30 sekunder ad gangen, bortset fra jongleringstræning, som er 5 minutter. Det kan laves indendørs på ca. 2 × 2 meter. Hver gennemførelse giver point, og tre om dagen kan give bonus oveni. Her er ingen medaljer - der er en daglig vane.</p>
     <div id="footworkArea"></div>
     <details class="accordion" style="margin-top:14px">
       <summary><span>Reglerne</span></summary>
@@ -328,7 +328,7 @@
       <p><b>Log ind:</b> Brug den e-mail og adgangskode, som jeres træner har oprettet til jer. I bør skifte adgangskoden under "Indstillinger" efter første login.</p>
       <p class="small">Kort fortalt er der tre slags træning i appen: <b>Talentmærket</b>, hvor træneren bedømmer og der er medaljer på spil · <b>Fodteknik</b> og <b>Jonglering</b>, som I selv registrerer hjemmefra og får point for · og <b>Duel</b>, hvor I måler jer mod en holdkammerat.</p>
       <p><b>"Talentmærket":</b> Her er medaljerne. I ser øvelserne for jeres niveau, optager en kort video, hvor I udfører øvelsen, og uploader den. Træneren godkender eller afviser, og I kan følge status direkte under øvelsen. Det er den eneste del af appen, der giver bronze, sølv og guld.</p>
-      <p><b>"Fodteknik":</b> Daglig fodteknik. Ti korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning.</p>
+      <p><b>"Fodteknik":</b> Daglig fodteknik. Ti korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen, undtagen jongleringstræning, som er 5 minutter og giver flere point. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning.</p>
       <p><b>"Jonglering":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. I får lige så mange point, som I jonglerer - 40 jongleringer giver 40 point - og med det dårlige ben tæller det dobbelt. Også her er det på tillid, uden video. Stigen giver point, men ingen medaljer.</p>
       <p><b>"Duel":</b> Udfordr en holdkammerat i en øvelse - eller i en fri duel, som "flest jongleringer" eller "fedeste trick". Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
       <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Point fra alle fire dele tæller med.</p>
@@ -527,7 +527,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.56 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.57 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -864,6 +864,12 @@ const FOOTWORK_BACKDATE_DAYS = 14;  // hvor langt familien selv maa registrere b
 const FOOTWORK_MAX_DAYS = 1500;
 const FOOTWORK_GRADE_POINTS = {let:2, mellem:3, svaer:4};
 const FOOTWORK_GRADE_NAMES = {let:"Let", mellem:"Mellem", svaer:"Svær"};
+// Blokken er 3 x 30 sek. for de ni gulvoevelser, hvor foden er paa bolden hele tiden.
+// Jonglering er en anden slags arbejde - bolden ryger, man samler op, stiller sig til
+// rette - saa 30 sekunder bliver mest opstilling. Den har derfor sin egen blok og sin
+// egen takst (se "varighed" og "point" paa oevelsen), og begge dele staar paa selve
+// raekken i stedet for som én faelles regel.
+const FOOTWORK_DEFAULT_BLOCK = "3 × 30 sek.";
 // kode: det ene bogstav, dagen gemmes under i databasen. Kortere noegler betyder et
 // mindre dokument - og dokumentet her hentes af alle logins, hver gang appen aabnes.
 const FOOTWORK = [
@@ -873,15 +879,16 @@ const FOOTWORK = [
   {id:"vrul",       kode:"v", navn:"V-rul",              grad:"mellem", tekst:"Træk bolden tilbage med sålen, og spil den frem med indersiden af samme fod. Skift fod."},
   {id:"traekskub",  kode:"p", navn:"Træk-skub",          grad:"mellem", tekst:"Træk bolden tilbage med sålen, og skub den frem igen. Skift fod."},
   {id:"stepover",   kode:"o", navn:"Step-over",          grad:"mellem", tekst:"Før foden rundt om bolden uden at røre den. Skiftevis."},
-  {id:"jongler",    kode:"j", navn:"Jongleringstræning", grad:"mellem", tekst:"3 × 30 sek. fri jonglering.", fokus:"Dette er den daglige øvelse - ikke Jongleringsstigen. Her er der ingen trin at nå."},
+  {id:"jongler",    kode:"j", navn:"Jongleringstræning", grad:"mellem", point:8, varighed:"5 minutter", tekst:"Fri jonglering i 5 minutter. Saml bolden op og fortsæt, hver gang den rammer jorden.", fokus:"Dette er den daglige øvelse - ikke Jongleringsstigen. Her er der ingen trin at nå, og det gør ikke noget, at bolden falder. Det er forsøgene, der tæller."},
   {id:"lrul",       kode:"l", navn:"L-rul",              grad:"svaer",  tekst:"Træk bolden tilbage med sålen, og spil den bag om standbenet med indersiden."},
   {id:"croqueta",   kode:"c", navn:"Croqueta",           grad:"svaer",  tekst:"Flyt bolden fra inderside til inderside med et lille sideskridt."},
   {id:"square",     kode:"q", navn:"Square",             grad:"svaer",  tekst:"Før bolden rundt i et kvadrat med sålen (frem, til siden, tilbage, til siden). Skift fod."}
 ];
 const FOOTWORK_RULES = [
-  "1 gennemførelse = øvelsen lavet 3 × 30 sekunder. Der registreres kun, at den er gennemført - ikke hvor godt.",
+  "1 gennemførelse = øvelsen lavet i den tid, der står på den. De ni gulvøvelser tager 3 × 30 sekunder. Der registreres kun, at den er gennemført - ikke hvor godt.",
+  "Jongleringstræning er den ene undtagelse: den er 5 minutter i træk, fordi bolden falder undervejs, og 30 sekunder mest ville blive til at samle op og stille sig til rette.",
   "Du må lave den samme øvelse flere gange om dagen, og så mange øvelser du vil.",
-  "Point pr. gennemførelse: Let 2 · Mellem 3 · Svær 4.",
+  "Point pr. gennemførelse: Let 2 · Mellem 3 · Svær 4 - og 8 for jongleringstræning, fordi den tager længere tid. Tallet står altid på øvelsen.",
   "Tre gennemførelser fra samme dag kan danne en kombi, der giver bonus. Hver gennemførelse kan kun være med i én kombi - men der er ingen grænse for, hvor mange kombier en dag kan give.",
   "Appen finder selv den opdeling, der giver dig flest point. Du skal ikke regne på det.",
   "En dag tæller som aktiv, hvis du har mindst én gennemførelse - eller har registreret et trin på Jongleringsstigen.",
@@ -909,7 +916,10 @@ const FOOTWORK_COMBO_TEXT = [
 function footworkEx(idEllerKode){
   return FOOTWORK.find(x=>x.id===idEllerKode) || FOOTWORK.find(x=>x.kode===idEllerKode) || null;
 }
-function footworkPointsFor(ex){ return FOOTWORK_GRADE_POINTS[ex?.grad] || 0; }
+// En oevelse maa saette sin egen takst. Uden det ville jonglering give 3 point for 5
+// minutter, mens en let gulvoevelse giver 2 for halvandet - og boern regner den slags ud.
+function footworkPointsFor(ex){ return Number.isInteger(ex?.point) ? ex.point : (FOOTWORK_GRADE_POINTS[ex?.grad] || 0); }
+function footworkBlock(ex){ return ex?.varighed || FOOTWORK_DEFAULT_BLOCK; }
 
 // Dansk kalenderdag. Datoer er noegler i databasen, saa de skal skrives ud fra den
 // LOKALE dag - ikke toISOString(), som ville flytte en aftentraening til dagen efter.
@@ -1573,7 +1583,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.56 · ikke logget ind");
+    setSyncStatus("v15.57 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1599,7 +1609,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.56 · bekræft inden I går i gang");
+    setSyncStatus("v15.57 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1607,7 +1617,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.56 · vælg din egen adgangskode");
+    setSyncStatus("v15.57 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -1643,9 +1653,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.56 · live database aktiv");
+    setSyncStatus("v15.57 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.56 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.57 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2011,7 +2021,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.56 · sletter...");
+  setSyncStatus("v15.57 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -2024,7 +2034,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.56 · live database aktiv");
+  setSyncStatus("v15.57 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -2502,11 +2512,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.56 · migrering færdig");
+    setSyncStatus("v15.57 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.56 · migrering fejlede");
+    setSyncStatus("v15.57 · migrering fejlede");
   }
 }
 
@@ -2681,7 +2691,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.56 · uploader video...");
+    setSyncStatus("v15.57 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -2703,12 +2713,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.56 · live database aktiv");
+    setSyncStatus("v15.57 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.56 · live database aktiv");
+    setSyncStatus("v15.57 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -3535,9 +3545,9 @@ function renderFootwork(){
   const exArea = document.getElementById("footworkExerciseArea");
   if(exArea && !exArea.dataset.filled){
     exArea.innerHTML = ["let","mellem","svaer"].map(grad=>`
-      <div class="phasehead">${FOOTWORK_GRADE_NAMES[grad]}<span>${FOOTWORK_GRADE_POINTS[grad]} point pr. gennemførelse</span></div>
+      <div class="phasehead">${FOOTWORK_GRADE_NAMES[grad]}</div>
       ${FOOTWORK.filter(ex=>ex.grad===grad).map(ex=>`<div class="ladderrow">
-        <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>
+        <div class="laddermid"><b>${escapeHtml(ex.navn)}</b><span class="medalmark">${footworkBlock(ex)} · ${footworkPointsFor(ex)} point</span>
           <div class="ladderstep">${escapeHtml(ex.tekst)}${ex.fokus ? " <i>Fokus: " + escapeHtml(ex.fokus) + "</i>" : ""}</div></div>
       </div>`).join("")}`).join("")
       + `<div class="phasehead">Kombi-bonus<span>Tre gennemførelser fra samme dag</span></div>`
@@ -3576,12 +3586,12 @@ function renderFootwork(){
   const dagPoint = footworkDayPoints(pid, dato);
 
   const raekker = ["let","mellem","svaer"].map(grad=>`
-    <div class="phasehead">${FOOTWORK_GRADE_NAMES[grad]}<span>${FOOTWORK_GRADE_POINTS[grad]} point pr. gennemførelse</span></div>
+    <div class="phasehead">${FOOTWORK_GRADE_NAMES[grad]}</div>
     ${FOOTWORK.filter(ex=>ex.grad===grad).map(ex=>{
       const n = footworkCount(pid, dato, ex.kode);
       return `<div class="ladderrow ${n?"done":""}">
         <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${n ? `<span class="medalmark">${n * footworkPointsFor(ex)} point</span>` : ""}
-          <div class="ladderstep">${escapeHtml(ex.tekst)}</div></div>
+          <div class="ladderstep">${footworkBlock(ex)} · ${footworkPointsFor(ex)} point · ${escapeHtml(ex.tekst)}</div></div>
         ${kanRegistrere && joker !== "approved" ? `<div class="counter">
           <button type="button" onclick="registerFootwork('${ex.kode}',-1)" ${n?"":"disabled"} aria-label="Fjern en gennemførelse af ${escapeHtml(ex.navn)}">−</button>
           <b>${n}</b>
@@ -3621,7 +3631,7 @@ function renderFootwork(){
 
     <div class="exercise-block">
       <h3 style="margin-top:0">${escapeHtml(datoTekst(dato))}${dato === iDag ? " · i dag" : ""} · ${dagPoint} point</h3>
-      <p class="small">${dagAntal ? `${dagAntal} ${dagAntal === 1 ? "gennemførelse" : "gennemførelser"} · ${grundPoint} point${kombier.boost ? ` + ${kombier.boost} i kombi-bonus` : ""}` : "Ingen gennemførelser endnu. 1 gennemførelse = øvelsen lavet 3 × 30 sekunder."}</p>
+      <p class="small">${dagAntal ? `${dagAntal} ${dagAntal === 1 ? "gennemførelse" : "gennemførelser"} · ${grundPoint} point${kombier.boost ? ` + ${kombier.boost} i kombi-bonus` : ""}` : "Ingen gennemførelser endnu. 1 gennemførelse = øvelsen lavet i den tid, der står på den."}</p>
       ${jokerBlok}
       ${kombier.kombier.length ? `<p class="small" style="margin:10px 0 0"><b>Dagens kombier</b>${kombier.kombier.map(([i,j,k])=>`<br>${escapeHtml(footworkBoostNavn(i,j,k))}: ${escapeHtml(FOOTWORK[i].navn)} + ${escapeHtml(FOOTWORK[j].navn)} + ${escapeHtml(FOOTWORK[k].navn)} · +${footworkBoost(i,j,k)}`).join("")}</p>`
         : dagAntal >= 3 ? '<p class="small" style="margin:10px 0 0">Dagens gennemførelser kan ikke sættes sammen til en kombi. Prøv tre forskellige øvelser - eller den samme tre gange.</p>' : ""}
