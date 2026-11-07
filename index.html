@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.53</title>
+  <title>TIF Talent Tracker v15.54</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -83,6 +83,21 @@
     .medalmark{display:inline-block;font-size:11px;font-weight:700;color:var(--blue);background:#dbe9fa;border-radius:999px;padding:1px 7px;margin-left:6px}
     .ladderwrap{display:grid;gap:14px}
     @media(min-width:760px){.ladderwrap{grid-template-columns:1fr 1fr}}
+    .daybar{display:flex;gap:6px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch}
+    .daychip{flex:0 0 auto;border:1px solid #ddd;background:#eee;color:#555;border-radius:10px;padding:7px 9px;font-size:12px;font-weight:800;text-align:center;line-height:1.25;min-width:50px}
+    .daychip span{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+    .daychip.has{background:#d1fae5;color:#065f46;border-color:#85d6a8}
+    .daychip.has span{color:#0b7a53}
+    .daychip.joker{background:#fff4d6;color:#6b4d00;border-color:#f0d99a}
+    .daychip.joker span{color:#8a6a1a}
+    .daychip.current{outline:3px solid rgba(109,27,58,.3)}
+    .counter{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+    .counter button{border:0;border-radius:999px;width:36px;height:36px;font-size:19px;font-weight:800;background:#e8eef5;color:#1f3a5f}
+    .counter button:disabled{opacity:.35}
+    .counter b{min-width:22px;text-align:center;font-size:17px;font-variant-numeric:tabular-nums}
+    .streakbox{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline}
+    .streakbox div{flex:1 1 120px}
+    .streakbox b{display:block;font-size:22px}
     .demobanner{margin:0;padding:10px 14px;background:#fff4d6;border-bottom:1px solid #f0d99a;color:#6b4d00;font-size:14px;line-height:1.45}
     .checkrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
     .checkrow:last-child{border-bottom:0}
@@ -119,7 +134,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.53 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.54 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -142,7 +157,7 @@
     <h2 style="margin-top:0">Inden I går i gang</h2>
     <p>Appen gemmer oplysninger om dit barn, og der kan uploades video. Læs det her igennem, og bekræft, at det er i orden. Du kan altid trække det tilbage igen.</p>
 
-    <div class="checkrow"><div><b>Hvad der gemmes</b><div class="small">Navn, årgang, point, hvilke øvelser der er bestået, medaljer, fremdrift på Jongleringsstigen og en log over det. Træneren kan skrive en kort note.</div></div></div>
+    <div class="checkrow"><div><b>Hvad der gemmes</b><div class="small">Navn, årgang, point, hvilke øvelser der er bestået, medaljer, fremdrift på Jongleringsstigen, hvilke dage der er trænet fodteknik hjemme, og en log over det. Træneren kan skrive en kort note.</div></div></div>
     <div class="checkrow"><div><b>Videoer er frivillige</b><div class="small">Man kan bruge appen uden nogensinde at uploade. Træneren kan i stedet godkende øvelser til træning.</div></div></div>
     <div class="checkrow"><div><b>Hvem der ser en video</b><div class="small">Træneren. Og ved udfordringer: den ene holdkammerat, dit barn selv har valgt - først når begge har uploadet.</div></div></div>
     <div class="checkrow"><div><b>Videoer slettes automatisk</b><div class="small">Når træneren har set dem, og under alle omstændigheder senest 7 dage efter upload.</div></div></div>
@@ -163,6 +178,7 @@
   <button onclick="showPage('review')" id="tab-review">Godkendelser</button>
   <button onclick="showPage('training')" id="tab-training" class="hidden">Træning</button>
   <button onclick="showPage('juggle')" id="tab-juggle" class="hidden">Stigen</button>
+  <button onclick="showPage('footwork')" id="tab-footwork" class="hidden">Fodteknik</button>
   <button onclick="showPage('challenges')" id="tab-challenges" class="hidden">Udfordringer<span id="challengeBadge" class="navbadge hidden"></span></button>
   <button onclick="showPage('leaderboard')" id="tab-leaderboard">Rangliste</button>
   <button onclick="showPage('criteria')" id="tab-criteria">Kriterier</button>
@@ -260,6 +276,26 @@
   </div>
 </section>
 
+<section id="footwork" class="page hidden">
+  <div class="card">
+    <h2>Daglig fodteknik</h2>
+    <p class="small">Korte øvelser med bolden - 3 × 30 sekunder ad gangen. Det kan laves indendørs på ca. 2 × 2 meter. Hver gennemførelse giver point, og tre om dagen kan give bonus oveni. Her er ingen medaljer - der er en daglig vane.</p>
+    <div id="footworkArea"></div>
+    <details class="accordion" style="margin-top:14px">
+      <summary><span>Reglerne</span></summary>
+      <div class="accordion-body" id="footworkRulesArea"></div>
+    </details>
+    <details class="accordion">
+      <summary><span>Indendørs - sådan gør I</span></summary>
+      <div class="accordion-body" id="footworkIndoorArea"></div>
+    </details>
+    <details class="accordion">
+      <summary><span>Øvelserne - hvad er hvad</span></summary>
+      <div class="accordion-body" id="footworkExerciseArea"></div>
+    </details>
+  </div>
+</section>
+
 <section id="challenges" class="page hidden">
   <div class="card">
     <h2>Udfordringer</h2>
@@ -303,6 +339,8 @@
       <p class="small">En kort guide til forældre og spillere, der lige har fået deres eget login.</p>
       <p><b>Log ind:</b> Brug den e-mail og adgangskode, som jeres træner har oprettet til jer. I bør skifte adgangskoden under "Indstillinger" efter første login.</p>
       <p><b>"Træning":</b> Her ser I dagens øvelser for jeres niveau. Optag en kort video, hvor I udfører øvelsen, og upload den. Træneren godkender eller afviser videoen, og I kan følge status direkte under øvelsen.</p>
+      <p><b>"Stigen":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. Der er ingen video - I registrerer selv, og træneren tager en stikprøve til træning. Hvert trin giver point på ranglisten, men ingen medaljer.</p>
+      <p><b>"Fodteknik":</b> Daglig fodteknik. Ti korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Også her er det på tillid, uden video.</p>
       <p><b>"Udfordringer":</b> Udfordr en holdkammerat i en øvelse - eller en fri udfordring, som "flest jongleringer" eller "fedeste trick". Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
       <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet.</p>
       <p><b>"Min profil":</b> Her ser I jeres point, rang (fra Rookie til Legende) og hvilke øvelser der allerede er bestået.</p>
@@ -424,12 +462,12 @@
 <section id="privacy" class="page hidden">
   <div class="card">
     <h2 style="margin-top:0">Sådan behandler vi jeres data</h2>
-    <p class="small">TIF Talent Tracker · dataansvarlig: Mikkel Brogaard Pedersen · udgave 2026-09-12</p>
+    <p class="small">TIF Talent Tracker · dataansvarlig: Mikkel Brogaard Pedersen · udgave 2026-11-07</p>
 
     <div class="accordion" open style="background:#e7eef5;border-color:#c9d8e8">
       <div class="accordion-body">
         <p style="margin-top:0"><b>Den korte version</b></p>
-        <p>Der gemmes dit barns navn, årgang, point og hvilke øvelser der er bestået. Træningsvideoer ses kun af træneren - og ved udfordringer af den ene holdkammerat, dit barn selv har valgt - og de slettes automatisk, senest efter 7 dage. Alt ligger på servere i EU. Der er ingen reklamer, ingen sporing af jeres adfærd og ingen deling med andre. Det er frivilligt at uploade video.</p>
+        <p>Der gemmes dit barns navn, årgang, point, hvilke øvelser der er bestået, og hvilke dage der er trænet hjemme. Træningsvideoer ses kun af træneren - og ved udfordringer af den ene holdkammerat, dit barn selv har valgt - og de slettes automatisk, senest efter 7 dage. Alt ligger på servere i EU. Der er ingen reklamer, ingen sporing af jeres adfærd og ingen deling med andre. Det er frivilligt at uploade video.</p>
       </div>
     </div>
 
@@ -440,7 +478,9 @@
     <p><b>Om spilleren:</b> navn, årgang, køn, point, hvilke øvelser der er bestået, hvilke medaljer der er optjent og overrakt, samt en log over hvad der er sket - fx "Jonglering N1 Bronze godkendt, +25 point" med dato og hvilken træner der gjorde det. </p><p><b>Trænerens note:</b> træneren kan skrive en kort note om spilleren, fx „venstrebenet“. Den gemmes adskilt fra resten og <b>kan kun ses af trænere</b> - ikke af spilleren selv og ikke af andre familier. Vil I vide, hvad der står om jeres barn, så skriv til adressen ovenfor; I har ret til at få det at vide.</p>
     <p><b>Om login:</b> den email, der er brugt til at oprette adgangen, hvilken rolle kontoen har (spiller, træner eller admin), hvilke årgange den giver adgang til, og om den er aktiv. <b>Adgangskoden gemmer vi ikke.</b> Den håndteres af Google Firebase og kan ikke ses af trænere eller af os - heller ikke i databasen. Derfor kan en glemt kode kun nulstilles, ikke slås op.</p>
     <p><b>Om videoer:</b> selve videofilen, plus hvilken øvelse og hvilket niveau den hører til, hvornår den blev sendt, hvem der behandlede den, og hvor mange point den gav.</p>
-    <p><b>Om Jongleringsstigen:</b> hvor langt barnet er nået på de to stiger, hvilke tricks der er klaret, og en log over hver registrering med tidspunkt og hvilket login der registrerede den. Registreringen sker på tillid hjemmefra - der er ingen video og ingen godkendelse - og træneren kan rette et trin efter en stikprøve til træning. Rettelser logges med trænerens navn. Point udregnes af tallene og gemmes ikke.</p><p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På klub-ranglisten:</b> navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
+    <p><b>Om Jongleringsstigen:</b> hvor langt barnet er nået på de to stiger, hvilke tricks der er klaret, hvilke <b>datoer</b> der er registreret på, og en log over hver registrering med tidspunkt og hvilket login der registrerede den. Registreringen sker på tillid hjemmefra - der er ingen video og ingen godkendelse - og træneren kan rette et trin efter en stikprøve til træning. Rettelser logges med trænerens navn. Point udregnes af tallene og gemmes ikke.</p>
+    <p><b>Om Daglig fodteknik:</b> hvilke dage barnet har trænet, hvilke øvelser og hvor mange gange hver øvelse er lavet på hver dag. Også her sker registreringen på tillid hjemmefra uden video, og træneren kan rette eller nulstille en dag efter en stikprøve. Rettelser logges med trænerens navn. Point, kombi-bonus og streak udregnes af tallene og gemmes ikke.</p>
+    <p><b>Om jokere i Daglig fodteknik:</b> hvis I søger en joker for en dag, gemmes datoen, om træneren har godkendt eller afvist den, og <b>den korte begrundelse, I selv skriver</b>. Begrundelsen er fritekst og kan kun ses af jer selv og af trænerne i barnets årgang. <b>Den slettes automatisk 3 døgn efter, træneren har afgjort jokeren</b> - datoen og svaret bliver, fordi de skal bruges til at regne streaken ud. Vi beder udtrykkeligt om <b>ikke</b> at skrive helbredsdetaljer; "syg" er nok.</p><p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På klub-ranglisten:</b> navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
     <p><b>På din egen telefon:</b> et tidsstempel for, hvornår du sidst åbnede "Udfordringer". Det bruges kun til at vise det lille tal på fanen, og det forlader aldrig enheden.</p>
 
     <h3>Videoer - det vigtigste afsnit</h3>
@@ -472,7 +512,9 @@
     <p><b>Og så er der ikke mere.</b> Ingen Google Analytics, ingen Facebook-pixel, ingen annoncenetværk, ingen cookies til markedsføring eller til at følge jeres adfærd, og ingen videregivelse af data til nogen tredjepart. Den sikkerhedscookie, der er nævnt ovenfor, er den eneste cookie på siden.</p>
 
     <h3>Hvor længe det gemmes</h3>
-    <p><b>Videoer: højst 7 dage</b>, ofte kun timer. Det er den eneste faste frist, systemet selv håndhæver.</p><p><b>Point, niveauer, medaljer, noter og historik har i dag ingen fast slettefrist.</b> De gemmes, så længe barnet bruger appen, og slettes når I beder om det. Der er ikke sat en automatisk oprydning op, som af sig selv fjerner data for børn, der er stoppet i klubben - nogen skal sætte det i gang. Det er en kendt mangel, og det er noteret som noget, der skal forbedres.</p>
+    <p><b>Videoer: højst 7 dage</b>, ofte kun timer.</p>
+    <p><b>Begrundelsen på en joker i Daglig fodteknik: 3 døgn</b> efter træneren har afgjort den. Derefter står der kun datoen og svaret.</p>
+    <p>Det er de to eneste faste frister, systemet selv håndhæver.</p><p><b>Point, niveauer, medaljer, noter og historik har i dag ingen fast slettefrist.</b> De gemmes, så længe barnet bruger appen, og slettes når I beder om det. Der er ikke sat en automatisk oprydning op, som af sig selv fjerner data for børn, der er stoppet i klubben - nogen skal sætte det i gang. Det er en kendt mangel, og det er noteret som noget, der skal forbedres.</p>
 
     <h3>Login og adgangskoder</h3>
     <p>Adgangen oprettes af klubben og sendes til jer med en midlertidig kode. <b>Første gang I logger ind, skal I vælge jeres egen</b> - man kommer ikke videre i appen før. Glemmer I den, kan I vælge en ny via "Glemt adgangskode?" på login-siden. Ingen - heller ikke træneren - kan se jeres kode.</p>
@@ -480,7 +522,7 @@
 
     <h3>Jeres bekræftelse</h3>
     <p>Første gang I logger ind, bliver I bedt om at bekræfte, at I har læst det her. <b>Bekræftelsen gemmes</b> med dato på jeres brugerkonto, så det kan dokumenteres, hvem der har sagt ja og hvornår. Ændres teksten væsentligt, bliver I spurgt igen.</p>
-    <p><b>I appen:</b> under "Min profil" er der en knap, der hedder "Anmod om at blive slettet". Den sender anmodningen til jeres træner, som godkender den. I kan fortryde, indtil den er behandlet.</p><p>I kan også bare skrive til adressen ovenfor. Så lukkes adgangen, og alt om jeres barn bliver slettet: profil, point, niveauer, medaljer, historik, trænerens note, alle indsendte videoer, alle videofiler, alle udfordringer og pladsen på ranglisten.</p><p>Det sker i <b>én samlet handling</b> i systemet, så intet bliver glemt undervejs. Men det <b>starter ikke af sig selv</b> - en person skal sætte det i gang, når I henvender jer. I får besked, når det er gjort, og det sker senest 30 dage efter jeres henvendelse.</p><p>Selve login'et lukkes samtidig. Selve brugerkontoen hos Google fjernes i et separat trin bagefter; indtil da giver den ingen adgang til noget som helst.</p>
+    <p><b>I appen:</b> under "Min profil" er der en knap, der hedder "Anmod om at blive slettet". Den sender anmodningen til jeres træner, som godkender den. I kan fortryde, indtil den er behandlet.</p><p>I kan også bare skrive til adressen ovenfor. Så lukkes adgangen, og alt om jeres barn bliver slettet: profil, point, niveauer, medaljer, historik, trænerens note, Jongleringsstigen og Daglig fodteknik med alle registreringer, logge og joker-begrundelser, alle indsendte videoer, alle videofiler, alle udfordringer og pladsen på ranglisten.</p><p>Det sker i <b>én samlet handling</b> i systemet, så intet bliver glemt undervejs. Men det <b>starter ikke af sig selv</b> - en person skal sætte det i gang, når I henvender jer. I får besked, når det er gjort, og det sker senest 30 dage efter jeres henvendelse.</p><p>Selve login'et lukkes samtidig. Selve brugerkontoen hos Google fjernes i et separat trin bagefter; indtil da giver den ingen adgang til noget som helst.</p>
 
     <h3>Jeres rettigheder</h3>
     <p>I har ret til at få at vide, hvad der er registreret, få rettet noget forkert, få det hele slettet, og at trække et samtykke tilbage - også efter at have sagt ja. Det koster ingenting og kræver ingen begrundelse. Er I utilfredse med måden, det håndteres på, kan I klage til Datatilsynet.</p>
@@ -490,7 +532,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.53 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.54 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -643,6 +685,14 @@ function juggleGateOpen(pid){ return juggleTricks(pid).includes("oploft"); }
 function juggleMainBlocked(pid){ return juggleMainStep(pid) >= JUGGLE_GATE_AFTER && !juggleGateOpen(pid); }
 
 async function writeJuggle(pid, p, progress, logEntry){
+  // Datoerne ligger paa det klub-laesbare dokument, fordi en registrering paa stigen
+  // ogsaa taeller som en aktiv dag i fodteknik-streaken - og den skal kunne regnes ud
+  // paa tvaers af aargange. Kun datoer: ingen navne, intet bruger-id, intet om hvad.
+  if(logEntry?.t !== "correct"){
+    const dato = dagsISO(new Date());
+    const tidligereDage = Array.isArray(juggleFor(pid)?.days) ? juggleFor(pid).days : [];
+    if(!tidligereDage.includes(dato)) progress = Object.assign({}, progress, {days: [...tidligereDage, dato].slice(-400)});
+  }
   await setDoc(doc(db, "juggleLadder", pid), Object.assign({
     year: normalizeYearValue(p.year), gender: p.gender || null, updatedAt: serverTimestamp()
   }, progress), {merge:true});
@@ -762,8 +812,8 @@ function ladderPoints(pid){
        + juggleWeakStep(pid) * JUGGLE_WEAK_POINTS
        + juggleTricks(pid).reduce((n,id)=>n + (juggleTrick(id)?.point || 0), 0);
 }
-// Samlet pointtal = det traeneren har tildelt + det stigen har givet.
-function totalPoints(p){ return (p?.points || 0) + ladderPoints(p?.id); }
+// Samlet pointtal = det traeneren har tildelt + det stigen har givet + fodteknikken.
+function totalPoints(p){ return (p?.points || 0) + ladderPoints(p?.id) + footworkPoints(p?.id); }
 // Uge/maaned: et trin taeller kun, hvis det stadig er en del af fremdriften.
 // Retter traeneren et trin ned, holder de fjernede trin op med at taelle - uden
 // at nogen behoever rydde op i loggen.
@@ -777,6 +827,507 @@ function ladderPointsInWindow(pid, since){
     return sum;
   }, 0);
 }
+
+// ---------------------------------------------------------------------------
+// DAGLIG FODTEKNIK
+// Modul nummer to uden medaljer: korte oevelser derhjemme, registreret paa tillid.
+// Samme grundregel som Jongleringsstigen - der gemmes ALDRIG point. Der ligger kun
+// registreringerne, og point regnes ud af dem, hver gang de vises. Det er praecis
+// dét, der goer rettelser, sletninger og bagudregistrering gratis: der er intet
+// lager at holde synkront, saa en rettelse ét sted kan ikke efterlade et forkert
+// tal et andet.
+//
+// Dokumenterne er delt i to, af samme grund som stigen:
+//   footwork/{pid}     - tal og status. Laeses af hele klubben, fordi klub-top-10
+//                        gaar paa tvaers af aargange og skal vise SAMME total som
+//                        aargangslisten. Her staar intet navn og intet bruger-id.
+//   footworkLog/{pid}  - hvem rettede hvad hvornaar, og joker-aarsagen. Aargangs-
+//                        begraenset som alt andet, fordi der staar tekst og uid'er.
+const FOOTWORK_MAX_PER_DAY = 10;    // gennemfoerelser pr. oevelse pr. dag (teknisk vaern)
+const FOOTWORK_BACKDATE_DAYS = 14;  // hvor langt familien selv maa registrere bagud
+const FOOTWORK_GRADE_POINTS = {let:2, mellem:3, svaer:4};
+const FOOTWORK_GRADE_NAMES = {let:"Let", mellem:"Mellem", svaer:"Svær"};
+// kode: det ene bogstav, dagen gemmes under i databasen. Kortere noegler betyder et
+// mindre dokument - og dokumentet her hentes af alle logins, hver gang appen aabnes.
+const FOOTWORK = [
+  {id:"toetaps",    kode:"t", navn:"Toe-taps",           grad:"let",    tekst:"Skiftevis tæer let på toppen af bolden.", fokus:"Let på fødderne, højt tempo."},
+  {id:"saalerul",   kode:"s", navn:"Sålerul",            grad:"let",    tekst:"Rul bolden på tværs med sålen, skift fod.", fokus:"Kontrol, bolden tæt."},
+  {id:"trommestik", kode:"d", navn:"Trommestikker",      grad:"let",    tekst:"Spil bolden mellem indersiderne.", fokus:"Små berøringer, bøjede knæ."},
+  {id:"vrul",       kode:"v", navn:"V-rul",              grad:"mellem", tekst:"Træk bolden tilbage med sålen, og spil den frem med indersiden af samme fod. Skift fod."},
+  {id:"traekskub",  kode:"p", navn:"Træk-skub",          grad:"mellem", tekst:"Træk bolden tilbage med sålen, og skub den frem igen. Skift fod."},
+  {id:"stepover",   kode:"o", navn:"Step-over",          grad:"mellem", tekst:"Før foden rundt om bolden uden at røre den. Skiftevis."},
+  {id:"jongler",    kode:"j", navn:"Jongleringstræning", grad:"mellem", tekst:"3 × 30 sek. fri jonglering.", fokus:"Dette er den daglige øvelse - ikke Jongleringsstigen. Her er der ingen trin at nå."},
+  {id:"lrul",       kode:"l", navn:"L-rul",              grad:"svaer",  tekst:"Træk bolden tilbage med sålen, og spil den bag om standbenet med indersiden."},
+  {id:"croqueta",   kode:"c", navn:"Croqueta",           grad:"svaer",  tekst:"Flyt bolden fra inderside til inderside med et lille sideskridt."},
+  {id:"square",     kode:"q", navn:"Square",             grad:"svaer",  tekst:"Før bolden rundt i et kvadrat med sålen (frem, til siden, tilbage, til siden). Skift fod."}
+];
+const FOOTWORK_RULES = [
+  "1 gennemførelse = øvelsen lavet 3 × 30 sekunder. Der registreres kun, at den er gennemført - ikke hvor godt.",
+  "Du må lave den samme øvelse flere gange om dagen, og så mange øvelser du vil.",
+  "Point pr. gennemførelse: Let 2 · Mellem 3 · Svær 4.",
+  "Tre gennemførelser fra samme dag kan danne en kombi, der giver bonus. Hver gennemførelse kan kun være med i én kombi - men der er ingen grænse for, hvor mange kombier en dag kan give.",
+  "Appen finder selv den opdeling, der giver dig flest point. Du skal ikke regne på det.",
+  "En dag tæller som aktiv, hvis du har mindst én gennemførelse - eller har registreret et trin på Jongleringsstigen.",
+  "Du kan registrere op til 14 dage tilbage. Ældre dage kan kun rettes af en træner.",
+  "Træneren kan tage stikprøver til træning og rette, hvis tallene ikke holder."
+];
+const FOOTWORK_INDOOR = [
+  "Brug en lettere bold eller en futsalbold (str. 3-4).",
+  "Træn på bare fødder eller i indendørssko på et skridsikkert gulv - ikke i sokker.",
+  "Fjern ting inden for 1 meter.",
+  "Der er plads nok: ca. 2 × 2 meter er rigeligt til alle øvelserne."
+];
+// Kumulativ bonus: hver milepael udloeser sit eget tal. 7 dage giver altsaa 5+5+10.
+// Et brud nulstiller, og bonusserne kan optjenes forfra - det er vanen, der belønnes.
+const FOOTWORK_STREAK = [[3,5],[5,5],[7,10],[10,10],[15,15],[20,15],[25,20],[30,25],[40,30],[50,40],[75,50],[100,75],[125,100]];
+const FOOTWORK_COMBO_TEXT = [
+  "3 gange den samme øvelse: +2",
+  "3 forskellige, mindst én let: +3",
+  "Allround - 1 let + 1 mellem + 1 svær: +5",
+  "3 forskellige, alle mellem eller svære: +5",
+  "3 forskellige svære: +8",
+  "2 ens + 1 anden giver ingen kombi."
+];
+
+function footworkEx(idEllerKode){
+  return FOOTWORK.find(x=>x.id===idEllerKode) || FOOTWORK.find(x=>x.kode===idEllerKode) || null;
+}
+function footworkPointsFor(ex){ return FOOTWORK_GRADE_POINTS[ex?.grad] || 0; }
+
+// Dansk kalenderdag. Datoer er noegler i databasen, saa de skal skrives ud fra den
+// LOKALE dag - ikke toISOString(), som ville flytte en aftentraening til dagen efter.
+function dagsISO(d){
+  const x = d instanceof Date ? d : new Date(d);
+  return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`;
+}
+function iDagISO(){ return dagsISO(new Date()); }
+function isoPlus(iso, n){
+  const [y,m,d] = String(iso).split("-").map(Number);
+  const x = new Date(y, m-1, d);
+  x.setDate(x.getDate() + n);
+  return dagsISO(x);
+}
+function isoDage(a, b){ // hele dage fra a til b; UTC bruges her netop for at undgaa sommertid
+  const pa = String(a).split("-").map(Number), pb = String(b).split("-").map(Number);
+  return Math.round((Date.UTC(pb[0],pb[1]-1,pb[2]) - Date.UTC(pa[0],pa[1]-1,pa[2])) / 86400000);
+}
+function datoTekst(iso){
+  const [y,m,d] = String(iso).split("-").map(Number);
+  return new Date(y, m-1, d).toLocaleDateString("da-DK", {weekday:"short", day:"numeric", month:"short"});
+}
+
+// --- Kombi-boost ----------------------------------------------------------
+// Kun to slags tripler giver noget: tre gange SAMME oevelse, eller tre FORSKELLIGE.
+// "2 ens + 1 anden" giver nul, praecis som i reglerne.
+function footworkBoost(i, j, k){
+  const a = FOOTWORK[i], b = FOOTWORK[j], c = FOOTWORK[k];
+  if(!a || !b || !c) return 0;
+  if(i === j && j === k) return 2;
+  if(i === j || j === k || i === k) return 0;
+  const grader = [a.grad, b.grad, c.grad];
+  const lette  = grader.filter(g=>g === "let").length;
+  const mellem = grader.filter(g=>g === "mellem").length;
+  const svaere = grader.filter(g=>g === "svaer").length;
+  if(lette === 1 && mellem === 1 && svaere === 1) return 5;  // allround
+  if(lette > 0) return 3;
+  if(svaere === 3) return 8;
+  return 5;                                                  // 3 forskellige, alle mellem/svaer
+}
+function footworkBoostNavn(i, j, k){
+  const b = footworkBoost(i, j, k);
+  if(b === 2) return "3 × " + FOOTWORK[i].navn;
+  if(b === 8) return "3 forskellige svære";
+  if(b === 5){
+    const grader = [FOOTWORK[i].grad, FOOTWORK[j].grad, FOOTWORK[k].grad];
+    return grader.includes("let") ? "Allround" : "Mellem/svær";
+  }
+  return "3 forskellige";
+}
+
+// Den opdeling, der giver den HOEJESTE samlede bonus - ikke den foerste, der ser god ud.
+// Graadig udvaelgelse er beviseligt forkert her: med Toe-taps×2, V-rul×2, L-rul,
+// Croqueta og Square tager graadig de tre svaere (+8), og de fire resterende kan ikke
+// danne en kombi. To allround-kombier giver 10. Derfor udtoemmende soegning med huskeliste.
+const footworkComboMemo = new Map();
+function footworkSolve(counts, budget){
+  const key = counts.join(",");
+  const husket = footworkComboMemo.get(key);
+  if(husket) return husket;
+  const i = counts.findIndex(c=>c > 0);
+  if(i < 0) return {boost:0, kombier:[]};
+  if(budget.n-- <= 0) return null;   // naedbremse, se footworkDayCombos
+
+  // Mulighed 1: lad en gennemfoerelse af i staa uden for enhver kombi.
+  const uden = counts.slice(); uden[i]--;
+  const udenRest = footworkSolve(uden, budget);
+  if(!udenRest) return null;
+  let bedst = {boost: udenRest.boost, kombier: udenRest.kombier};
+
+  // Mulighed 2: byg en kombi, der indeholder i. j,k >= i, saa hver triple ses én gang.
+  for(let j = i; j < counts.length; j++){
+    for(let k = j; k < counts.length; k++){
+      const b = footworkBoost(i, j, k);
+      if(b === 0) continue;
+      const c2 = counts.slice();
+      c2[i]--; c2[j]--; c2[k]--;
+      if(c2[i] < 0 || c2[j] < 0 || c2[k] < 0) continue;
+      const rest = footworkSolve(c2, budget);
+      if(!rest) return null;
+      if(b + rest.boost > bedst.boost) bedst = {boost: b + rest.boost, kombier: [[i,j,k], ...rest.kombier]};
+    }
+  }
+  if(footworkComboMemo.size > 40000) footworkComboMemo.clear();
+  footworkComboMemo.set(key, bedst);
+  return bedst;
+}
+function footworkDayCombos(counts){
+  const i_alt = counts.reduce((a,b)=>a+b, 0);
+  if(i_alt < 3) return {boost:0, kombier:[]};
+  const praecis = footworkSolve(counts, {n: 250000});
+  if(praecis) return praecis;
+  // Naedloesning for en dag, ingen rigtig spiller laver (den kraever 60+ gennemfoerelser
+  // = over halvanden time med bolden). Loes praecist paa hoejst 3 pr. oevelse, og laeg
+  // resten sammen som "3 ens". Deterministisk, og aldrig hoejere end det rigtige svar.
+  const klippet = counts.map(c=>Math.min(c, 3));
+  const del = footworkSolve(klippet, {n: 250000}) || {boost:0, kombier:[]};
+  let boost = del.boost;
+  const kombier = [...del.kombier];
+  counts.forEach((c, i)=>{
+    for(let n = Math.floor((c - klippet[i]) / 3); n > 0; n--){ boost += 2; kombier.push([i,i,i]); }
+  });
+  return {boost, kombier};
+}
+
+// --- Data -----------------------------------------------------------------
+function footworkFor(pid){ return footwork.find(x=>x.id===pid) || null; }
+function footworkLogFor(pid){ const d = footworkLogs.find(x=>x.id===pid); return Array.isArray(d?.entries) ? d.entries : []; }
+function footworkReasons(pid){ const d = footworkLogs.find(x=>x.id===pid); return (d?.reasons && typeof d.reasons === "object") ? d.reasons : {}; }
+function footworkDays(pid){
+  const d = footworkFor(pid)?.days;
+  return (d && typeof d === "object") ? Object.keys(d).filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)).sort() : [];
+}
+// Tallene kommer fra et spillerlogin, saa de klippes her. Uden det kunne en haandskrevet
+// vaerdi give point i det uendelige - nu er loftet det samme som i brugerfladen.
+function footworkCount(pid, dato, kode){
+  const n = footworkFor(pid)?.days?.[dato]?.[kode];
+  return Number.isInteger(n) && n > 0 ? Math.min(n, FOOTWORK_MAX_PER_DAY) : 0;
+}
+function footworkDayCounts(pid, dato){ return FOOTWORK.map(ex=>footworkCount(pid, dato, ex.kode)); }
+
+// Joker: familien ANMODER (jokerRequests), traeneren AFGOER (jokers). De to felter er
+// adskilt, fordi reglerne ikke kan se ned i et kort - men de kan se, hvilke FELTER en
+// skrivning roerer. Derfor kan et spillerlogin skrive en anmodning og aldrig en afgoerelse.
+function footworkJokerStatus(pid, dato){
+  const f = footworkFor(pid);
+  const afgjort = f?.jokers?.[dato];
+  if(afgjort === "approved" || afgjort === "rejected") return afgjort;
+  return f?.jokerRequests?.[dato] ? "pending" : null;
+}
+function footworkJokerDays(pid){
+  const f = footworkFor(pid);
+  const alle = new Set([...Object.keys(f?.jokers || {}), ...Object.keys(f?.jokerRequests || {})]);
+  return [...alle].filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+}
+
+// En godkendt joker nulstiller dagen helt: den er hverken aktiv eller et brud, og den
+// giver ingen point. Det er hele aftalen - jokeren er til de dage, hvor man IKKE naaede det.
+function footworkDayPoints(pid, dato){
+  if(footworkJokerStatus(pid, dato) === "approved") return 0;
+  const counts = footworkDayCounts(pid, dato);
+  return counts.reduce((sum, c, i)=>sum + c * footworkPointsFor(FOOTWORK[i]), 0) + footworkDayCombos(counts).boost;
+}
+function footworkActiveDays(pid){
+  return footworkDays(pid).filter(d=>footworkJokerStatus(pid, d) !== "approved" && footworkDayCounts(pid, d).some(c=>c > 0));
+}
+// Stigen taeller ogsaa som aktiv dag. De klub-laesbare datoer ligger paa stige-
+// dokumentet; loggen laegges oveni, saa spillerens EGEN visning ogsaa daekker de
+// registreringer, der blev lavet foer datolisten fandtes.
+function juggleActiveDays(pid){
+  const liste = juggleFor(pid)?.days;
+  const set = new Set(Array.isArray(liste) ? liste.filter(x=>typeof x === "string") : []);
+  juggleLogFor(pid).forEach(e=>{ if(e?.at && e.t !== "correct") set.add(dagsISO(new Date(e.at))); });
+  return [...set];
+}
+
+// --- Streak ---------------------------------------------------------------
+// Et forloeb = paa hinanden foelgende kalenderdage, hvor hver dag er aktiv eller
+// daekket af en joker. Jokerdagen bygger bro, men taeller ikke med i laengden.
+// taelPending: en ubehandlet joker bygger bro i VISNINGEN, men ikke naar point
+// regnes ud - ellers kunne barnet se point forsvinde igen, hvis traeneren afviser.
+function footworkRuns(pid, taelPending){
+  const aktive = new Set([...footworkActiveDays(pid), ...juggleActiveDays(pid)]);
+  if(!aktive.size) return [];
+  const bro = new Set();
+  footworkJokerDays(pid).forEach(d=>{
+    const s = footworkJokerStatus(pid, d);
+    if(s === "approved" || (taelPending && s === "pending")) bro.add(d);
+  });
+  const alle = [...new Set([...aktive, ...bro])].sort();
+  const runs = [];
+  let nu = null;
+  for(const dato of alle){
+    if(nu && isoDage(nu.sidste, dato) === 1) nu.sidste = dato;
+    else { nu = {foerste: dato, sidste: dato, dage: []}; runs.push(nu); }
+    if(aktive.has(dato)) nu.dage.push(dato);
+  }
+  // Et forloeb uden en enkelt aktiv dag er bare en joker i tomt rum - ikke en streak.
+  return runs.filter(r=>r.dage.length).map(r=>({
+    foerste: r.foerste, sidste: r.sidste, dage: r.dage,
+    laengde: r.dage.length, sidsteAktive: r.dage[r.dage.length-1]
+  }));
+}
+function footworkStreakBonus(laengde){
+  return FOOTWORK_STREAK.reduce((sum, [dage, point])=>laengde >= dage ? sum + point : sum, 0);
+}
+function footworkNextStreakBonus(laengde){ return FOOTWORK_STREAK.find(([dage])=>dage > laengde) || null; }
+// Lever streaken? Sidste aktive dag - eller sidste jokerdag - skal vaere i dag eller
+// i gaar. Ellers ville enhver streak se brudt ud hver morgen, foer man har naaet at traene.
+function footworkCurrentStreak(pid){
+  const medPending = footworkRuns(pid, true);
+  if(!medPending.length) return {laengde:0, afventer:false, lever:false};
+  const sidste = medPending[medPending.length-1];
+  const iDag = iDagISO(), iGaar = isoPlus(iDag, -1);
+  const lever = [sidste.sidsteAktive, sidste.sidste].some(d=>d === iDag || d === iGaar);
+  if(!lever) return {laengde:0, afventer:false, lever:false, tidligere:sidste};
+  const udenPending = footworkRuns(pid, false);
+  const uden = udenPending[udenPending.length-1];
+  return {
+    laengde: sidste.laengde,
+    lever: true,
+    // Hviler laengden paa en joker, traeneren ikke har set paa endnu?
+    afventer: !uden || uden.sidsteAktive !== sidste.sidsteAktive || uden.laengde < sidste.laengde,
+    talt: uden && uden.sidsteAktive === sidste.sidsteAktive ? uden.laengde : 0
+  };
+}
+
+// --- Point ----------------------------------------------------------------
+// Ren funktion af registreringerne. Intet gemt tal, intet at holde synkront.
+function footworkPoints(pid){
+  let sum = footworkDays(pid).reduce((s, d)=>s + footworkDayPoints(pid, d), 0);
+  footworkRuns(pid, false).forEach(r=>{ sum += footworkStreakBonus(r.laengde); });
+  return sum;
+}
+// Uge/maaned: dagens point hoerer til dagen, og en streak-bonus hoerer til den dag,
+// forloebet naaede milepaelen. Derfor flytter en bagudregistrering ogsaa bonussen
+// til den rigtige uge af sig selv.
+function footworkPointsInWindow(pid, since){
+  const graense = dagsISO(since);
+  let sum = footworkDays(pid).filter(d=>d >= graense).reduce((s, d)=>s + footworkDayPoints(pid, d), 0);
+  footworkRuns(pid, false).forEach(r=>{
+    r.dage.forEach((dato, i)=>{
+      const milepael = FOOTWORK_STREAK.find(([dage])=>dage === i + 1);
+      if(milepael && dato >= graense) sum += milepael[1];
+    });
+  });
+  return sum;
+}
+
+// --- Skrivning ------------------------------------------------------------
+async function writeFootwork(pid, p, patch, logEntry, reasonPatch){
+  await setDoc(doc(db, "footwork", pid), Object.assign({
+    year: normalizeYearValue(p.year), gender: p.gender || null, updatedAt: serverTimestamp()
+  }, patch), {merge:true});
+  if(logEntry || reasonPatch){
+    const tidligere = footworkLogFor(pid);
+    const log = {
+      year: normalizeYearValue(p.year), gender: p.gender || null, updatedAt: serverTimestamp()
+    };
+    if(logEntry) log.entries = [logEntry, ...tidligere].slice(0, 300);
+    if(reasonPatch) log.reasons = reasonPatch;
+    await setDoc(doc(db, "footworkLog", pid), log, {merge:true});
+  }
+}
+
+// Familien taeller op og ned paa den valgte dag. Ingen video, ingen godkendelse.
+async function registerFootwork(kode, delta){
+  if(!isPlayer() || !currentPlayerLink) return alert("Kun spilleren selv kan registrere fodteknik.");
+  if(demoBlocked("Gennemførelsen bliver ikke registreret herfra.")) return;
+  const ex = footworkEx(kode); if(!ex) return;
+  const p = currentPlayerLink, pid = p.id, dato = footworkSelectedDay();
+  if(!footworkDayOpenForPlayer(dato)) return alert(`Dagen er låst.\n\nI kan selv registrere op til ${FOOTWORK_BACKDATE_DAYS} dage tilbage. Ældre dage kan en træner rette.`);
+  if(footworkJokerStatus(pid, dato) === "approved") return alert("Dagen er dækket af en godkendt joker, så den giver ingen point.\n\nVil I registrere træning på dagen, skal træneren først fjerne jokeren.");
+  const nu = footworkCount(pid, dato, ex.kode);
+  const ny = Math.max(0, Math.min(FOOTWORK_MAX_PER_DAY, nu + delta));
+  if(ny === nu){
+    if(delta > 0) alert(`Der er plads til højst ${FOOTWORK_MAX_PER_DAY} gennemførelser af den samme øvelse på én dag.`);
+    return;
+  }
+  try{
+    await writeFootwork(pid, p, {days: {[dato]: footworkDayPatch(pid, dato, ex.kode, ny)}},
+      {d: dato, e: ex.id, fra: nu, til: ny, at: new Date().toISOString(), by: currentUser?.uid || ""});
+  }catch(e){
+    console.error(e);
+    alert("Kunne ikke registrere: " + (e.message || "ukendt fejl"));
+  }
+}
+// Et felt, der skal VAEK, kan ikke bare udelades: {merge:true} fletter kort sammen, saa
+// den gamle vaerdi ville blive staaende. Derfor deleteField() - og hele dagen ryger,
+// naar den sidste oevelse fjernes, saa der ikke samler sig tomme datoer i dokumentet.
+function footworkDayPatch(pid, dato, kode, ny){
+  if(ny > 0) return {[kode]: ny};
+  const andre = FOOTWORK.some(ex=>ex.kode !== kode && footworkCount(pid, dato, ex.kode) > 0);
+  return andre ? {[kode]: deleteField()} : deleteField();
+}
+
+async function requestFootworkJoker(){
+  if(!isPlayer() || !currentPlayerLink) return;
+  if(demoBlocked("Jokeren bliver ikke sendt herfra.")) return;
+  const p = currentPlayerLink, pid = p.id, dato = footworkSelectedDay();
+  if(footworkJokerStatus(pid, dato)) return alert("Der er allerede en joker på den dag.");
+  if(!footworkDayOpenForPlayer(dato)) return alert(`I kan søge joker op til ${FOOTWORK_BACKDATE_DAYS} dage tilbage.`);
+  const aarsag = (prompt(
+    `Søg joker for ${datoTekst(dato)}.\n\n`
+    + `Jokeren betyder, at streaken ikke bliver brudt. Dagen giver ingen point og tæller ikke som en aktiv dag.\n\n`
+    + `Skriv kort hvorfor. Hold det kort, og skriv ikke helbredsdetaljer - "syg" er nok:`) || "").trim();
+  if(!aarsag) return;
+  if(aarsag.length > 200) return alert("Hold det under 200 tegn.");
+  try{
+    await writeFootwork(pid, p, {jokerRequests: {[dato]: true}},
+      {d: dato, e: "joker", til: "søgt", at: new Date().toISOString(), by: currentUser?.uid || ""},
+      {[dato]: {tekst: aarsag, at: new Date().toISOString(), by: currentUser?.uid || ""}});
+    alert("Jokeren er sendt til træneren. Streaken er ikke brudt, mens I venter.");
+  }catch(e){ console.error(e); alert("Kunne ikke sende jokeren: " + (e.message || "ukendt fejl")); }
+}
+async function cancelFootworkJoker(){
+  if(!isPlayer() || !currentPlayerLink) return;
+  if(demoBlocked("Der sker ikke noget herfra.")) return;
+  const p = currentPlayerLink, pid = p.id, dato = footworkSelectedDay();
+  if(footworkJokerStatus(pid, dato) !== "pending") return alert("Jokeren er allerede behandlet og kan kun ændres af en træner.");
+  if(!confirm(`Træk jokeren for ${datoTekst(dato)} tilbage?`)) return;
+  try{
+    await writeFootwork(pid, p, {jokerRequests: {[dato]: deleteField()}},
+      {d: dato, e: "joker", til: "trukket tilbage", at: new Date().toISOString(), by: currentUser?.uid || ""},
+      {[dato]: deleteField()});
+  }catch(e){ console.error(e); alert("Kunne ikke trække jokeren tilbage: " + (e.message || "ukendt fejl")); }
+}
+
+// Traenerens afgoerelse. Den ligger i Godkendelser ved siden af videoerne.
+async function decideFootworkJoker(pid, dato, approve){
+  if(isPlayer()) return alert("Kun trænere kan afgøre jokere.");
+  const p = players.find(x=>x.id===pid);
+  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  const foer = footworkCurrentStreak(pid);
+  if(!confirm(`${approve ? "Godkend" : "Afvis"} jokeren for ${p.name} den ${datoTekst(dato)}?\n\n`
+    + (approve
+      ? "Dagen bryder ikke streaken, men den tæller ikke som aktiv dag og giver ingen point."
+      : "Dagen bliver en almindelig dag uden aktivitet, så streaken genberegnes - og kan blive brudt.")
+    + `\n\nAfgørelsen bliver logget med dit navn.`)) return;
+  try{
+    await writeFootwork(pid, p, {jokers: {[dato]: approve ? "approved" : "rejected"}},
+      {d: dato, e: "joker", til: approve ? "godkendt" : "afvist", at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""},
+      {[dato]: {afgjort: approve ? "approved" : "rejected", afgjortAf: currentUser?.email || "", afgjortAt: new Date().toISOString()}});
+    const efter = footworkCurrentStreak(pid);
+    if(foer.laengde !== efter.laengde) console.log(`streak for ${p.name}: ${foer.laengde} → ${efter.laengde}`);
+  }catch(e){ console.error(e); alert("Kunne ikke afgøre jokeren: " + (e.message || "ukendt fejl")); }
+}
+async function clearFootworkJoker(pid, dato){
+  if(isPlayer()) return alert("Kun trænere kan fjerne jokere.");
+  const p = players.find(x=>x.id===pid);
+  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  if(!confirm(`Fjern jokeren for ${p.name} den ${datoTekst(dato)} helt?\n\nDagen bliver en almindelig dag, og streaken genberegnes.`)) return;
+  try{
+    await writeFootwork(pid, p, {jokers: {[dato]: deleteField()}, jokerRequests: {[dato]: deleteField()}},
+      {d: dato, e: "joker", til: "fjernet", at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""},
+      {[dato]: deleteField()});
+  }catch(e){ console.error(e); alert("Kunne ikke fjerne jokeren: " + (e.message || "ukendt fejl")); }
+}
+
+// Traenerens stikproeve: ret en enkelt oevelse paa en enkelt dag, eller nulstil dagen.
+async function correctFootwork(pid, dato, kode){
+  if(isPlayer()) return alert("Kun trænere kan rette registreringer.");
+  const p = players.find(x=>x.id===pid);
+  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  const ex = footworkEx(kode); if(!ex) return;
+  const nu = footworkCount(pid, dato, ex.kode);
+  const svar = prompt(`Ret ${p.name} · ${ex.navn} · ${datoTekst(dato)}.\n\nStår nu på ${nu} gennemførelser.\n\nSkriv det rigtige antal (0-${FOOTWORK_MAX_PER_DAY}):`, String(nu));
+  if(svar === null) return;
+  const ny = parseInt(svar, 10);
+  if(!Number.isFinite(ny) || ny < 0 || ny > FOOTWORK_MAX_PER_DAY) return alert(`Skriv et tal mellem 0 og ${FOOTWORK_MAX_PER_DAY}.`);
+  if(ny === nu) return;
+  try{
+    await writeFootwork(pid, p, {days: {[dato]: footworkDayPatch(pid, dato, ex.kode, ny)}},
+      {d: dato, e: ex.id, fra: nu, til: ny, at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""});
+  }catch(e){ console.error(e); alert("Kunne ikke rette: " + (e.message || "ukendt fejl")); }
+}
+// To trin, fordi en dag kan have flere oevelser: vaelg oevelsen, ret saa tallet.
+async function correctFootworkDay(pid, dato){
+  if(isPlayer()) return alert("Kun trænere kan rette registreringer.");
+  const brugt = FOOTWORK.filter(ex=>footworkCount(pid, dato, ex.kode) > 0);
+  if(!brugt.length) return alert("Der er ikke registreret noget den dag.");
+  if(brugt.length === 1) return correctFootwork(pid, dato, brugt[0].kode);
+  const svar = prompt(`${datoTekst(dato)} - hvilken øvelse skal rettes?\n\n`
+    + brugt.map((ex,i)=>`${i+1}. ${ex.navn} (${footworkCount(pid, dato, ex.kode)})`).join("\n")
+    + `\n\nSkriv nummeret:`);
+  if(svar === null) return;
+  const valg = brugt[parseInt(svar, 10) - 1];
+  if(!valg) return alert("Det var ikke et af numrene.");
+  return correctFootwork(pid, dato, valg.kode);
+}
+async function resetFootworkDay(pid, dato){
+  if(isPlayer()) return alert("Kun trænere kan nulstille en dag.");
+  const p = players.find(x=>x.id===pid);
+  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  const counts = footworkDayCounts(pid, dato);
+  const i_alt = counts.reduce((a,b)=>a+b, 0);
+  if(!i_alt) return alert("Der er ikke registreret noget den dag.");
+  if(!confirm(`Nulstil ${p.name}s fodteknik den ${datoTekst(dato)}?\n\n${i_alt} ${i_alt===1?"gennemførelse":"gennemførelser"} forsvinder. Dagen holder op med at tælle som aktiv, så streaken genberegnes - og kan blive brudt.\n\nRettelsen bliver logget med dit navn.`)) return;
+  try{
+    await writeFootwork(pid, p, {days: {[dato]: deleteField()}},
+      {d: dato, e: "nulstil", fra: i_alt, til: 0, at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""});
+  }catch(e){ console.error(e); alert("Kunne ikke nulstille: " + (e.message || "ukendt fejl")); }
+}
+
+// Joker-aarsagen er fritekst og kan strejfe helbred, selv med den bedste hjaelpetekst.
+// Den slettes derfor 3 doegn efter, traeneren har afgjort jokeren. Dato og status
+// bliver - de skal til for at regne streaken ud - men selve begrundelsen forsvinder.
+const FOOTWORK_REASON_MAX_AGE_MS = 3*24*60*60*1000;
+let lastFootworkReasonSweep = 0;
+function sweepFootworkJokerReasons(){
+  if(isPlayer()) return;
+  if(!footworkLogs.length) return;
+  const now = Date.now();
+  if(now - lastFootworkReasonSweep < 5*60*1000) return;
+  lastFootworkReasonSweep = now;
+  footworkLogs.forEach(d=>{
+    const p = players.find(x=>x.id===d.id);
+    if(!p || !canAccessPlayer(p.year, p.gender)) return;
+    const vaek = {};
+    Object.entries(d.reasons || {}).forEach(([dato, r])=>{
+      if(!r?.tekst || !r?.afgjortAt) return;
+      if(now - new Date(r.afgjortAt).getTime() > FOOTWORK_REASON_MAX_AGE_MS) vaek[dato] = {tekst: deleteField()};
+    });
+    if(!Object.keys(vaek).length) return;
+    setDoc(doc(db, "footworkLog", d.id), {reasons: vaek, updatedAt: serverTimestamp()}, {merge:true})
+      .catch(e=>console.error("kunne ikke rydde joker-aarsager", e));
+  });
+}
+function footworkPendingJokers(){
+  const ude = [];
+  footwork.forEach(f=>{
+    const p = players.find(x=>x.id===f.id);
+    if(!p || !canAccessPlayer(p.year, p.gender)) return;
+    Object.keys(f.jokerRequests || {}).forEach(dato=>{
+      if(footworkJokerStatus(f.id, dato) === "pending") ude.push({pid: f.id, navn: p.name, dato});
+    });
+  });
+  return ude.sort((a,b)=>a.dato.localeCompare(b.dato));
+}
+
+// Valgt dag i brugerfladen. Familien maa selv raekke 14 dage tilbage - graensen er en
+// spaerring i brugerfladen og KAN ikke haandhaeves i reglerne, som ikke kan regne paa
+// datoer, der er noegler i et kort. Traenerens stikproeve er det reelle vaern, praecis
+// som for resten af modulet.
+let footworkDaySelected = null;
+function footworkSelectedDay(){
+  const iDag = iDagISO();
+  if(!footworkDaySelected || !footworkDayOpenForPlayer(footworkDaySelected)) return iDag;
+  return footworkDaySelected;
+}
+function footworkDayOpenForPlayer(dato){
+  const afstand = isoDage(dato, iDagISO());
+  return afstand >= 0 && afstand < FOOTWORK_BACKDATE_DAYS;
+}
+function setFootworkDay(dato){ footworkDaySelected = dato; renderFootwork(); }
 
 const POINT_BASE = {Bronze:10, Sølv:20, Guld:35};
 const CHALLENGE_BONUS = 25;
@@ -830,6 +1381,8 @@ let challenges = [];
 let clubRanking = [];
 let juggleLadder = [];
 let juggleLog = [];
+let footwork = [];
+let footworkLogs = [];
 let deletionRequests = [];
 let playerNotes = [];
 let currentPlayerLink = null;
@@ -839,7 +1392,7 @@ let leaderboardPeriod = "all";
 let leaderboardScope = "own";
 const CLUB_TOP_N = 10;
 // Haeves kun, naar teksten aendrer sig paa en maade, folk boer se igen.
-const PRIVACY_VERSION = "2026-09-12";
+const PRIVACY_VERSION = "2026-11-07";
 let challengeCreateType = "exercise";
 let unsubPlayers = null;
 let unsubUsers = null;
@@ -848,6 +1401,8 @@ let unsubChallenges = null;
 let unsubClubRanking = null;
 let unsubJuggleLadder = null;
 let unsubJuggleLog = null;
+let unsubFootwork = null;
+let unsubFootworkLog = null;
 let unsubDeletionRequests = null;
 let unsubPlayerNotes = null;
 
@@ -995,7 +1550,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.53 · ikke logget ind");
+    setSyncStatus("v15.54 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1021,7 +1576,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.53 · bekræft inden I går i gang");
+    setSyncStatus("v15.54 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1029,14 +1584,14 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.53 · vælg din egen adgangskode");
+    setSyncStatus("v15.54 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
   document.getElementById("demoBanner").classList.toggle("hidden", !isDemoUser());
   document.getElementById("headerLogout").classList.remove("hidden");
   const coachOnlyTabs = ["tab-players","tab-track","tab-overview","tab-review"];
-  const playerOnlyTabs = ["tab-training","tab-juggle","tab-challenges"];
+  const playerOnlyTabs = ["tab-training","tab-juggle","tab-footwork","tab-challenges"];
   coachOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.toggle("hidden", isPlayer()); });
   playerOnlyTabs.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.toggle("hidden", !isPlayer()); });
   document.getElementById("parentGuideCard").classList.toggle("hidden", !isPlayer());
@@ -1065,9 +1620,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.53 · live database aktiv");
+    setSyncStatus("v15.54 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.53 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.54 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -1115,6 +1670,23 @@ function startListeners(){
     juggleLog = Object.values(logChunks).flat();
     renderAll();
   }, (e)=>console.error("juggleLog listener", e));
+
+  // Daglig fodteknik: samme todeling som stigen. Tallene laeses klub-bredt, fordi
+  // klub-top-10 skal vise samme total som aargangslisten; teksten og uid'erne er
+  // aargangsbegraenset.
+  if(unsubFootwork) unsubFootwork();
+  unsubFootwork = onSnapshot(collection(db, "footwork"), (snap)=>{
+    footwork = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderAll();
+  }, (e)=>console.error("footwork listener", e));
+
+  if(unsubFootworkLog) stopListeners(unsubFootworkLog);
+  const footworkLogChunks = {};
+  unsubFootworkLog = subscribeYearScoped("footworkLog", (idx, docs)=>{
+    footworkLogChunks[idx] = docs;
+    footworkLogs = Object.values(footworkLogChunks).flat();
+    renderAll();
+  }, (e)=>console.error("footworkLog listener", e));
 
   // Noterne hentes kun af traenere og admin - en spiller har ingen laeseadgang, og en
   // lytter ville bare fejle stoejende i konsollen.
@@ -1403,6 +1975,7 @@ async function deletePlayer(id){
     `Slet ALT om ${p.name} (${yearLabel(p.year)})?\n\n`
     + `Dette fjerner for altid:\n`
     + `· Profilen med point, niveauer, medaljer, note og historik\n`
+    + `· Jongleringsstigen og Daglig fodteknik med alle registreringer og logge\n`
     + `· ${subs.length} indsendte ${subs.length===1?"video":"videoer"} og deres data\n`
     + `· ${chs.length} ${chs.length===1?"udfordring":"udfordringer"} med ${p.name}\n`
     + `· ${files.length} ${files.length===1?"videofil":"videofiler"} i skyen${fileListFailed ? " (mappen kunne ikke læses - der kan være flere)" : ""}\n`
@@ -1415,7 +1988,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.53 · sletter...");
+  setSyncStatus("v15.54 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -1424,9 +1997,11 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"playerNotes",id)); }catch(e){ failed.push("traenernoten"); }
   try{ await deleteDoc(doc(db,"juggleLadder",id)); }catch(e){ failed.push("jongleringsstigen"); }
   try{ await deleteDoc(doc(db,"juggleLog",id)); }catch(e){ failed.push("loggen for jongleringsstigen"); }
+  try{ await deleteDoc(doc(db,"footwork",id)); }catch(e){ failed.push("daglig fodteknik"); }
+  try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.53 · live database aktiv");
+  setSyncStatus("v15.54 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -1526,7 +2101,40 @@ function renderTracking(){
     }).join("")}</div>` : '<p class="small" style="margin-top:10px">Ingen registreringer endnu.</p>'}
   </div>`;
 
-  area.innerHTML = `${renderStepbar(p)}${medalBlock}${juggleBlock}<div class="exercise-block">
+  // Fodteknikken: samme tanke som stigen. Her staar de dage, der faktisk er registreret
+  // noget paa - nyeste foerst - saa traeneren kan rette et tal eller nulstille en dag.
+  const fStreak = footworkCurrentStreak(p.id);
+  const fDage = [...new Set([...footworkDays(p.id), ...footworkJokerDays(p.id)])].sort().reverse().slice(0, 10);
+  const fLog = footworkLogFor(p.id).slice(0, 5);
+  const footworkBlock = `<div class="exercise-block">
+    <h3 style="margin-top:0">Daglig fodteknik · ${footworkPoints(p.id)} point</h3>
+    <p class="small">Registreret af familien på tillid. Streak: ${fStreak.laengde} ${fStreak.laengde===1?"dag":"dage"}${fStreak.lever?"":" (ingen aktuel streak)"}${fStreak.afventer?" · hviler på en joker, du ikke har afgjort":""}. Point og streak genberegnes automatisk, når du retter.</p>
+    ${fDage.length ? fDage.map(dato=>{
+      const counts = footworkDayCounts(p.id, dato);
+      const antal = counts.reduce((a,b)=>a+b, 0);
+      const jk = footworkJokerStatus(p.id, dato);
+      const r = footworkReasons(p.id)[dato];
+      const liste = FOOTWORK.map((ex,i)=>counts[i] ? `${ex.navn} ×${counts[i]}` : null).filter(Boolean).join(" · ");
+      return `<div class="ladderrow ${antal?"done":""}">
+        <div class="laddermid"><b>${escapeHtml(datoTekst(dato))}</b><span class="medalmark">${footworkDayPoints(p.id, dato)} point</span>
+          <div class="ladderstep">${liste ? escapeHtml(liste) : "ingen gennemførelser"}${jk ? ` · joker: ${jk==="approved"?"godkendt":jk==="rejected"?"afvist":"afventer"}` : ""}${r?.tekst ? ` · "${escapeHtml(r.tekst)}"` : ""}</div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+          ${antal ? `<button class="btn secondary smallbtn" onclick="correctFootworkDay('${p.id}','${dato}')">Ret</button>
+          <button class="btn secondary smallbtn" onclick="resetFootworkDay('${p.id}','${dato}')">Nulstil</button>` : ""}
+          ${jk ? `<button class="btn secondary smallbtn" onclick="clearFootworkJoker('${p.id}','${dato}')">Fjern joker</button>` : ""}
+        </div>
+      </div>`;
+    }).join("") : '<p class="small">Ingen registreringer endnu.</p>'}
+    ${fLog.length ? `<div class="small" style="margin-top:10px"><b>Seneste registreringer</b>${fLog.map(e=>{
+      const naar = e.at ? new Date(e.at).toLocaleString("da-DK") : "";
+      const hvad = e.e === "joker" ? "joker " + escapeHtml(e.til || "")
+        : e.e === "nulstil" ? "dagen nulstillet"
+        : `${escapeHtml(footworkEx(e.e)?.navn || e.e)} ${e.fra} → ${e.til}`;
+      return `<div>${escapeHtml(naar)} · ${escapeHtml(datoTekst(e.d))} · ${hvad}${e.af ? " · rettet af " + escapeHtml(e.af) : ""}</div>`;
+    }).join("")}</div>` : ""}
+  </div>`;
+
+  area.innerHTML = `${renderStepbar(p)}${medalBlock}${juggleBlock}${footworkBlock}<div class="exercise-block">
     <h3>${selected===current ? "Aktuelt trin" : isPast ? "Rediger tidligere trin" : "Kommende trin"}: Niveau ${s.level} · ${s.medal}</h3>
     <p class="small">${isFuture ? "Dette trin åbner først, når tidligere trin er bestået." : "Marker de øvelser spilleren har bestået."}</p>
     ${exercises.map(ex=>{
@@ -1857,11 +2465,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.53 · migrering færdig");
+    setSyncStatus("v15.54 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.53 · migrering fejlede");
+    setSyncStatus("v15.54 · migrering fejlede");
   }
 }
 
@@ -2036,7 +2644,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.53 · uploader video...");
+    setSyncStatus("v15.54 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -2058,12 +2666,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.53 · live database aktiv");
+    setSyncStatus("v15.54 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.53 · live database aktiv");
+    setSyncStatus("v15.54 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -2433,13 +3041,28 @@ function renderReview(){
   const area = document.getElementById("reviewArea");
   if(!area) return;
   sweepExpiredVideos();
+  sweepFootworkJokerReasons();
+  const jokers = footworkPendingJokers();
   const freestyleReady = freestyleChallengesReadyForJudging();
   const pending = submissions.filter(s=>canAccessYear(s.year) && s.status==="pending" && !isFreestyleChallengeSubmission(s))
     .sort((a,b)=>(a.submittedAt||"").localeCompare(b.submittedAt||""));
   const recent = submissions.filter(s=>canAccessYear(s.year) && s.status!=="pending")
     .sort((a,b)=>(b.submittedAt||"").localeCompare(a.submittedAt||"")).slice(0,15);
   area.innerHTML = `
-    ${freestyleReady.length ? `<h3>Frie udfordringer klar til afgørelse (${freestyleReady.length})</h3>${freestyleReady.map(x=>freestyleJudgeCard(x.challenge, x.subs)).join("")}` : ""}
+    ${jokers.length ? `<h3 style="margin-top:0">Jokere i fodteknik (${jokers.length})</h3>
+      <p class="small">En godkendt joker betyder, at dagen ikke bryder spillerens streak. Dagen tæller ikke som aktiv dag og giver ingen point. Afvises den, genberegnes streaken - og kan blive brudt. Begrundelsen slettes automatisk 3 døgn efter, du har afgjort jokeren.</p>
+      ${jokers.map(j=>{
+        const r = footworkReasons(j.pid)[j.dato];
+        return `<div class="ladderrow">
+          <div class="laddermid"><b>${escapeHtml(j.navn)}</b><span class="medalmark">${escapeHtml(datoTekst(j.dato))}</span>
+            <div class="ladderstep">${r?.tekst ? "Begrundelse: " + escapeHtml(r.tekst) : "Ingen begrundelse gemt."}${r?.at ? " · søgt " + escapeHtml(new Date(r.at).toLocaleString("da-DK")) : ""}</div></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+            <button class="btn smallbtn" onclick="decideFootworkJoker('${j.pid}','${j.dato}',true)">Godkend</button>
+            <button class="btn secondary smallbtn" onclick="decideFootworkJoker('${j.pid}','${j.dato}',false)">Afvis</button>
+          </div>
+        </div>`;
+      }).join("")}` : ""}
+    ${freestyleReady.length ? `<h3 style="margin-top:16px">Frie udfordringer klar til afgørelse (${freestyleReady.length})</h3>${freestyleReady.map(x=>freestyleJudgeCard(x.challenge, x.subs)).join("")}` : ""}
     <h3 style="margin-top:16px">Afventer godkendelse (${pending.length})</h3>
     ${pending.length===0 ? '<p class="small">Ingen ventende videoer.</p>' : pending.map(s=>reviewCard(s)).join("")}
     <h3 style="margin-top:16px">Seneste behandlede</h3>
@@ -2526,10 +3149,11 @@ function renderLeaderboard(){
   if(leaderboardScope === "club"){
     if(periodArea) periodArea.innerHTML = '<p class="small">Samlede point for hele klubben på tværs af årgange.</p>';
     if(filterArea) filterArea.innerHTML = "";
-    // clubRanking skrives kun af traenere, saa stigens point findes ikke i den. De
-    // laegges til her ud fra juggleLadder, som alle aktive logins maa laese - ellers
-    // ville klublisten og aargangslisten vise to forskellige totaler for samme barn.
-    const top = [...clubRanking].map(r=>({...r, total:(r.points||0) + ladderPoints(r.id)}))
+    // clubRanking skrives kun af traenere, saa stigens og fodteknikkens point findes
+    // ikke i den. De laegges til her ud fra juggleLadder og footwork, som alle aktive
+    // logins maa laese - ellers ville klublisten og aargangslisten vise to forskellige
+    // totaler for samme barn.
+    const top = [...clubRanking].map(r=>({...r, total:(r.points||0) + ladderPoints(r.id) + footworkPoints(r.id)}))
       .sort((a,b)=>b.total-a.total).slice(0, CLUB_TOP_N);
     area.innerHTML = top.map((r,i)=>{
       const tier = tierForPoints(r.total);
@@ -2565,7 +3189,7 @@ function renderLeaderboard(){
   const sinceDate = leaderboardPeriod==="week" ? startOfWeek(now) : leaderboardPeriod==="month" ? startOfMonth(now) : null;
   // Stigens point regnes med - baade all-time og i uge/maaned-vinduet.
   const pointsFor = p => sinceDate
-    ? pointsInWindow(p.id, sinceDate) + ladderPointsInWindow(p.id, sinceDate)
+    ? pointsInWindow(p.id, sinceDate) + ladderPointsInWindow(p.id, sinceDate) + footworkPointsInWindow(p.id, sinceDate)
     : totalPoints(p);
 
   const sorted = [...list].sort((a,b)=>pointsFor(b)-pointsFor(a));
@@ -2856,13 +3480,125 @@ function renderJuggle(){
     </div>`;
 }
 
-function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); renderDeletionRequests(); renderJuggle(); }
+function renderFootwork(){
+  const area = document.getElementById("footworkArea");
+  if(!area) return;
+
+  const statisk = [
+    ["footworkRulesArea", FOOTWORK_RULES],
+    ["footworkIndoorArea", FOOTWORK_INDOOR]
+  ];
+  statisk.forEach(([id, linjer])=>{
+    const el = document.getElementById(id);
+    if(el && !el.dataset.filled){
+      el.innerHTML = linjer.map(t=>`<p class="small" style="margin:0 0 8px">${escapeHtml(t)}</p>`).join("");
+      el.dataset.filled = "1";
+    }
+  });
+  const exArea = document.getElementById("footworkExerciseArea");
+  if(exArea && !exArea.dataset.filled){
+    exArea.innerHTML = ["let","mellem","svaer"].map(grad=>`
+      <div class="phasehead">${FOOTWORK_GRADE_NAMES[grad]}<span>${FOOTWORK_GRADE_POINTS[grad]} point pr. gennemførelse</span></div>
+      ${FOOTWORK.filter(ex=>ex.grad===grad).map(ex=>`<div class="ladderrow">
+        <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>
+          <div class="ladderstep">${escapeHtml(ex.tekst)}${ex.fokus ? " <i>Fokus: " + escapeHtml(ex.fokus) + "</i>" : ""}</div></div>
+      </div>`).join("")}`).join("")
+      + `<div class="phasehead">Kombi-bonus<span>Tre gennemførelser fra samme dag</span></div>`
+      + FOOTWORK_COMBO_TEXT.map(t=>`<p class="small" style="margin:0 0 6px">${escapeHtml(t)}</p>`).join("");
+    exArea.dataset.filled = "1";
+  }
+
+  if(!isPlayer() || !currentPlayerLink){ area.innerHTML = '<p class="small">Fodteknik er til spillere. Trænere retter registreringerne under Registrering.</p>'; return; }
+
+  const p = currentPlayerLink, pid = p.id;
+  const dato = footworkSelectedDay();
+  const iDag = iDagISO();
+  const kanRegistrere = !isDemoUser();
+  const streak = footworkCurrentStreak(pid);
+  const naeste = footworkNextStreakBonus(streak.laengde);
+
+  // Dagvaelgeren: de 14 dage familien selv maa roere, nyeste foerst.
+  const dagChips = [];
+  for(let i = 0; i < FOOTWORK_BACKDATE_DAYS; i++){
+    const d = isoPlus(iDag, -i);
+    const counts = footworkDayCounts(pid, d);
+    const antal = counts.reduce((a,b)=>a+b, 0);
+    const joker = footworkJokerStatus(pid, d);
+    const [, , dagNr] = d.split("-");
+    const ugedag = i === 0 ? "I dag" : i === 1 ? "I går" : datoTekst(d).split(" ")[0].replace(".", "");
+    dagChips.push(`<button type="button" class="daychip ${d===dato?"current":""} ${joker==="approved"||joker==="pending"?"joker":antal?"has":""}" onclick="setFootworkDay('${d}')">
+      ${escapeHtml(ugedag)}<span>${joker==="approved" ? "joker" : joker==="pending" ? "afventer" : antal ? antal + " ✓" : Number(dagNr) + "."}</span>
+    </button>`);
+  }
+
+  const joker = footworkJokerStatus(pid, dato);
+  const counts = footworkDayCounts(pid, dato);
+  const dagAntal = counts.reduce((a,b)=>a+b, 0);
+  const kombier = footworkDayCombos(counts);
+  const grundPoint = counts.reduce((sum, c, i)=>sum + c * footworkPointsFor(FOOTWORK[i]), 0);
+  const dagPoint = footworkDayPoints(pid, dato);
+
+  const raekker = ["let","mellem","svaer"].map(grad=>`
+    <div class="phasehead">${FOOTWORK_GRADE_NAMES[grad]}<span>${FOOTWORK_GRADE_POINTS[grad]} point pr. gennemførelse</span></div>
+    ${FOOTWORK.filter(ex=>ex.grad===grad).map(ex=>{
+      const n = footworkCount(pid, dato, ex.kode);
+      return `<div class="ladderrow ${n?"done":""}">
+        <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${n ? `<span class="medalmark">${n * footworkPointsFor(ex)} point</span>` : ""}
+          <div class="ladderstep">${escapeHtml(ex.tekst)}</div></div>
+        ${kanRegistrere && joker !== "approved" ? `<div class="counter">
+          <button type="button" onclick="registerFootwork('${ex.kode}',-1)" ${n?"":"disabled"} aria-label="Fjern en gennemførelse af ${escapeHtml(ex.navn)}">−</button>
+          <b>${n}</b>
+          <button type="button" onclick="registerFootwork('${ex.kode}',1)" ${n>=FOOTWORK_MAX_PER_DAY?"disabled":""} aria-label="Tilføj en gennemførelse af ${escapeHtml(ex.navn)}">+</button>
+        </div>` : `<div class="counter"><b>${n}</b></div>`}
+      </div>`;
+    }).join("")}`).join("");
+
+  const jokerBlok = joker === "approved"
+    ? `<div class="laddergate"><div style="flex:0 0 auto;font-size:20px">🃏</div><div class="laddermid"><b>Joker godkendt</b>
+        <div class="ladderstep">Streaken er ikke brudt. Dagen tæller ikke som aktiv dag og giver ingen point. Kun en træner kan fjerne jokeren igen.</div></div></div>`
+    : joker === "pending"
+    ? `<div class="laddergate"><div style="flex:0 0 auto;font-size:20px">🃏</div><div class="laddermid"><b>Joker sendt - afventer træneren</b>
+        <div class="ladderstep">Streaken er ikke brudt, mens I venter. Bonussen for streaken gives først, når træneren har godkendt.</div></div>
+        ${kanRegistrere ? '<button class="btn secondary smallbtn" onclick="cancelFootworkJoker()">Træk tilbage</button>' : ""}</div>`
+    : joker === "rejected"
+    ? `<div class="laddergate"><div style="flex:0 0 auto;font-size:20px">🃏</div><div class="laddermid"><b>Joker afvist</b>
+        <div class="ladderstep">Dagen regnes som en almindelig dag. Tal med din træner, hvis det er en misforståelse.</div></div></div>`
+    : dagAntal === 0 && kanRegistrere
+    ? `<div class="laddergate"><div style="flex:0 0 auto;font-size:20px">🃏</div><div class="laddermid"><b>Nåede I det ikke?</b>
+        <div class="ladderstep">Søg en joker for dagen. Træneren godkender den, og så bliver streaken ikke brudt. Dagen giver ingen point.</div></div>
+        <button class="btn secondary smallbtn" onclick="requestFootworkJoker()">Søg joker</button></div>`
+    : "";
+
+  area.innerHTML = `
+    <div class="profilebox">
+      <h3 style="margin-top:0">${footworkPoints(pid)} point fra fodteknik</h3>
+      <div class="streakbox" style="margin-top:8px">
+        <div><b>${streak.laengde} ${streak.laengde === 1 ? "dag" : "dage"}</b><span class="small">${streak.lever ? "aktuel streak" : "ingen streak lige nu"}${streak.afventer ? " · afventer joker" : ""}</span></div>
+        <div><b>${footworkStreakBonus(streak.laengde)}</b><span class="small">bonus optjent i streaken</span></div>
+        ${naeste ? `<div><b>${naeste[0] - streak.laengde}</b><span class="small">${naeste[0] - streak.laengde === 1 ? "dag" : "dage"} til næste bonus (+${naeste[1]} ved ${naeste[0]} dage)</span></div>` : `<div><b>🏆</b><span class="small">alle streak-bonusser taget</span></div>`}
+      </div>
+      <p class="small" style="margin:10px 0 0">En dag tæller som aktiv, hvis du laver mindst én øvelse - eller registrerer et trin på Jongleringsstigen.${streak.afventer ? " Streaken her hviler på en joker, træneren ikke har set på endnu; bonussen gives først ved godkendelse." : ""}${isDemoUser() ? " · demo: her registreres intet" : ""}</p>
+    </div>
+
+    <div class="daybar" style="margin-top:12px">${dagChips.join("")}</div>
+
+    <div class="exercise-block">
+      <h3 style="margin-top:0">${escapeHtml(datoTekst(dato))}${dato === iDag ? " · i dag" : ""} · ${dagPoint} point</h3>
+      <p class="small">${dagAntal ? `${dagAntal} ${dagAntal === 1 ? "gennemførelse" : "gennemførelser"} · ${grundPoint} point${kombier.boost ? ` + ${kombier.boost} i kombi-bonus` : ""}` : "Ingen gennemførelser endnu. 1 gennemførelse = øvelsen lavet 3 × 30 sekunder."}</p>
+      ${jokerBlok}
+      ${kombier.kombier.length ? `<p class="small" style="margin:10px 0 0"><b>Dagens kombier</b>${kombier.kombier.map(([i,j,k])=>`<br>${escapeHtml(footworkBoostNavn(i,j,k))}: ${escapeHtml(FOOTWORK[i].navn)} + ${escapeHtml(FOOTWORK[j].navn)} + ${escapeHtml(FOOTWORK[k].navn)} · +${footworkBoost(i,j,k)}`).join("")}</p>`
+        : dagAntal >= 3 ? '<p class="small" style="margin:10px 0 0">Dagens gennemførelser kan ikke sættes sammen til en kombi. Prøv tre forskellige øvelser - eller den samme tre gange.</p>' : ""}
+      ${raekker}
+    </div>`;
+}
+
+function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderCriteria(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); renderDeletionRequests(); renderJuggle(); renderFootwork(); }
 // Static content (never changes at runtime) - rendered once so the accordion's open/closed
 // state isn't wiped out every time an unrelated Firestore snapshot triggers renderAll().
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,correctJuggle,correctJuggleTrick,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderCriteria,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>

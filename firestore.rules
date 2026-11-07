@@ -238,7 +238,11 @@ service cloud.firestore {
           // og saa fejler hele udtrykket - det ville have afvist hver spillers
           // allerfoerste registrering. keys() virker baade ved oprettelse og rettelse,
           // og er samtidig strammere: dokumentet maa ikke indeholde andre felter.
-          && request.resource.data.keys().hasOnly(["mainStep","weakStep","tricks","year","gender","updatedAt"])
+          // "days" er en ren liste af datoer (ingen navne, ingen uid'er). Den ligger her,
+          // fordi en registrering paa stigen ogsaa taeller som aktiv dag i fodteknik-
+          // streaken, og den skal kunne regnes ud paa tvaers af aargange.
+          && request.resource.data.keys().hasOnly(["mainStep","weakStep","tricks","days","year","gender","updatedAt"])
+          && (!("days" in request.resource.data) || (request.resource.data.days is list && request.resource.data.days.size() <= 400))
           && request.resource.data.mainStep is int
           && request.resource.data.mainStep >= 0
           && request.resource.data.mainStep <= 15
@@ -247,6 +251,9 @@ service cloud.firestore {
           && request.resource.data.weakStep <= 10
           && request.resource.data.tricks is list
           && request.resource.data.tricks.size() <= 6
+          // Spilleren skal skrive SIN egen aargang - samme krav som i juggleLog. Uden det
+          // kunne et barn parkere sin stige i en aargang, det ikke hoerer til.
+          && hasFullAccess(request.resource.data.year, request.resource.data.gender)
         )
         // Traenere og admin retter frit inden for deres aargang.
         || (!isPlayerRole() && hasFullAccess(request.resource.data.year, request.resource.data.gender))
@@ -258,6 +265,68 @@ service cloud.firestore {
     // Loggen - hvem registrerede hvad hvornaar. Her staar der bruger-id'er, saa den er
     // aargangsbegraenset som alt andet og laeses IKKE paa tvaers af klubben.
     match /juggleLog/{playerId} {
+      allow read: if isActive() && hasFullAccess(resource.data.year, resource.data.gender);
+
+      allow create, update: if isActive() && (
+        (isPlayerRole() && !isDemo() && playerId == myPlayerId())
+        || !isPlayerRole()
+      ) && hasFullAccess(request.resource.data.year, request.resource.data.gender);
+
+      allow delete: if isActive() && !isPlayerRole();
+    }
+
+    // Daglig fodteknik. Samme todeling som stigen: tallene her laeses klub-bredt, fordi
+    // klub-top-10 gaar paa tvaers af aargange og skal vise SAMME total som aargangs-
+    // listen. Dokumentet rummer kun datoer, antal og joker-status - intet navn, intet uid.
+    //
+    // Det vigtige her er opdelingen af joker-felterne. Reglerne kan ikke se ned i et kort
+    // og tjekke, at jokers["2026-11-05"] ikke er sat til "approved" - men de kan se,
+    // hvilke FELTER en skrivning roerer. Derfor anmoder familien i "jokerRequests", og
+    // traeneren afgoer i "jokers": et spillerlogin kan altsaa ikke godkende sin egen joker
+    // og dermed holde en streak kunstigt i live.
+    match /footwork/{playerId} {
+      allow read: if isActive();
+
+      // Oprettelse og rettelse staar hver for sig med vilje. Paa en OPRETTELSE findes
+      // resource ikke, saa diff(resource.data) ville fejle og afvise hver spillers
+      // allerfoerste registrering - samme faelde som i juggleLadder. Ved en RETTELSE
+      // skal vi derimod bruge diff: {merge:true} sender hele det resulterende dokument,
+      // saa keys() ville ogsaa indeholde "jokers", hvis traeneren allerede har afgjort en.
+      allow create: if isActive() && (
+        (
+          isPlayerRole()
+          && !isDemo()
+          && playerId == myPlayerId()
+          && request.resource.data.keys().hasOnly(["days","jokerRequests","year","gender","updatedAt"])
+          && (!("days" in request.resource.data) || (request.resource.data.days is map && request.resource.data.days.size() <= 400))
+          && (!("jokerRequests" in request.resource.data) || (request.resource.data.jokerRequests is map && request.resource.data.jokerRequests.size() <= 400))
+          // Spilleren skal skrive SIN egen aargang. Uden det kunne et barn parkere sit
+          // dokument i en aargang, det ikke hoerer til - og dermed i en traener, der
+          // ikke kan rette det.
+          && hasFullAccess(request.resource.data.year, request.resource.data.gender)
+        )
+        || (!isPlayerRole() && hasFullAccess(request.resource.data.year, request.resource.data.gender))
+      );
+
+      allow update: if isActive() && (
+        (
+          isPlayerRole()
+          && !isDemo()
+          && playerId == myPlayerId()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["days","jokerRequests","year","gender","updatedAt"])
+          && (!("days" in request.resource.data) || (request.resource.data.days is map && request.resource.data.days.size() <= 400))
+          && (!("jokerRequests" in request.resource.data) || (request.resource.data.jokerRequests is map && request.resource.data.jokerRequests.size() <= 400))
+          && hasFullAccess(request.resource.data.year, request.resource.data.gender)
+        )
+        || (!isPlayerRole() && hasFullAccess(request.resource.data.year, request.resource.data.gender))
+      );
+
+      allow delete: if isActive() && !isPlayerRole();
+    }
+
+    // Loggen og joker-begrundelserne. Her staar fritekst og bruger-id'er, saa den er
+    // aargangsbegraenset og laeses IKKE paa tvaers af klubben.
+    match /footworkLog/{playerId} {
       allow read: if isActive() && hasFullAccess(resource.data.year, resource.data.gender);
 
       allow create, update: if isActive() && (
