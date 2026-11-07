@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.58</title>
+  <title>TIF Talent Tracker v15.59</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -134,7 +134,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.58 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.59 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -326,18 +326,19 @@
     <div class="accordion-body">
       <p class="small">En kort guide til forældre og spillere, der lige har fået deres eget login.</p>
       <p><b>Log ind:</b> Brug den e-mail og adgangskode, som jeres træner har oprettet til jer. I bør skifte adgangskoden under "Indstillinger" efter første login.</p>
-      <p class="small">Kort fortalt er der tre slags træning i appen: <b>Talentmærket</b>, hvor træneren bedømmer og der er medaljer på spil · <b>Fodteknik</b> og <b>Jonglering</b>, som I selv registrerer hjemmefra og får point for · og <b>Duel</b>, hvor I måler jer mod en holdkammerat.</p>
-      <p><b>"Talentmærket":</b> Her er medaljerne. I ser øvelserne for jeres niveau, optager en kort video, hvor I udfører øvelsen, og uploader den. Træneren godkender eller afviser, og I kan følge status direkte under øvelsen. Det er den eneste del af appen, der giver bronze, sølv og guld.</p>
+      <p class="small" id="guideIntroOn">Kort fortalt er der tre slags træning i appen: <b>Talentmærket</b>, hvor træneren bedømmer og der er medaljer på spil · <b>Fodteknik</b> og <b>Jonglering</b>, som I selv registrerer hjemmefra og får point for · og <b>Duel</b>, hvor I måler jer mod en holdkammerat.</p>
+      <p class="small hidden" id="guideIntroOff">Jeres årgang kører <b>hjemmetræningen</b>: <b>Fodteknik</b> og <b>Jonglering</b>, som I selv registrerer og får point for, og <b>Duel</b>, hvor I måler jer mod en holdkammerat. Talentmærket med medaljer er ikke slået til på jeres årgang endnu.</p>
+      <p id="guideTalentIntro"><b>"Talentmærket":</b> Her er medaljerne. I ser øvelserne for jeres niveau, optager en kort video, hvor I udfører øvelsen, og uploader den. Træneren godkender eller afviser, og I kan følge status direkte under øvelsen. Det er den eneste del af appen, der giver bronze, sølv og guld.</p>
       <p><b>"Fodteknik":</b> Daglig fodteknik. Ti korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen, undtagen jongleringstræning, som er 5 minutter og giver flere point. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning.</p>
       <p><b>"Jonglering":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. I får lige så mange point, som I jonglerer - 40 jongleringer giver 40 point - og med det dårlige ben tæller det dobbelt. Også her er det på tillid, uden video. Stigen giver point, men ingen medaljer.</p>
-      <p><b>"Duel":</b> Udfordr en holdkammerat i en øvelse - eller i en fri duel, som "flest jongleringer" eller "fedeste trick". Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
-      <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Point fra alle fire dele tæller med.</p>
-      <p><b>"Guides":</b> Her står kravene til hver øvelse på Talentmærket, sammen med beskrivelsen af, hvordan øvelsen sættes op og udføres.</p>
+      <p><b>"Duel":</b> Udfordr en holdkammerat i en fri duel, som "flest jongleringer" eller "fedeste trick" - eller, hvis jeres årgang kører Talentmærket, i en af øvelserne derfra. Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
+      <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Point fra alle delene tæller med.</p>
+      <p id="guideGuidesIntro"><b>"Guides":</b> Her står kravene til hver øvelse på Talentmærket, sammen med beskrivelsen af, hvordan øvelsen sættes op og udføres.</p>
       <p><b>"Min profil":</b> Her ser I jeres point, rang (fra Rookie til Legende) og hvilke øvelser der allerede er bestået.</p>
       <p class="small"><b>Om videoerne:</b> De bruges kun til godkendelse og slettes automatisk bagefter - ved Talentmærket med det samme, og ved en duel senest et par dage efter, at træneren har taget stilling. Vi gemmer ikke børnenes videoer permanent.</p>
     </div>
   </details>
-  <details class="accordion" open>
+  <details class="accordion" open id="guideLevelCard">
     <summary>Vejledning om niveau</summary>
     <div class="accordion-body">
       <p><b>Målet er:</b> succesoplevelser, passende udfordring og lyst til at udvikle sig.</p>
@@ -345,7 +346,7 @@
       <p><b>Næste niveau:</b> Spilleren kan skifte fra 1 til 2 og fra 2 til 3, når alle øvelser på guld på foregående niveau er gennemført.</p>
     </div>
   </details>
-  <div class="card" style="margin-top:16px">
+  <div class="card" style="margin-top:16px" id="guideExerciseCard">
     <h2 style="margin-top:0">Øvelserne til Talentmærket</h2>
     <p class="small">Krav og beskrivelse samlet ét sted. Vælg niveau, og fold en øvelse ud for at se, hvad der skal til for bronze, sølv og guld - og hvordan øvelsen sættes op og udføres.</p>
     <label>Niveau</label>
@@ -385,7 +386,7 @@
     <details class="accordion">
       <summary><span>Årgange</span></summary>
       <div class="accordion-body">
-        <p class="small">Tilføj årgange og åbn/luk for oprettelse af nye spillere. Lukkede årgange kan stadig vises, hvis der allerede findes spillere.</p>
+        <p class="small">Tilføj årgange og åbn/luk for oprettelse af nye spillere. Lukkede årgange kan stadig vises, hvis der allerede findes spillere.</p><p class="small"><b>Talentmærket</b> kan slås fra pr. årgang. Så kører årgangen kun hjemmetræningen - Fodteknik, Jonglering, frie dueller og ranglisten - og familierne ser hverken medaljeforløbet eller kravene til det. Brug det til at rulle appen ud på en årgang, hvor der ikke er nogen til at køre medaljerne.</p>
         <div id="yearControlArea"></div>
         <label>Tilføj ny årgang</label><input id="newAdminYear" placeholder="Fx 2019">
         <button class="btn secondary" onclick="addAdminYear()">Tilføj / åbn årgang</button>
@@ -527,7 +528,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.58 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.59 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -1413,6 +1414,7 @@ let juggleLadder = [];
 let juggleLog = [];
 let footwork = [];
 let footworkLogs = [];
+let clubModules = {};
 let deletionRequests = [];
 let playerNotes = [];
 let currentPlayerLink = null;
@@ -1436,6 +1438,7 @@ let unsubJuggleLadder = null;
 let unsubJuggleLog = null;
 let unsubFootwork = null;
 let unsubFootworkLog = null;
+let unsubClubModules = null;
 let unsubDeletionRequests = null;
 let unsubPlayerNotes = null;
 
@@ -1451,6 +1454,72 @@ function isPlayer(){ return currentUserDoc?.role === "player"; }
 // rigtigt login. Knapperne bliver stående, så de kan se, hvordan det fungerer - men
 // både klienten her og firestore.rules afviser selve handlingen.
 function isDemoUser(){ return currentUserDoc?.demo === true; }
+
+// ---------------------------------------------------------------------------
+// TALENTMAERKET PR. AARGANG
+// Hjemmetraeningen (Fodteknik, Jonglering) kan rulles ud til en aargang uden videre -
+// familierne klarer den selv. Medaljeforloebet kan ikke: det kraever en traener, der
+// ser videoer og uddeler medaljer. Derfor kan admin slaa Talentmaerket fra pr. aargang,
+// saa appen kan tages i brug dér, hvor der ikke er nogen til at koere forloebet.
+//
+// Manglende dokument, felt eller aargang betyder SLAAET TIL, saa alt, der koerer i dag,
+// er uberoert. Samme regel staar i firestore.rules, hvor den ogsaa haandhaeves.
+function talentmaerkeOn(year){
+  const m = clubModules?.talentmaerke;
+  if(!m || typeof m !== "object") return true;
+  return m[normalizeYearValue(year)] !== false;
+}
+// Hvad den aktuelle bruger skal se. En spiller foelger sin egen aargang. En traener kan
+// have flere, og saa er forloebet "til", hvis bare én af dem bruger det - de enkelte
+// sider skjuler saa medaljestoffet for de spillere og aargange, hvor det er fra.
+function talentmaerkeForMe(){
+  if(isPlayer()) return currentPlayerLink ? talentmaerkeOn(currentPlayerLink.year) : true;
+  return allowedYears().some(y=>talentmaerkeOn(y));
+}
+function talentmaerkeYears(){ return allowedYears().filter(y=>talentmaerkeOn(y)); }
+
+// Faner og de blokke paa Guides, der kun handler om medaljeforloebet. Koeres baade ved
+// login og hver gang indstillingen aendrer sig, saa en aargang kan slaas til eller fra,
+// mens familien har appen aaben.
+function applyModuleVisibility(){
+  const til = (currentUser && currentUserDoc) ? talentmaerkeForMe() : true;
+  const vis = (id, synlig)=>{ const el = document.getElementById(id); if(el) el.classList.toggle("hidden", !synlig); };
+  vis("tab-training", isPlayer() && til);
+  vis("guideLevelCard", til);
+  vis("guideExerciseCard", til);
+  vis("guideTalentIntro", til);
+  vis("guideGuidesIntro", til);
+  vis("guideIntroOn", til);
+  vis("guideIntroOff", !til);
+  // Staar brugeren paa en side, der lige er forsvundet, flyttes de - ellers ville de se
+  // en tom skaerm. Det sker ogsaa ved login, hvor fanen vises, foer indstillingen er hentet.
+  const traening = document.getElementById("training");
+  if(!til && traening && !traening.classList.contains("hidden")) showPage(isPlayer() ? "footwork" : "players");
+}
+
+async function toggleYearTalentmaerke(year){
+  if(!isAdmin()) return alert("Kun admin kan ændre det.");
+  const y = normalizeYearValue(year);
+  const on = talentmaerkeOn(y);
+  if(on){
+    // Slukker vi for en aargang, der allerede er i gang, forsvinder optjente medaljer
+    // fra familiernes skaerm. De bliver i databasen og kommer igen, men det skal siges.
+    const iGang = players.filter(p=>normalizeYearValue(p.year) === y && Object.keys(p.passed || {}).length).length;
+    if(!confirm(`Slå Talentmærket FRA for årgang ${y}?\n\n`
+      + `Familierne mister fanen "Talentmærket", medaljestoffet under Guides og øvelses-dueller. `
+      + `Fodteknik, Jonglering, frie dueller og ranglisten kører videre.\n\n`
+      + (iGang ? `ADVARSEL: ${iGang} ${iGang===1?"spiller har":"spillere har"} allerede bestået øvelser i årgangen. Deres medaljer bliver skjult, så længe forløbet er slået fra. Point og data bevares, og alt kommer igen, hvis du slår det til.\n\n` : "")
+      + `Du kan slå det til igen når som helst.`)) return;
+  }
+  try{
+    await setDoc(doc(db, "clubConfig", "modules"),
+      {talentmaerke: {[y]: on ? false : deleteField()}, updatedAt: serverTimestamp(), updatedBy: currentUser?.email || ""},
+      {merge:true});
+  }catch(e){
+    console.error(e);
+    alert("Kunne ikke ændre indstillingen: " + (e.message || "ukendt fejl"));
+  }
+}
 function demoBlocked(what){
   if(!isDemoUser()) return false;
   alert(`Det her er en demo-bruger, så I kan se, hvordan appen ser ud.\n\n${what}\n\nMed et rigtigt spillerlogin ville det virke helt som forventet.`);
@@ -1583,7 +1652,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.58 · ikke logget ind");
+    setSyncStatus("v15.59 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1609,7 +1678,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.58 · bekræft inden I går i gang");
+    setSyncStatus("v15.59 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1617,7 +1686,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.58 · vælg din egen adgangskode");
+    setSyncStatus("v15.59 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -1633,7 +1702,8 @@ onAuthStateChanged(auth, async (user)=>{
   document.getElementById("backupBoxCard").classList.toggle("hidden", isPlayer());
   document.getElementById("tab-admin").classList.toggle("hidden", !isAdmin());
   document.getElementById("userInfo").textContent = `${user.email} · ${currentUserDoc.role || "coach"} · adgang: ${allowedYears().join(", ") || "ingen årgange endnu"}`;
-  showPage(isPlayer() ? "training" : "players");
+  applyModuleVisibility();
+  showPage(isPlayer() ? (talentmaerkeForMe() ? "training" : "footwork") : "players");
   startListeners();
 });
 
@@ -1653,9 +1723,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.58 · live database aktiv");
+    setSyncStatus("v15.59 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.58 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.59 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -1754,6 +1824,15 @@ function startListeners(){
     deletionRequests = [];
   }
 
+  // Modul-indstillingerne. Ét dokument, som alle aktive logins laeser - uden det ved
+  // browseren ikke, om Talentmaerket skal vises for aargangen.
+  if(unsubClubModules) unsubClubModules();
+  unsubClubModules = onSnapshot(doc(db, "clubConfig", "modules"), (snap)=>{
+    clubModules = snap.exists() ? snap.data() : {};
+    renderAll();
+    applyModuleVisibility();
+  }, (e)=>console.error("clubConfig listener", e));
+
   if(unsubClubRanking) unsubClubRanking();
   unsubClubRanking = onSnapshot(collection(db, "clubRanking"), (snap)=>{
     clubRanking = snap.docs.map(d=>({id:d.id, ...d.data()}));
@@ -1807,11 +1886,14 @@ function renderYearOptions(){
     if(old && createNormalized.includes(old)) py.value = old;
   }
 
+  // Holdoverblikket er rent medaljestof, saa aargange uden Talentmaerket hoerer ikke
+  // hjemme i listen - der ville bare staa et tomt gitter.
   const oy = document.getElementById("overviewYear");
   if(oy){
     const old = normalizeYearValue(oy.value);
-    oy.innerHTML = visibleOpts;
-    if(old && visibleNormalized.includes(old)) oy.value = old;
+    const medaljeAar = visibleYears.filter(y=>talentmaerkeOn(y));
+    oy.innerHTML = medaljeAar.map(y=>`<option value="${normalizeYearValue(y)}">${yearLabel(y)}</option>`).join("");
+    if(old && medaljeAar.map(normalizeYearValue).includes(old)) oy.value = old;
   }
 
   const ply = document.getElementById("playerListYear");
@@ -2021,7 +2103,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.58 · sletter...");
+  setSyncStatus("v15.59 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -2034,7 +2116,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.58 · live database aktiv");
+  setSyncStatus("v15.59 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -2163,6 +2245,15 @@ function renderTracking(){
     }).join("")}</div>` : ""}
   </div>`;
 
+  // Kører årgangen ikke Talentmærket, forsvinder trinbjælken, medaljerne og
+  // afkrydsningen - men stigen og fodteknikken bliver, så træneren stadig kan rette dem.
+  if(!talentmaerkeOn(p.year)){
+    area.innerHTML = `<div class="mutedbox"><b>Talentmærket er slået fra for årgang ${escapeHtml(yearLabel(p.year))}</b>
+      <div class="small">Årgangen kører kun hjemmetræningen. En admin kan slå forløbet til under Admin → Årgange.</div></div>
+      ${juggleBlock}${footworkBlock}`;
+    return;
+  }
+
   area.innerHTML = `${renderStepbar(p)}${medalBlock}${juggleBlock}${footworkBlock}<div class="exercise-block">
     <h3>${selected===current ? "Aktuelt trin" : isPast ? "Rediger tidligere trin" : "Kommende trin"}: Niveau ${s.level} · ${s.medal}</h3>
     <p class="small">${isFuture ? "Dette trin åbner først, når tidligere trin er bestået." : "Marker de øvelser spilleren har bestået."}</p>
@@ -2229,6 +2320,10 @@ async function togglePassed(pid, si, ex){
 function renderOverview(){
   const area=document.getElementById("overviewArea");
   const year=document.getElementById("overviewYear").value;
+  if(!year){
+    area.innerHTML = '<p class="small">Ingen af dine årgange kører Talentmærket. En admin kan slå det til under Admin → Årgange.</p>';
+    return;
+  }
   const si=Number(document.getElementById("overviewStep").value||0);
   const list=players.filter(p=>p.year===year);
   const done=list.filter(p=>countPassed(p,si)===5).length;
@@ -2288,7 +2383,13 @@ function renderYearControl(){
   const closed = new Set(closedYearsForCurrentUser());
   area.innerHTML = allKnownYears().map(y=>{
     const isOpen = !closed.has(normalizeYearValue(y));
-    return `<div class="yearline"><div><b>${y}</b><div class="small">${isOpen ? "Åben for oprettelse" : "Lukket for nye spillere"}</div></div><button class="btn ${isOpen ? "danger" : "secondary"} smallbtn" onclick="toggleAdminYear('${y}')">${isOpen ? "Luk" : "Åbn"}</button></div>`;
+    const medaljer = talentmaerkeOn(y);
+    return `<div class="yearline"><div><b>${y}</b>
+      <div class="small">${isOpen ? "Åben for oprettelse" : "Lukket for nye spillere"} · Talentmærket: ${medaljer ? "til" : "fra"}</div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn ${isOpen ? "danger" : "secondary"} smallbtn" onclick="toggleAdminYear('${y}')">${isOpen ? "Luk" : "Åbn"}</button>
+        <button class="toggle ${medaljer ? "on" : ""}" onclick="toggleYearTalentmaerke('${y}')">${medaljer ? "Mærke til" : "Mærke fra"}</button>
+      </div></div>`;
   }).join("");
 }
 
@@ -2512,11 +2613,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.58 · migrering færdig");
+    setSyncStatus("v15.59 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.58 · migrering fejlede");
+    setSyncStatus("v15.59 · migrering fejlede");
   }
 }
 
@@ -2691,7 +2792,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.58 · uploader video...");
+    setSyncStatus("v15.59 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -2713,12 +2814,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.58 · live database aktiv");
+    setSyncStatus("v15.59 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.58 · live database aktiv");
+    setSyncStatus("v15.59 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -2834,6 +2935,10 @@ function renderChallenges(){
   const p = currentPlayerLink;
   if(!p){ area.innerHTML = '<p class="small">Din spillerprofil blev ikke fundet.</p>'; return; }
   const si = Math.min(currentStepIndex(p), steps.length-1);
+  // Option C: uden Talentmærket findes øvelserne og trinnene ikke for årgangen, så kun
+  // den frie duel kan oprettes. Reglerne på serveren afviser også en øvelsesduel her.
+  const kunFri = !talentmaerkeOn(p.year);
+  if(kunFri && challengeCreateType !== "freestyle") challengeCreateType = "freestyle";
   const opponents = opponentsForCurrentPlayer();
   const mine = challenges.filter(c=>c.challengerId===p.id || c.opponentId===p.id)
     .sort((a,b)=>(challengeDecidedAt(b)?.getTime()||0)-(challengeDecidedAt(a)?.getTime()||0));
@@ -2855,13 +2960,14 @@ function renderChallenges(){
     <div class="card">
       <h3>Udfordr en holdkammerat</h3>
       ${opponents.length===0 ? '<p class="small">Ingen andre spillere i din årgang endnu.</p>' : `
+      ${kunFri ? '<p class="small">Jeres årgang kører ikke Talentmærket, så I dyster i en fri udfordring - fx flest jongleringer eller fedeste trick.</p>' : `
       <div class="stepbar" style="grid-template-columns:1fr 1fr">
         <button type="button" class="step ${challengeCreateType==="exercise"?"current":""}" onclick="setChallengeCreateType('exercise')">Øvelse</button>
         <button type="button" class="step ${challengeCreateType==="freestyle"?"current":""}" onclick="setChallengeCreateType('freestyle')">Fri udfordring</button>
-      </div>
+      </div>`}
       <label>Modstander</label>
       <select id="challengeOpponent">${opponents.map(o=>`<option value="${o.id}">${escapeHtml(o.name)}</option>`).join("")}</select>
-      ${challengeCreateType==="exercise" ? `
+      ${challengeCreateType==="exercise" && !kunFri ? `
       <label>Øvelse</label>
       <select id="challengeExercise">${exercises.map(e=>`<option>${e}</option>`).join("")}</select>
       <label>Niveau</label>
@@ -3298,6 +3404,9 @@ function renderPlayerProfile(){
     return;
   }
   selectedProfilePlayerId = p.id;
+  // Medaljestoffet foelger spillerens egen aargang, ikke den, der kigger. En traener med
+  // baade en taendt og en slukket aargang ser altsaa det rigtige for hver enkelt spiller.
+  const medaljer = talentmaerkeOn(p.year);
   const current = currentStepIndex(p);
   const currentText = current >= steps.length ? "Alle niveauer gennemført" : `${steps[current].label} · ${countPassed(p,current)}/5`;
   const stepSummary = steps.map((s,i)=>{
@@ -3323,7 +3432,7 @@ function renderPlayerProfile(){
     <div class="profilegrid">
       <div class="profilebox">
         <h3>${escapeHtml(p.name)}</h3>
-        <p class="small">Årgang: ${escapeHtml(yearLabel(p.year))}<br>Status: ${escapeHtml(currentText)}</p>
+        <p class="small">Årgang: ${escapeHtml(yearLabel(p.year))}${medaljer ? `<br>Status: ${escapeHtml(currentText)}` : ""}</p>
         ${isPlayer() ? "" : `<div style="margin-top:8px">
           <label>Trænernote <span class="small">- kun trænere kan se den</span></label>
           <input id="noteInput_${p.id}" value="${escapeHtml(noteFor(p.id))}" placeholder="Fx venstrebenet...">
@@ -3332,6 +3441,7 @@ function renderPlayerProfile(){
         ${!isPlayer() ? `<button class="btn secondary" onclick="selectProfileForTracking('${p.id}')">Åbn i registrering</button>` : ""}
       </div>
       ${rankBox}
+      ${!medaljer ? "" : `
       <div class="profilebox">
         <h3>Niveauer</h3>
         ${stepSummary}
@@ -3344,7 +3454,7 @@ function renderPlayerProfile(){
               : `<div class="historyitem" style="border-top:0;padding:6px 0"><b>🏅 ${steps[i].label}</b><div class="small">Optjent - du får den overrakt til træning</div></div>`
             ).join("")
           : '<p class="small">Ingen medaljer endnu. Bestå alle 5 øvelser på et niveau, så er den optjent.</p>'}
-      </div>
+      </div>`}
     </div>
     <div class="profilebox" style="margin-top:10px">
       <h3>Historik</h3>
@@ -3648,7 +3758,7 @@ function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); ren
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderGuideLevels,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderGuideLevels,toggleYearTalentmaerke,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>

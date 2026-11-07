@@ -78,6 +78,27 @@ service cloud.firestore {
       return hasYearAccess(year) && genderAllowed(year, gender);
     }
 
+    // Talentmaerket kan slaas fra pr. aargang, saa appen kan rulles ud til en aargang,
+    // hvor ingen traener koerer medaljeforloebet. Hjemmetraeningen virker uanset hvad.
+    //
+    // Det haandhaeves HER og ikke kun i brugerfladen. En skjult fane er ingen spaerring:
+    // uden det her kunne en video stadig sendes ind i en aargang, der ikke bruger
+    // forloebet, og saa ville den ligge og vente paa en traener, der aldrig kigger.
+    //
+    // Manglende dokument, manglende felt eller manglende aargang betyder SLAAET TIL.
+    // Rækkefoelgen er vigtig: laeser en regel et felt, der ikke findes, fejler hele
+    // udtrykket og skrivningen bliver naegtet - samme faelde som med "demo" paa
+    // brugerdokumentet. Derfor exists() foerst og "in" foer hvert opslag.
+    function clubModules() {
+      return get(/databases/$(database)/documents/clubConfig/modules).data;
+    }
+    function talentmaerkeOn(year) {
+      return !exists(/databases/$(database)/documents/clubConfig/modules)
+        || !("talentmaerke" in clubModules())
+        || !(year in clubModules().talentmaerke)
+        || clubModules().talentmaerke[year] != false;
+    }
+
     // Users/adgangsstyring
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
@@ -120,9 +141,25 @@ service cloud.firestore {
       allow update: if signedIn()
         && !isPlayerRole()
         && hasFullAccess(resource.data.year, resource.data.gender)
-        && hasFullAccess(request.resource.data.year, request.resource.data.gender);
+        && hasFullAccess(request.resource.data.year, request.resource.data.gender)
+        // Er forloebet slaaet fra, kan der heller ikke saettes flueben eller uddeles
+        // medaljer i aargangen - heller ikke af en traener med en gammel fane aaben.
+        // "points" staar med vilje IKKE paa listen: en fri duel giver stadig bonuspoint,
+        // og den overlever, naar Talentmaerket er fra.
+        && (
+          talentmaerkeOn(request.resource.data.year)
+          || !request.resource.data.diff(resource.data).affectedKeys().hasAny(["passed", "medals"])
+        );
 
       allow delete: if isAdmin();
+    }
+
+    // Klubbens modul-indstillinger. Alle aktive logins skal kunne LAESE dem, fordi
+    // brugerfladen retter sig efter dem - der staar kun aargangsnumre og til/fra, intet
+    // personligt. Kun admin maa skrive.
+    match /clubConfig/{docId} {
+      allow read: if isActive();
+      allow write: if isAdmin();
     }
 
     // Gammel v8/v9-struktur - kun til migration
@@ -141,7 +178,12 @@ service cloud.firestore {
         && !isDemo()
         && request.resource.data.playerId == myPlayerId()
         && request.resource.data.status == "pending"
-        && hasFullAccess(request.resource.data.year, request.resource.data.gender);
+        && hasFullAccess(request.resource.data.year, request.resource.data.gender)
+        // Er Talentmaerket slaaet fra paa aargangen, maa der kun sendes video ind til en
+        // FRI duel. Den kendes paa, at der ikke hoerer et medaljetrin til: stepIndex er
+        // null. En medaljevideo og en oevelsesduel har begge et trin og er dermed
+        // spaerret - se option C i aftalen om, hvad der overlever, naar forloebet er fra.
+        && (talentmaerkeOn(request.resource.data.year) || request.resource.data.stepIndex == null);
 
       // Only a coach/admin may approve/reject an existing submission. A player may
       // additionally update JUST the view/expiry fields on a challenge submission
@@ -356,7 +398,12 @@ service cloud.firestore {
       allow create: if isPlayerRole()
         && !isDemo()
         && request.resource.data.challengerId == myPlayerId()
-        && hasFullAccess(request.resource.data.year, request.resource.data.gender);
+        && hasFullAccess(request.resource.data.year, request.resource.data.gender)
+        // Med Talentmaerket slaaet fra findes oevelserne og trinnene ikke for aargangen,
+        // saa kun den frie duel ("flest jongleringer", "fedeste trick") kan oprettes.
+        // Mangler "type" helt, er udtrykket falsk, og saa kraeves forloebet slaaet til -
+        // det sikre svar, hvis dokumentet ser anderledes ud end forventet.
+        && (talentmaerkeOn(request.resource.data.year) || request.resource.data.type == "freestyle");
 
       allow update: if signedIn() && (
         (!isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender))
