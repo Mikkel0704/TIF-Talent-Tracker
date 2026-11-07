@@ -234,8 +234,11 @@ service cloud.firestore {
           isPlayerRole()
           && !isDemo()
           && playerId == myPlayerId()
-          && request.resource.data.diff(resource.data == null ? request.resource.data : resource.data)
-               .affectedKeys().hasOnly(["mainStep","weakStep","tricks","year","gender","updatedAt"])
+          // keys() og ikke diff(resource.data): paa en OPRETTELSE findes resource ikke,
+          // og saa fejler hele udtrykket - det ville have afvist hver spillers
+          // allerfoerste registrering. keys() virker baade ved oprettelse og rettelse,
+          // og er samtidig strammere: dokumentet maa ikke indeholde andre felter.
+          && request.resource.data.keys().hasOnly(["mainStep","weakStep","tricks","year","gender","updatedAt"])
           && request.resource.data.mainStep is int
           && request.resource.data.mainStep >= 0
           && request.resource.data.mainStep <= 15
