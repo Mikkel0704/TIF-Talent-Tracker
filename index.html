@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.61</title>
+  <title>TIF Talent Tracker v15.62</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -134,7 +134,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.61 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.62 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -528,7 +528,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.61 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.62 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -1035,6 +1035,7 @@ function footworkBoostNavn(i, j, k){
 // Croqueta og Square tager graadig de tre svaere (+8), og de fire resterende kan ikke
 // danne en kombi. To allround-kombier giver 10. Derfor udtoemmende soegning med huskeliste.
 const footworkComboMemo = new Map();
+const FOOTWORK_SOEGE_BUDGET = 30000;   // tilstande, se footworkDayCombos
 function footworkSolve(counts, budget){
   const key = counts.join(",");
   const husket = footworkComboMemo.get(key);
@@ -1066,22 +1067,55 @@ function footworkSolve(counts, budget){
   footworkComboMemo.set(key, bedst);
   return bedst;
 }
+
+// Naedloesningen. Den skal to ting: altid give et gyldigt svar, og vaere hurtig.
+// Den tager den bedst betalte kombi, der kan dannes lige nu, igen og igen. Det er
+// beviseligt ikke altid optimalt - se eksemplet ved footworkSolve - men forskellen er
+// smaa point paa en dag med 30+ gennemfoerelser, og alternativet var at give nul.
+function footworkGreedy(counts){
+  const rest = counts.slice();
+  const kombier = [];
+  let boost = 0;
+  for(;;){
+    let bedst = null;
+    for(let i = 0; i < rest.length; i++){
+      if(!rest[i]) continue;
+      for(let j = i; j < rest.length; j++){
+        for(let k = j; k < rest.length; k++){
+          const b = footworkBoost(i, j, k);
+          if(!b || (bedst && b <= bedst.b)) continue;
+          const c2 = rest.slice();
+          c2[i]--; c2[j]--; c2[k]--;
+          if(c2[i] < 0 || c2[j] < 0 || c2[k] < 0) continue;
+          bedst = {b, i, j, k};
+        }
+      }
+    }
+    if(!bedst) break;
+    rest[bedst.i]--; rest[bedst.j]--; rest[bedst.k]--;
+    boost += bedst.b;
+    kombier.push([bedst.i, bedst.j, bedst.k]);
+  }
+  return {boost, kombier};
+}
+
 function footworkDayCombos(counts){
   const i_alt = counts.reduce((a,b)=>a+b, 0);
   if(i_alt < 3) return {boost:0, kombier:[]};
-  const praecis = footworkSolve(counts, {n: 250000});
-  if(praecis) return praecis;
-  // Naedloesning for en dag, ingen rigtig spiller laver (den kraever 60+ gennemfoerelser
-  // = over halvanden time med bolden). Loes praecist paa hoejst 3 pr. oevelse, og laeg
-  // resten sammen som "3 ens". Deterministisk, og aldrig hoejere end det rigtige svar.
-  const klippet = counts.map(c=>Math.min(c, 3));
-  const del = footworkSolve(klippet, {n: 250000}) || {boost:0, kombier:[]};
-  let boost = del.boost;
-  const kombier = [...del.kombier];
-  counts.forEach((c, i)=>{
-    for(let n = Math.floor((c - klippet[i]) / 3); n > 0; n--){ boost += 2; kombier.push([i,i,i]); }
-  });
-  return {boost, kombier};
+  const noegle = "dag:" + counts.join(",");
+  const husket = footworkComboMemo.get(noegle);
+  if(husket) return husket;
+
+  // Den udtoemmende soegning er eksponentiel i antallet af oevelser, saa den faar et
+  // budget. Det er ikke teoretisk: 10 oevelser lavet 3 gange hver er 30 gennemfoerelser
+  // - en lang, men mulig dag - og uden bremsen brugte den flere sekunder OG endte med
+  // at give nul. Den stod oven i koebet og regnede forfra ved hver eneste optegning,
+  // fordi et afbrudt soeg ikke naaede at blive husket. Derfor: lavt budget, en
+  // naedloesning der altid svarer, og et resultat der ALTID laegges i huskelisten.
+  const svar = footworkSolve(counts, {n: FOOTWORK_SOEGE_BUDGET}) || footworkGreedy(counts);
+  if(footworkComboMemo.size > 40000) footworkComboMemo.clear();
+  footworkComboMemo.set(noegle, svar);
+  return svar;
 }
 
 // --- Data -----------------------------------------------------------------
@@ -1710,7 +1744,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.61 · ikke logget ind");
+    setSyncStatus("v15.62 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1736,7 +1770,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.61 · bekræft inden I går i gang");
+    setSyncStatus("v15.62 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1744,7 +1778,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.61 · vælg din egen adgangskode");
+    setSyncStatus("v15.62 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -1781,9 +1815,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.61 · live database aktiv");
+    setSyncStatus("v15.62 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.61 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.62 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2161,7 +2195,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.61 · sletter...");
+  setSyncStatus("v15.62 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -2174,7 +2208,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.61 · live database aktiv");
+  setSyncStatus("v15.62 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -2672,11 +2706,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.61 · migrering færdig");
+    setSyncStatus("v15.62 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.61 · migrering fejlede");
+    setSyncStatus("v15.62 · migrering fejlede");
   }
 }
 
@@ -2851,7 +2885,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.61 · uploader video...");
+    setSyncStatus("v15.62 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -2873,12 +2907,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.61 · live database aktiv");
+    setSyncStatus("v15.62 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.61 · live database aktiv");
+    setSyncStatus("v15.62 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
