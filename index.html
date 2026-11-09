@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.63</title>
+  <title>TIF Talent Tracker v15.64</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -134,7 +134,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.63 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.64 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -528,7 +528,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.63 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.64 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -978,6 +978,9 @@ function footworkEx(idEllerKode){
 // En oevelse maa saette sin egen takst. Uden det ville jonglering give 3 point for 5
 // minutter, mens en let gulvoevelse giver 2 for halvandet - og boern regner den slags ud.
 function footworkPointsFor(ex){ return Number.isInteger(ex?.point) ? ex.point : (FOOTWORK_GRADE_POINTS[ex?.grad] || 0); }
+// NB: hedder ikke det samme som traenerens footworkKort i renderTracking. De to
+// kolliderede, og en lokal const ville skygge for den her funktion inde i den
+// funktion - det gaar godt, lige indtil nogen vil vise varigheden i traenervisningen.
 function footworkBlock(ex){ return ex?.varighed || FOOTWORK_DEFAULT_BLOCK; }
 
 // Dansk kalenderdag. Datoer er noegler i databasen, saa de skal skrives ud fra den
@@ -1133,6 +1136,34 @@ function footworkCount(pid, dato, kode){
   return Number.isInteger(n) && n > 0 ? Math.min(n, FOOTWORK_MAX_PER_DAY) : 0;
 }
 function footworkDayCounts(pid, dato){ return FOOTWORK.map(ex=>footworkCount(pid, dato, ex.kode)); }
+
+// Hele historikken samlet pr. oevelse: hvor mange gange i alt, og hvornaar sidst.
+// Traeneren kunne foer kun se de seneste ti dage, og saa er spoergsmaalet "har hun
+// nogensinde lavet Croqueta?" et spoergsmaal, man skal blade sig til - og efter ti dage
+// kan man slet ikke faa svaret. Det er netop dét, en traener vil vide: hvad springes over.
+function footworkTotals(pid){
+  const pr = FOOTWORK.map(()=>({antal:0, sidst:null}));
+  footworkDays(pid).forEach(dato=>{
+    FOOTWORK.forEach((ex, i)=>{
+      const n = footworkCount(pid, dato, ex.kode);
+      if(!n) return;
+      pr[i].antal += n;
+      if(!pr[i].sidst || dato > pr[i].sidst) pr[i].sidst = dato;
+    });
+  });
+  return pr;
+}
+// Fordelingen paa svaerhedsgrad - det ene tal, der hurtigst viser, om barnet kun tager
+// de nemme. Regnet paa GENNEMFOERELSER, ikke paa antal oevelser.
+function footworkGradeSplit(pid){
+  const totals = footworkTotals(pid);
+  const pr = {let:0, mellem:0, svaer:0};
+  FOOTWORK.forEach((ex, i)=>{ pr[ex.grad] += totals[i].antal; });
+  const i_alt = pr.let + pr.mellem + pr.svaer;
+  return {i_alt, pct: i_alt ? {
+    let: Math.round(100*pr.let/i_alt), mellem: Math.round(100*pr.mellem/i_alt), svaer: Math.round(100*pr.svaer/i_alt)
+  } : null};
+}
 
 // Joker: familien ANMODER (jokerRequests), traeneren AFGOER (jokers). De to felter er
 // adskilt, fordi reglerne ikke kan se ned i et kort - men de kan se, hvilke FELTER en
@@ -1761,7 +1792,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.63 · ikke logget ind");
+    setSyncStatus("v15.64 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1787,7 +1818,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.63 · bekræft inden I går i gang");
+    setSyncStatus("v15.64 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1795,7 +1826,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.63 · vælg din egen adgangskode");
+    setSyncStatus("v15.64 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -1832,9 +1863,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.63 · live database aktiv");
+    setSyncStatus("v15.64 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.63 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.64 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2212,7 +2243,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.63 · sletter...");
+  setSyncStatus("v15.64 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -2225,7 +2256,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.63 · live database aktiv");
+  setSyncStatus("v15.64 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -2327,9 +2358,24 @@ function renderTracking(){
   const fStreak = footworkCurrentStreak(p.id);
   const fDage = [...new Set([...footworkDays(p.id), ...footworkJokerDays(p.id)])].sort().reverse().slice(0, 10);
   const fLog = footworkLogFor(p.id).slice(0, 5);
-  const footworkBlock = `<div class="exercise-block">
+  const footworkKort = `<div class="exercise-block">
     <h3 style="margin-top:0">Daglig fodteknik · ${footworkPoints(p.id)} point</h3>
     <p class="small">Registreret af familien på tillid. Streak: ${fStreak.laengde} ${fStreak.laengde===1?"dag":"dage"}${fStreak.lever?"":" (ingen aktuel streak)"}${fStreak.afventer?" · hviler på en joker, du ikke har afgjort":""}. Point og streak genberegnes automatisk, når du retter.</p>
+    ${(()=>{
+      const totals = footworkTotals(p.id), split = footworkGradeSplit(p.id);
+      if(!split.i_alt) return "";
+      const aldrig = FOOTWORK.filter((ex,i)=>!totals[i].antal);
+      return `<div class="tablewrap" style="margin-bottom:12px"><table>
+        <tr><th>Øvelse</th><th>I alt</th><th>Sidst</th></tr>
+        ${FOOTWORK.map((ex, i)=>`<tr${totals[i].antal ? "" : ' style="opacity:.55"'}>
+          <td>${escapeHtml(ex.navn)} <span class="small">· ${FOOTWORK_GRADE_NAMES[ex.grad].toLowerCase()}</span></td>
+          <td>${totals[i].antal || "-"}</td>
+          <td class="small">${totals[i].sidst ? escapeHtml(datoTekst(totals[i].sidst)) : "aldrig"}</td>
+        </tr>`).join("")}
+      </table></div>
+      <p class="small">${split.i_alt} gennemførelser i alt · let ${split.pct.let}% · mellem ${split.pct.mellem}% · svær ${split.pct.svaer}%${
+        aldrig.length ? ` · <b>aldrig prøvet:</b> ${aldrig.map(ex=>escapeHtml(ex.navn)).join(", ")}` : " · har prøvet alle ti øvelser"}</p>`;
+    })()}
     ${fDage.length ? fDage.map(dato=>{
       const counts = footworkDayCounts(p.id, dato);
       const antal = counts.reduce((a,b)=>a+b, 0);
@@ -2360,11 +2406,11 @@ function renderTracking(){
   if(!talentmaerkeOn(p.year)){
     area.innerHTML = `<div class="mutedbox"><b>Talentmærket er slået fra for årgang ${escapeHtml(yearLabel(p.year))}</b>
       <div class="small">Årgangen kører kun hjemmetræningen. En admin kan slå forløbet til under Admin → Årgange.</div></div>
-      ${juggleBlock}${footworkBlock}`;
+      ${juggleBlock}${footworkKort}`;
     return;
   }
 
-  area.innerHTML = `${renderStepbar(p)}${medalBlock}${juggleBlock}${footworkBlock}<div class="exercise-block">
+  area.innerHTML = `${renderStepbar(p)}${medalBlock}${juggleBlock}${footworkKort}<div class="exercise-block">
     <h3>${selected===current ? "Aktuelt trin" : isPast ? "Rediger tidligere trin" : "Kommende trin"}: Niveau ${s.level} · ${s.medal}</h3>
     <p class="small">${isFuture ? "Dette trin åbner først, når tidligere trin er bestået." : "Marker de øvelser spilleren har bestået."}</p>
     ${exercises.map(ex=>{
@@ -2723,11 +2769,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.63 · migrering færdig");
+    setSyncStatus("v15.64 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.63 · migrering fejlede");
+    setSyncStatus("v15.64 · migrering fejlede");
   }
 }
 
@@ -2902,7 +2948,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.63 · uploader video...");
+    setSyncStatus("v15.64 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -2924,12 +2970,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.63 · live database aktiv");
+    setSyncStatus("v15.64 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.63 · live database aktiv");
+    setSyncStatus("v15.64 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
