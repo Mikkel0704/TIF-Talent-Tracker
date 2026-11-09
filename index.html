@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.62</title>
+  <title>TIF Talent Tracker v15.63</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -134,7 +134,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.62 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.63 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -334,7 +334,7 @@
       <p><b>"Duel":</b> Udfordr en holdkammerat i en fri duel, som "flest jongleringer" eller "fedeste trick" - eller, hvis jeres årgang kører Talentmærket, i en af øvelserne derfra. Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
       <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Point fra alle delene tæller med.</p>
       <p id="guideGuidesIntro"><b>"Guides":</b> Her står kravene til hver øvelse på Talentmærket, sammen med beskrivelsen af, hvordan øvelsen sættes op og udføres.</p>
-      <p><b>"Min profil":</b> Her ser I jeres point, rang (fra Rookie til Legende) og hvilke øvelser der allerede er bestået.</p>
+      <p><b>"Min profil":</b> Her ser I jeres point, rang (fra Debutant til Verdensstjerne) og hvilke øvelser der allerede er bestået.</p>
       <p class="small"><b>Om videoerne:</b> De bruges kun til godkendelse og slettes automatisk bagefter - ved Talentmærket med det samme, og ved en duel senest et par dage efter, at træneren har taget stilling. Vi gemmer ikke børnenes videoer permanent.</p>
     </div>
   </details>
@@ -528,7 +528,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.62 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.63 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -1455,13 +1455,30 @@ function setFootworkDay(dato){ footworkDaySelected = dato; renderFootwork(); }
 const POINT_BASE = {Bronze:10, Sølv:20, Guld:35};
 const CHALLENGE_BONUS = 25;
 function pointsForStep(step){ return step.level*15 + POINT_BASE[step.medal]; }
+// Rangstigen er spillerens LANGE bue. Den korte - dagens point, kombi-bonussen,
+// streaken - ser barnet med det samme, og det er den, der holder vanen i gang. Derfor
+// maa de oeverste trin gerne tage over et aar; de er noget at se frem til, ikke noget
+// man skal naa.
+//
+// Hvert trin er noget, et barn gerne VIL vaere. Der staar ingen mangelord som
+// "nybegynder" eller "let oevet": en 8-aarig faar ikke lyst til at blive "let oevet",
+// og en dygtig 14-aarig, der lige har faaet login, skal ikke kaldes nybegynder.
+// "Debutant" betyder ny HER - ikke daarlig.
+//
+// Grænserne er regnet efter: en almindelig dag med tre oevelser giver 14 point, og
+// hele medaljeforloebet plus hele stigen er 3355 - altsaa lige UNDER Champions League
+// paa 3500. Tager man hver eneste medalje og hvert eneste trin paa stigen, naar man
+// Superliga. De tre oeverste trin kraever, at man ogsaa har traenet derhjemme.
 const RANK_TIERS = [
- {name:"Rookie", min:0, icon:"🥉"},
- {name:"Talent", min:100, icon:"⚽"},
- {name:"Stjerne", min:250, icon:"⭐"},
- {name:"Es", min:500, icon:"🔥"},
- {name:"Mester", min:900, icon:"🏆"},
- {name:"Legende", min:1500, icon:"👑"}
+ {name:"Debutant", min:0, icon:"👟"},
+ {name:"Klubspiller", min:150, icon:"⚽"},
+ {name:"Talent", min:400, icon:"🔷"},
+ {name:"Licens", min:800, icon:"🎫"},
+ {name:"Akademi", min:1400, icon:"🎓"},
+ {name:"Superliga", min:2200, icon:"🇩🇰"},
+ {name:"Champions League", min:3500, icon:"🏆"},
+ {name:"Landsholdsspiller", min:5500, icon:"👕"},
+ {name:"Verdensstjerne", min:8000, icon:"⭐"}
 ];
 function tierForPoints(points){
   let tier = RANK_TIERS[0];
@@ -1744,7 +1761,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.62 · ikke logget ind");
+    setSyncStatus("v15.63 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1770,7 +1787,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.62 · bekræft inden I går i gang");
+    setSyncStatus("v15.63 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1778,7 +1795,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.62 · vælg din egen adgangskode");
+    setSyncStatus("v15.63 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -1815,9 +1832,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.62 · live database aktiv");
+    setSyncStatus("v15.63 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.62 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.63 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2195,7 +2212,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.62 · sletter...");
+  setSyncStatus("v15.63 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -2208,7 +2225,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.62 · live database aktiv");
+  setSyncStatus("v15.63 · live database aktiv");
 
   alert(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -2706,11 +2723,11 @@ async function migrateOldPlayers(){
       count++;
     }
     alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.62 · migrering færdig");
+    setSyncStatus("v15.63 · migrering færdig");
   }catch(e){
     console.error(e);
     alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.62 · migrering fejlede");
+    setSyncStatus("v15.63 · migrering fejlede");
   }
 }
 
@@ -2885,7 +2902,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.62 · uploader video...");
+    setSyncStatus("v15.63 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -2907,12 +2924,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.62 · live database aktiv");
+    setSyncStatus("v15.63 · live database aktiv");
     alert("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     alert(uploadErrorText(stage, e));
-    setSyncStatus("v15.62 · live database aktiv");
+    setSyncStatus("v15.63 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
