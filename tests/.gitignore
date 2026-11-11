@@ -1,0 +1,11 @@
+node_modules
+# En service-noegle maa ALDRIG ende i repoet. Den gaar uden om alle regler.
+service-account.json
+*adminsdk*.json
+# Det, testene selv danner undervejs
+logik/kode.mjs
+logik/stigekode.mjs
+logik/rangkode.mjs
+visning/*.html
+visning/*.png
+*.log
