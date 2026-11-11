@@ -9,3 +9,5 @@ logik/rangkode.mjs
 visning/*.html
 visning/*.png
 *.log
+visning/gentegning.html
+visning/gentegning-video.mp4

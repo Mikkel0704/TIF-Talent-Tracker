@@ -2032,7 +2032,7 @@ function showPage(id){
   document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
   document.getElementById("tab-"+id)?.classList.add("active");
   if(id==="challenges" && isPlayer()) markChallengesSeen();
-  renderAll();
+  renderAll(true);
 }
 
 function setPlayerListFilter(value){
@@ -3947,7 +3947,96 @@ function renderFootwork(){
     </div>`;
 }
 
-function renderAll(){ renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); renderDeletionRequests(); renderJuggle(); renderFootwork(); }
+// ---------------------------------------------------------------------------
+// GENTEGNING UDEN AT TRAEDE PAA BRUGEREN
+// Alt tegnes om, hver gang databasen melder en aendring - og de nye moduler lytter paa
+// hele klubben, saa "en aendring" er, hver gang NOGEN registrerer en toe-tap. Uden vaern
+// betyder det: et barn vaelger en video, en holdkammerat trykker "+", og filen er vaek,
+// foer barnet naar at trykke Upload. Samme skaebne for traenerens halvskrevne note og
+// admins flueben i "Tilfoej ny traener".
+//
+// To vaern, fordi der er to slags tab:
+//  1. UDSAET, mens noget ikke kan genskabes: et felt med markoeren i (ellers ryger
+//     tastaturet paa en telefon), en valgt fil (en browser maa ikke saette en fil i et
+//     filfelt, saa den kan ikke gendannes), eller en aaben dialog.
+//  2. GENDAN alt andet: felter, brugeren har aendret, faar deres vaerdi tilbage, naar
+//     omraadet er tegnet om. Felter, brugeren ikke har roert, faar den nye vaerdi fra
+//     databasen - saa det er kun det uafsendte, der vinder over nye data.
+//
+// Udsaettelsen har et loft. Bliver et felt staaende med markoeren i, tegnes der om
+// alligevel efter tre minutter uden beroering, saa siden ikke staar stille for evigt.
+let renderVenter = false, sidsteBeroering = 0, dialogAaben = 0;
+const RENDER_TAALMODIGHED_MS = 3*60*1000;
+["focusin","focusout","input","change","pointerdown","keydown"].forEach(type=>
+  document.addEventListener(type, ()=>{ sidsteBeroering = Date.now(); }, true));
+function synligSide(){ return Array.from(document.querySelectorAll(".page")).find(p=>!p.classList.contains("hidden")) || null; }
+function uiOptaget(){
+  const stille = Date.now() - sidsteBeroering;
+  if(stille > RENDER_TAALMODIGHED_MS) return false;
+  if(dialogAaben > 0) return true;
+  const side = synligSide();
+  if(!side) return false;
+  const a = document.activeElement;
+  if(a && side.contains(a)){
+    if(a.tagName === "TEXTAREA") return true;
+    if(a.tagName === "INPUT" && !["button","submit","checkbox","radio","file","range","color"].includes(a.type)) return true;
+    // En rullemenu beholder markoeren laenge efter, man har valgt. Den faar derfor kun
+    // faa sekunder - nok til at vaelgeren ikke lukker i hovedet paa én.
+    if(a.tagName === "SELECT" && stille < 8000) return true;
+  }
+  return Array.from(side.querySelectorAll('input[type="file"]')).some(f=>f.files && f.files.length > 0);
+}
+// Hvor et felt bor, saa det kan findes igen, naar elementet er skiftet ud. Felter med id
+// er nemme. Resten (fx fluebenene pr. aargang) findes via naermeste forfader med id.
+function feltSted(el){
+  if(el.id) return {id: el.id};
+  const anker = el.parentElement ? el.parentElement.closest("[id]") : null;
+  if(!anker) return null;
+  const vaelger = el.tagName.toLowerCase() + (el.classList[0] ? "." + CSS.escape(el.classList[0]) : "");
+  return {anker: anker.id, vaelger, nr: Array.from(anker.querySelectorAll(vaelger)).indexOf(el),
+          vaerdi: (el.type === "checkbox" || el.type === "radio") ? el.value : undefined};
+}
+function feltFind(sted){
+  if(sted.id) return document.getElementById(sted.id);
+  const ny = document.getElementById(sted.anker)?.querySelectorAll(sted.vaelger)[sted.nr] || null;
+  return ny && (sted.vaerdi === undefined || ny.value === sted.vaerdi) ? ny : null;
+}
+function huskFelter(){
+  const liste = [];
+  document.querySelectorAll(".page input, .page select, .page textarea").forEach(el=>{
+    if(el.type === "file" || el.type === "password") return;
+    let aendret, v;
+    if(el.type === "checkbox" || el.type === "radio"){ aendret = el.checked !== el.defaultChecked; v = el.checked; }
+    else if(el.tagName === "SELECT"){ aendret = Array.from(el.options).some(o=>o.selected !== o.defaultSelected); v = el.value; }
+    else { aendret = el.value !== el.defaultValue; v = el.value; }
+    if(!aendret) return;
+    const sted = feltSted(el);
+    if(sted) liste.push({el, sted, v});
+  });
+  return liste;
+}
+function gendanFelter(liste){
+  liste.forEach(({el, sted, v})=>{
+    if(el.isConnected) return;   // feltet blev ikke tegnet om, saa der er intet at gendanne
+    const ny = feltFind(sted);
+    if(!ny || ny.tagName !== el.tagName || ny.type !== el.type) return;
+    if(ny.type === "checkbox" || ny.type === "radio") ny.checked = v;
+    else if(ny.tagName === "SELECT"){ if(Array.from(ny.options).some(o=>o.value === v)) ny.value = v; }
+    else ny.value = v;
+  });
+}
+// tving: brugeren har selv bedt om det (skiftet side), saa der tegnes uanset hvad.
+function renderAll(tving){
+  if(!tving && uiOptaget()){ renderVenter = true; return; }
+  renderVenter = false;
+  const husket = huskFelter();
+  renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); renderDeletionRequests(); renderJuggle(); renderFootwork();
+  gendanFelter(husket);
+}
+// Indhenter en udsat optegning, saa snart brugeren har sluppet feltet. De 600 ms er der,
+// fordi et tryk paa "Gem" foerst flytter markoeren VAEK fra feltet og derefter udloeser
+// klikket - tegnede vi om imellem de to, ville knappen laese et tomt felt.
+setInterval(()=>{ if(renderVenter && !uiOptaget() && Date.now() - sidsteBeroering > 600) renderAll(); }, 500);
 // Static content (never changes at runtime) - rendered once so the accordion's open/closed
 // state isn't wiped out every time an unrelated Firestore snapshot triggers renderAll().
 renderExerciseInfo();
