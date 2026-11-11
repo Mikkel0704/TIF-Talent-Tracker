@@ -25,7 +25,7 @@ export let footwork = [];
 export let footworkLogs = [];
 export let juggleLadder = [];
 export let juggleLog = [];
-export function saetData(f, fl, jl, jlog){ footwork = f || []; footworkLogs = fl || []; juggleLadder = jl || []; juggleLog = jlog || []; }
+export function saetData(f, fl, jl, jlog){ footwork = f || []; footworkLogs = fl || []; juggleLadder = jl || []; juggleLog = jlog || []; footworkStamp++; }
 const db = null, players = [], currentUser = null, currentPlayerLink = null, currentUserDoc = null;
 function setDoc(){ throw new Error("ikke i test"); }
 function doc(){ throw new Error("ikke i test"); }
@@ -51,7 +51,7 @@ export {
   footworkDays, footworkCount, footworkDayCounts, footworkTotals, footworkGradeSplit, footworkJokerStatus, footworkJokerDays,
   footworkDayPoints, footworkActiveDays, juggleActiveDays,
   footworkRuns, footworkStreakBonus, footworkNextStreakBonus, footworkCurrentStreak,
-  footworkPoints, footworkPointsInWindow, footworkDayPatch, footworkDayOpenForPlayer
+  footworkPoints, footworkPointsInWindow, footworkCache, footworkDayPatch, footworkDayOpenForPlayer
 };
 `;
 

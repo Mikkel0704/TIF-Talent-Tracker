@@ -1205,7 +1205,31 @@ function juggleActiveDays(pid){
 // daekket af en joker. Jokerdagen bygger bro, men taeller ikke med i laengden.
 // taelPending: en ubehandlet joker bygger bro i VISNINGEN, men ikke naar point
 // regnes ud - ellers kunne barnet se point forsvinde igen, hvis traeneren afviser.
+// Huskeliste for det, der er dyrt at regne ud. Point er afledte og bliver ved med at
+// vaere det - der gemmes stadig intet i databasen. Men én optegning spurgte om samme
+// spillers point mange gange (ranglisten regnede dem endda ud paa ny ved hver eneste
+// sammenligning i sorteringen), og hver gang blev hele historikken regnet igennem.
+// Maalt med 24 spillere og et aars historik: ca. 320 ms pr. optegning, og en optegning
+// udloeses, hver gang NOGEN i klubben registrerer noget.
+//
+// footworkStamp haeves, hver gang de data, pointene afhaenger af, aendrer sig (se
+// lytterne i startListeners). Saa laenge stemplet er det samme, er svaret det samme.
+// Datoen er med i noeglen, fordi en streak kan doe ved midnat uden at data roerer sig.
+let footworkStamp = 0;
+const footworkCache = new Map();
+function footworkHusk(pid, hvad, beregn){
+  const dag = iDagISO(), noegle = pid + "|" + hvad;
+  const h = footworkCache.get(noegle);
+  if(h && h.stamp === footworkStamp && h.dag === dag) return h.vaerdi;
+  const vaerdi = beregn();
+  if(footworkCache.size > 5000) footworkCache.clear();
+  footworkCache.set(noegle, {stamp: footworkStamp, dag, vaerdi});
+  return vaerdi;
+}
 function footworkRuns(pid, taelPending){
+  return footworkHusk(pid, taelPending ? "runs+" : "runs", ()=>footworkRunsBeregn(pid, taelPending));
+}
+function footworkRunsBeregn(pid, taelPending){
   const aktive = new Set([...footworkActiveDays(pid), ...juggleActiveDays(pid)]);
   if(!aktive.size) return [];
   const bro = new Set();
@@ -1254,9 +1278,11 @@ function footworkCurrentStreak(pid){
 // --- Point ----------------------------------------------------------------
 // Ren funktion af registreringerne. Intet gemt tal, intet at holde synkront.
 function footworkPoints(pid){
-  let sum = footworkDays(pid).reduce((s, d)=>s + footworkDayPoints(pid, d), 0);
-  footworkRuns(pid, false).forEach(r=>{ sum += footworkStreakBonus(r.laengde); });
-  return sum;
+  return footworkHusk(pid, "point", ()=>{
+    let sum = footworkDays(pid).reduce((s, d)=>s + footworkDayPoints(pid, d), 0);
+    footworkRuns(pid, false).forEach(r=>{ sum += footworkStreakBonus(r.laengde); });
+    return sum;
+  });
 }
 // Uge/maaned: dagens point hoerer til dagen, og en streak-bonus hoerer til den dag,
 // forloebet naaede milepaelen. Derfor flytter en bagudregistrering ogsaa bonussen
@@ -1901,6 +1927,7 @@ function startListeners(){
   if(unsubJuggleLadder) unsubJuggleLadder();
   unsubJuggleLadder = onSnapshot(collection(db, "juggleLadder"), (snap)=>{
     juggleLadder = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    footworkStamp++;   // stigens datoer taeller som aktive dage i streaken
     renderAll();
   }, (e)=>console.error("juggleLadder listener", e));
 
@@ -1911,6 +1938,7 @@ function startListeners(){
   unsubJuggleLog = subscribeYearScoped("juggleLog", (idx, docs)=>{
     logChunks[idx] = docs;
     juggleLog = Object.values(logChunks).flat();
+    footworkStamp++;
     renderAll();
   }, (e)=>console.error("juggleLog listener", e));
 
@@ -1920,6 +1948,7 @@ function startListeners(){
   if(unsubFootwork) unsubFootwork();
   unsubFootwork = onSnapshot(collection(db, "footwork"), (snap)=>{
     footwork = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    footworkStamp++;
     renderAll();
   }, (e)=>console.error("footwork listener", e));
 
@@ -3501,10 +3530,14 @@ function renderLeaderboard(){
     ? pointsInWindow(p.id, sinceDate) + ladderPointsInWindow(p.id, sinceDate) + footworkPointsInWindow(p.id, sinceDate)
     : totalPoints(p);
 
-  const sorted = [...list].sort((a,b)=>pointsFor(b)-pointsFor(a));
+  // Hvert tal regnes ud ÉN gang og sorteres derefter. Foer stod beregningen inde i
+  // sammenligningen, saa den blev kaldt to gange pr. sammenligning - hundredvis af
+  // gange for en liste paa 24.
+  const tal = new Map(list.map(p=>[p.id, pointsFor(p)]));
+  const sorted = [...list].sort((a,b)=>tal.get(b.id)-tal.get(a.id));
   area.innerHTML = sorted.map((p,i)=>{
     const tier = tierForPoints(totalPoints(p)); // rang-tier er altid baseret på all-time point
-    const periodPoints = pointsFor(p);
+    const periodPoints = tal.get(p.id);
     const medalIcon = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`;
     const me = isPlayer() && currentPlayerLink && p.id===currentPlayerLink.id;
     return `<div class="player" style="${me?'background:#ecfdf5;border-radius:12px;padding:6px 10px':''}">

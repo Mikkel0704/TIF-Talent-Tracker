@@ -288,5 +288,47 @@ saet({dage: {[d(0)]: {[kd("toetaps")]: 99}}});
 t("oversigten bruger det klippede tal, ikke det skrevne",
   K.footworkTotals(PID)[K.FOOTWORK.findIndex(x=>x.id==="toetaps")].antal, K.FOOTWORK_MAX_PER_DAY);
 
+afsnit("Huskelisten må aldrig give et gammelt svar");
+saet({dage: dageMedTraening([0,-1,-2])});
+t("første opslag", K.footworkPoints(PID), 3*2 + 5);
+t("andet opslag er det samme", K.footworkPoints(PID), 3*2 + 5);
+saet({dage: dageMedTraening([0,-1,-2,-3,-4])});
+t("nye data giver nyt svar med det samme", K.footworkPoints(PID), 5*2 + 5 + 5);
+saet({dage: dageMedTraening([0])});
+t("og færre data giver et lavere svar", K.footworkPoints(PID), 2);
+t("streaken følger med", K.footworkCurrentStreak(PID).laengde, 1);
+saet({dage: dageMedTraening([0,-2]), stigeDage: [d(-1)]});
+t("en ændring på STIGEN slår også igennem", K.footworkPoints(PID), 2*2 + 5);
+saet({dage: dageMedTraening([0,-1,-2,-4,-5]), anmodninger: {[d(-3)]: true}, jokers: {[d(-3)]: "approved"}});
+t("og en joker-afgørelse gør", K.footworkPoints(PID), 5*2 + 5 + 5);
+
+afsnit("Ydelse med et års historik for en hel klub");
+(()=>{
+  const koder = K.FOOTWORK.map(x=>x.kode);
+  const klub = [];
+  for(let sp=0; sp<24; sp++){
+    const days = {};
+    for(let dg=0; dg<365; dg++){
+      if((dg+sp)%7===6) continue;
+      const dag = {};
+      for(let n=0;n<3;n++) dag[koder[(dg*3+n+sp)%koder.length]] = 1 + ((dg+n)%2);
+      days[d(-dg)] = dag;
+    }
+    klub.push({id:"s"+sp, days, jokers:{}, jokerRequests:{}});
+  }
+  K.saetData(klub, [], klub.map(x=>({id:x.id, days:[]})), []);
+  // Én optegning spørger om hver spillers point mange gange: rangliste, sortering,
+  // profil, registrering. Her 10 gange pr. spiller, som et forsigtigt skøn.
+  const t0 = performance.now();
+  for(let gang=0; gang<10; gang++) for(const x of klub){ K.footworkPoints(x.id); K.footworkCurrentStreak(x.id); }
+  const foerste = performance.now() - t0;
+  const t1 = performance.now();
+  for(let gang=0; gang<10; gang++) for(const x of klub){ K.footworkPoints(x.id); K.footworkCurrentStreak(x.id); }
+  const naeste = performance.now() - t1;
+  console.log(`   første optegning efter en dataændring: ${foerste.toFixed(0)} ms · de næste: ${naeste.toFixed(1)} ms`);
+  t("første optegning efter en ændring er under et halvt sekund", foerste < 500, true);
+  t("optegninger uden dataændring koster næsten ingenting", naeste < 20, true);
+})();
+
 console.log(`\n${ok} ok, ${fejl} fejl`);
 process.exit(fejl ? 1 : 0);
