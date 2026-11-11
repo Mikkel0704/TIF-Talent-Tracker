@@ -13,7 +13,7 @@ function udtraek(startMarkoer, slutMarkoer){
   return html.slice(a, b);
 }
 const logik  = udtraek("// DAGLIG FODTEKNIK", "const POINT_BASE =");
-const render = udtraek("function renderFootwork(){", "\nfunction renderAll()");
+const render = udtraek("function renderFootwork(){", "\n// GENTEGNING UDEN AT TRAEDE PAA BRUGEREN");
 const stil   = udtraek("<style>", "</style>") + "</style>";
 
 const iDag = new Date();
