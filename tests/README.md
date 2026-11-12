@@ -19,6 +19,7 @@ npm run alt
 |---|---|
 | `logik/` | Ren beregning. `udtraek.mjs` henter fodteknik-koden ud af `index.html`. |
 | `visning/` | Tegner de rigtige sider med opdigtede data og tjekker, hvad der står. |
+| `visning/helapp.mjs` | Starter **hele** `index.html` uændret mod en efterlignet Firebase i hukommelsen og klikker rundt som spiller, demo, træner og admin. Den eneste test, hvor alle delene mødes. |
 | `regler/` | Sender rigtige forespørgsler mod reglerne i emulatoren - uden App Check og uden produktion. |
 | `vaerktoej/` | `udrul-regler.cjs` ruller reglerne ud og læser dem tilbage. |
 
