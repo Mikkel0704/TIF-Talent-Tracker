@@ -35,7 +35,7 @@ const browser = await chromium.launch();
 let ok = 0, fejlet = 0;
 const t = (n, b) => { b ? (ok++, console.log("  ok   " + n)) : (fejlet++, console.log("  FEJL  " + n)); };
 
-async function start(uid){
+async function start(uid, ekstra = {}){
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage();
   const fejl = []; let nativ = 0;
@@ -49,6 +49,7 @@ async function start(uid){
     return route.abort();
   });
   const d = data();
+  for (const [navn, docs] of Object.entries(ekstra)) d[navn] = { ...(d[navn] || {}), ...docs };
   await page.addInitScript(([db, bruger, privacy]) => {
     window.__db = db; window.__bruger = bruger; window.__skrivninger = [];
     try { sessionStorage.setItem("tif-demo-consent-seen", privacy); } catch {}
@@ -181,6 +182,128 @@ t("og kvitteringen tæller, hvad der er med", /4 spillere/.test(await a.dialogTe
 await a.svar(true);
 t("admin: browserens egne bokse blev aldrig brugt", a.nativ() === 0);
 t("admin: ingen fejl", a.fejl.length === 0);
+if (a.fejl.length) console.log("     " + [...new Set(a.fejl)].slice(0, 4).join("\n     "));
+await a.luk();
+
+// ================================================================== VIDEOER
+const klip = new URL("./helapp-klip.mp4", import.meta.url);
+(await import("node:fs")).writeFileSync(klip, "ikke en rigtig video");
+const afAar = { year: "2017", gender: "dreng" };
+const linkTil = sti => "https://eksempel.invalid/" + sti;
+
+console.log("\nVideoer · upload");
+a = await start("u-spiller");
+await a.gaaTil("training");
+await a.page.setInputFiles('#trainingArea input[type="file"]', klip.pathname);
+await a.page.click('#trainingArea button[id^="uploadbtn_"]');
+await a.page.waitForTimeout(500);
+w = await a.skrivninger();
+const op = w.find(x => x.type === "upload");
+const ind = w.find(x => x.navn === "submissions");
+const lnk = w.find(x => x.navn === "submissionVideos");
+t("filen lægges i mappen med LOGINNETS id", !!op && op.sti.startsWith("submissions/u-spiller/"));
+t("indsendelsen rummer hverken link eller sti", !!ind && !("videoURL" in ind.data) && !("videoPath" in ind.data));
+t("linket ligger for sig, med samme id som indsendelsen", !!lnk && lnk.id === ind.id && lnk.data.videoPath === op.sti && lnk.data.videoURL === linkTil(op.sti));
+t("og er ikke afgjort", lnk?.data.decided === false);
+t("linket har kun de felter, reglerne tillader", Object.keys(lnk?.data || {}).every(k =>
+  ["playerId","year","gender","videoURL","videoPath","challengeId","challengerId","opponentId","decided","submittedAt","createdAt"].includes(k)));
+t("kvitteringen vises", /Video uploadet/.test(await a.dialogTekst() || ""));
+await a.svar(true);
+
+await a.page.evaluate(() => { window.__skrivninger.length = 0; window.__fejlVed = "submissions"; });
+await a.page.setInputFiles('#trainingArea input[type="file"]', klip.pathname);
+await a.page.click('#trainingArea button[id^="uploadbtn_"]');
+await a.page.waitForTimeout(500);
+w = await a.skrivninger();
+t("afviser reglerne registreringen, slettes den uploadede fil igen",
+  w.some(x => x.type === "upload") && w.some(x => x.type === "sletfil" && x.sti === w.find(y => y.type === "upload").sti));
+t("og der oprettes intet link", !w.some(x => x.navn === "submissionVideos"));
+t("fejlen siges højt", /kunne ikke|ikke registrere|fejl/i.test(await a.dialogTekst() || ""));
+await a.svar(true);
+t("upload: ingen fejl i siden", a.fejl.filter(f => !/upload fejlede/.test(f)).length === 0);
+await a.luk();
+
+console.log("\nVideoer · træneren");
+const ventende = {
+  submissions: {
+    "s-ny":     { playerId: "p2", playerName: "Bo Test", ...afAar, exercise: "Præcision", stepIndex: 0, level: 1, medal: "Bronze", status: "pending", challengeId: null, submittedAt: new Date().toISOString() },
+    "s-gammel": { playerId: "p1", playerName: "Oscar Test", ...afAar, exercise: "Finter", stepIndex: 0, level: 1, medal: "Bronze", status: "pending", challengeId: null, submittedAt: new Date().toISOString(),
+                  videoURL: linkTil("submissions/p1/1_gammel.mp4"), videoPath: "submissions/p1/1_gammel.mp4" },
+    "s-ond":    { playerId: "p2", playerName: "Bo Test", ...afAar, exercise: "Kontrol", stepIndex: 0, level: 1, medal: "Bronze", status: "pending", challengeId: null, submittedAt: new Date().toISOString() }
+  },
+  submissionVideos: {
+    "s-ny":  { playerId: "p2", ...afAar, videoURL: linkTil("submissions/u-bo/2_ny.mp4"), videoPath: "submissions/u-bo/2_ny.mp4", decided: false },
+    "s-ond": { playerId: "p2", ...afAar, videoURL: 'https://x.invalid/"><img src=x onerror="window.__hacket=1">', videoPath: "submissions/u-bo/3.mp4", decided: false }
+  }
+};
+a = await start("u-traener", ventende);
+await a.gaaTil("review");
+const afspillere = () => a.page.evaluate(() => [...document.querySelectorAll("#reviewArea video")].map(v => v.getAttribute("src")));
+let src = await afspillere();
+t("træneren ser den nye video", src.includes(linkTil("submissions/u-bo/2_ny.mp4")));
+t("og den gamle, fra før flytningen", src.includes(linkTil("submissions/p1/1_gammel.mp4")));
+t("et håndskrevet link kan ikke bryde ud af afspilleren", !(await a.page.evaluate(() => window.__hacket))
+  && (await a.page.evaluate(() => document.querySelectorAll("#reviewArea img").length)) === 0);
+const godkend = async navn => { await a.page.evaluate(n => { [...document.querySelectorAll("#reviewArea .exercise-block")]
+  .find(b => b.textContent.includes(n)).querySelector("button").click(); }, navn); await a.page.waitForTimeout(400); };
+await godkend("Præcision");
+w = await a.skrivninger();
+t("godkendelse sletter filen", w.some(x => x.type === "sletfil" && x.sti === "submissions/u-bo/2_ny.mp4"));
+t("og hele link-dokumentet", w.some(x => x.type === "delete" && x.navn === "submissionVideos" && x.id === "s-ny"));
+t("og giver point på spilleren", w.some(x => x.navn === "players" && x.id === "p2" && x.data.points > 10));
+await godkend("Finter");
+w = await a.skrivninger();
+t("en gammel video slettes også, og dens link ryddes på indsendelsen",
+  w.some(x => x.type === "sletfil" && x.sti === "submissions/p1/1_gammel.mp4") && w.some(x => x.navn === "submissions" && x.id === "s-gammel" && x.data.videoURL === null));
+t("træner/video: ingen fejl", a.fejl.length === 0);
+if (a.fejl.length) console.log("     " + [...new Set(a.fejl)].slice(0, 4).join("\n     "));
+await a.luk();
+
+console.log("\nVideoer · duel");
+const duelGrund = afgjort => ({
+  challenges: { c1: { type: "freestyle", title: "Flest jongleringer", challengerId: "p1", challengerName: "Oscar Test", opponentId: "p2", opponentName: "Bo Test", ...afAar, status: afgjort ? "completed" : "active", winnerId: afgjort ? "p2" : null, winnerName: afgjort ? "Bo Test" : null } },
+  submissions: {
+    "d-oscar": { playerId: "p1", playerName: "Oscar Test", ...afAar, exercise: "Flest jongleringer", stepIndex: null, status: afgjort ? "rejected" : "pending", challengeId: "c1", challengerId: "p1", opponentId: "p2", submittedAt: new Date().toISOString(), reviewedAt: afgjort ? new Date().toISOString() : null },
+    "d-bo":    { playerId: "p2", playerName: "Bo Test",    ...afAar, exercise: "Flest jongleringer", stepIndex: null, status: afgjort ? "approved" : "pending", challengeId: "c1", challengerId: "p1", opponentId: "p2", submittedAt: new Date().toISOString(), reviewedAt: afgjort ? new Date().toISOString() : null }
+  },
+  submissionVideos: {
+    "d-oscar": { playerId: "p1", ...afAar, videoURL: linkTil("submissions/u-spiller/4_oscar.mp4"), videoPath: "submissions/u-spiller/4_oscar.mp4", challengeId: "c1", challengerId: "p1", opponentId: "p2", decided: afgjort },
+    "d-bo":    { playerId: "p2", ...afAar, videoURL: linkTil("submissions/u-bo/5_bo.mp4"),         videoPath: "submissions/u-bo/5_bo.mp4",         challengeId: "c1", challengerId: "p1", opponentId: "p2", decided: afgjort }
+  }
+});
+a = await start("u-spiller", duelGrund(false));
+await a.gaaTil("challenges");
+t("før afgørelsen ser Oscar ikke Bos video", (await a.page.evaluate(() => document.querySelectorAll("#challengesArea video").length)) === 0);
+t("men får at vide, at Bo har uploadet", await a.page.evaluate(() => /har uploadet/.test(document.getElementById("challengesArea").textContent)));
+await a.luk();
+
+a = await start("u-traener", duelGrund(false));
+await a.gaaTil("review");
+t("træneren ser begge duel-videoer side om side", (await a.page.evaluate(() => document.querySelectorAll("#reviewArea video").length)) === 2);
+await a.page.evaluate(() => { [...document.querySelectorAll("#reviewArea button")].find(b => /Bo Test/.test(b.textContent)).click(); });
+await a.page.waitForTimeout(500);
+w = await a.skrivninger();
+t("afgørelsen frigiver begge links til modparten",
+  ["d-oscar", "d-bo"].every(id => w.some(x => x.navn === "submissionVideos" && x.id === id && x.data.decided === true)));
+t("og sletter ingen af filerne endnu", !w.some(x => x.type === "sletfil"));
+await a.luk();
+
+a = await start("u-spiller", duelGrund(true));
+await a.gaaTil("challenges");
+const duelSrc = await a.page.evaluate(() => [...document.querySelectorAll("#challengesArea video")].map(v => v.getAttribute("src")));
+t("efter afgørelsen ser Oscar Bos video", duelSrc.length === 1 && duelSrc[0] === linkTil("submissions/u-bo/5_bo.mp4"));
+await a.page.evaluate(() => document.querySelector("#challengesArea video").dispatchEvent(new Event("play")));
+await a.page.waitForTimeout(250);
+w = await a.skrivninger();
+t("afspilning markerer den som set - på linket, ikke på indsendelsen",
+  w.some(x => x.navn === "submissionVideos" && x.id === "d-bo" && "viewedAt" in x.data) && !w.some(x => x.navn === "submissions"));
+await a.page.evaluate(() => document.querySelector("#challengesArea video")?.dispatchEvent(new Event("ended")));
+await a.page.waitForTimeout(400);
+w = await a.skrivninger();
+t("set til ende: filen slettes, og linket ryddes",
+  w.some(x => x.type === "sletfil" && x.sti === "submissions/u-bo/5_bo.mp4") && w.some(x => x.navn === "submissionVideos" && x.id === "d-bo" && x.data.videoURL === null));
+t("og afspilleren forsvinder", (await a.page.evaluate(() => document.querySelectorAll("#challengesArea video").length)) === 0);
+t("duel: ingen fejl", a.fejl.length === 0);
 if (a.fejl.length) console.log("     " + [...new Set(a.fejl)].slice(0, 4).join("\n     "));
 await a.luk();
 

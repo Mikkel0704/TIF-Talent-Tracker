@@ -45,21 +45,29 @@ export const sendPasswordResetEmail = async () => {};
 
 export const getFirestore = () => ({});
 export const collection = (d, navn) => ({ kind: "col", navn });
-export const doc = (d, navn, id) => ({ kind: "doc", navn, id });
+const autoId = () => "auto" + Math.random().toString(36).slice(2, 9);
+// doc(db, "samling", id) eller doc(collection(...)) for et nyt, tilfaeldigt id - som i den rigtige SDK.
+export const doc = (a, navn, id) => (a && a.kind === "col")
+  ? { kind: "doc", navn: a.navn, id: navn || autoId() }
+  : { kind: "doc", navn, id };
 export const where = (felt, op, v) => [felt, op, v];
 export const query = (col, ...filtre) => ({ kind: "col", navn: col.navn, filtre });
 export const serverTimestamp = () => tid();
 export const deleteField = () => SLET;
 export const getDoc = async ref => docSnap(ref.navn, ref.id);
 export const getDocs = async maal => colSnap(maal);
+// window.__fejlVed = "samling" faar skrivninger til den samling til at fejle, saa en test
+// kan se, hvad appen goer, naar reglerne siger nej midt i et forloeb.
+const afvist = () => Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
 export async function setDoc(ref, data, valg){
+  if (window.__fejlVed === ref.navn) throw afvist();
   (window.__skrivninger ||= []).push({ type: "set", navn: ref.navn, id: ref.id, data: rens(data), merge: !!valg?.merge });
   const col = (db()[ref.navn] ||= {});
   if (valg?.merge) col[ref.id] = flet(col[ref.id] || {}, data); else col[ref.id] = rens(data);
   giv(ref.navn);
 }
 export async function addDoc(col, data){
-  const id = "auto" + Math.random().toString(36).slice(2, 9);
+  const id = autoId();
   await setDoc({ navn: col.navn, id }, data);
   return { id };
 }

@@ -220,6 +220,62 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Videolinket og stien til filen. De laa foer paa selve indsendelsen, som hele
+    // aargangen maa laese - ranglisten har brug for alles point - og dermed fik ethvert
+    // login i aargangen, ogsaa demo-loginnet, links til de andre boerns videoer ned i
+    // browseren. Et link virker uden login. Nu ligger link og sti her, og kun tre maa
+    // laese dem: traeneren, barnet selv, og duel-modparten naar traeneren har afgjort.
+    //
+    // Dokumentet har samme id som indsendelsen. "decided" saettes af traeneren ved
+    // afgoerelsen; foer det kan modparten ikke hente linket, uanset hvad klienten proever.
+    match /submissionVideos/{submissionId} {
+      allow read: if isActive() && (
+        (!isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender))
+        || (isPlayerRole() && resource.data.playerId == myPlayerId())
+        || (
+          isPlayerRole()
+          && resource.data.decided == true
+          && (resource.data.challengerId == myPlayerId() || resource.data.opponentId == myPlayerId())
+        )
+      );
+
+      // Kun barnet selv opretter, kun for sig selv, og aldrig som allerede afgjort.
+      // keys().hasOnly og ikke diff(): paa en oprettelse findes resource ikke.
+      allow create: if isPlayerRole()
+        && !isDemo()
+        && request.resource.data.playerId == myPlayerId()
+        && request.resource.data.decided == false
+        && hasFullAccess(request.resource.data.year, request.resource.data.gender)
+        && request.resource.data.keys().hasOnly(["playerId","year","gender","videoURL","videoPath","challengeId","challengerId","opponentId","decided","submittedAt","createdAt"]);
+
+      allow update: if isActive() && (
+        // Traeneren afgoer (decided) og rydder linket.
+        (!isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender)
+          && request.resource.data.year == resource.data.year
+          && request.resource.data.playerId == resource.data.playerId)
+        // Barnet selv maa kun FJERNE sit link - det er 7-dages-udloebet i egen browser.
+        || (
+          isPlayerRole()
+          && resource.data.playerId == myPlayerId()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["videoURL", "videoDeletedAt"])
+          && request.resource.data.videoURL == null
+        )
+        // Modparten maa markere videoen som set og fjerne linket bagefter - intet andet,
+        // og foerst naar traeneren har afgjort.
+        || (
+          isPlayerRole()
+          && !isDemo()
+          && resource.data.playerId != myPlayerId()
+          && resource.data.decided == true
+          && (resource.data.challengerId == myPlayerId() || resource.data.opponentId == myPlayerId())
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["viewedAt", "videoURL", "videoDeletedAt"])
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["videoURL"]) || request.resource.data.videoURL == null)
+        )
+      );
+
+      allow delete: if isActive() && !isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender);
+    }
+
     // Traenerens note om en spiller. Ligger SEPARAT fra spilleren med vilje: spillere skal
     // kunne laese deres aargangs spillere (navne og point til ranglisten), og regler kan
     // ikke skjule enkelte felter i et dokument. Laa noten paa spilleren, kunne ethvert

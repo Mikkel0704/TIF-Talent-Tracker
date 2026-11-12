@@ -7,7 +7,7 @@
     "test": "npm run logik && npm run visning",
     "logik": "node logik/udtraek.mjs && node logik/test.mjs && node logik/stige.test.mjs && node logik/rang.test.mjs && node logik/backup.test.mjs",
     "visning": "for f in visning/*.mjs; do node \"$f\" || exit 1; done",
-    "regler": "firebase emulators:exec --only firestore --project tif-talent-tracker \"for f in regler/*.rules.test.mjs; do node \\\"\\$f\\\" || exit 1; done\"",
+    "regler": "cp ../storage.rules .lager.rules && firebase emulators:exec --only firestore,storage --project tif-talent-tracker \"for f in regler/*.test.mjs; do node \\\"\\$f\\\" || exit 1; done\"",
     "alt": "npm test && npm run regler"
   },
   "devDependencies": {

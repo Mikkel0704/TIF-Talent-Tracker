@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.65</title>
+  <title>TIF Talent Tracker v15.66</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -143,7 +143,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.65 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.66 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -538,7 +538,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.65 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.66 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -546,7 +546,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, deleteField, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject, listAll } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app-check.js";
 
 const firebaseConfig = {
@@ -1589,6 +1589,7 @@ let currentUserDoc = null;
 let players = [];
 let users = [];
 let submissions = [];
+let submissionVideos = [];
 let challenges = [];
 let clubRanking = [];
 let juggleLadder = [];
@@ -1613,6 +1614,7 @@ let challengeCreateType = "exercise";
 let unsubPlayers = null;
 let unsubUsers = null;
 let unsubSubmissions = null;
+let unsubSubmissionVideos = null;
 let unsubChallenges = null;
 let unsubClubRanking = null;
 let unsubJuggleLadder = null;
@@ -1833,7 +1835,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.65 · ikke logget ind");
+    setSyncStatus("v15.66 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1859,7 +1861,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.65 · bekræft inden I går i gang");
+    setSyncStatus("v15.66 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1867,7 +1869,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.65 · vælg din egen adgangskode");
+    setSyncStatus("v15.66 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -1904,9 +1906,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.65 · live database aktiv");
+    setSyncStatus("v15.66 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.65 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.66 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -1925,6 +1927,33 @@ function startListeners(){
     submissions = Object.values(submissionsChunks).flat();
     renderAll();
   }, (e)=>console.error("submissions listener", e));
+
+  // Videolinkene. En traener faar aargangens; en spiller faar kun sine egne og de
+  // dueller, traeneren har afgjort. Spillerens tre forespoergsler er formet praecis, som
+  // reglerne kan bevise dem lovlige - en bredere forespoergsel bliver afvist som helhed.
+  stopListeners(unsubSubmissionVideos);
+  const videoChunks = {};
+  const samlVideoer = ()=>{
+    const efterId = new Map();
+    Object.values(videoChunks).flat().forEach(d=>efterId.set(d.id, d));
+    submissionVideos = [...efterId.values()];
+    renderAll();
+  };
+  const videoFejl = e=>console.error("submissionVideos listener", e);
+  if(!isPlayer()){
+    unsubSubmissionVideos = subscribeYearScoped("submissionVideos", (idx, docs)=>{ videoChunks[idx] = docs; samlVideoer(); }, videoFejl);
+  } else if(currentUserDoc?.playerId){
+    const pid = currentUserDoc.playerId, col = collection(db, "submissionVideos");
+    const lyt = (navn, q)=>onSnapshot(q, snap=>{ videoChunks[navn] = snap.docs.map(d=>({id:d.id, ...d.data()})); samlVideoer(); }, videoFejl);
+    unsubSubmissionVideos = [
+      lyt("egne",      query(col, where("playerId","==",pid))),
+      lyt("udfordret", query(col, where("opponentId","==",pid), where("decided","==",true))),
+      lyt("udfordrer", query(col, where("challengerId","==",pid), where("decided","==",true)))
+    ];
+  } else {
+    submissionVideos = [];
+    unsubSubmissionVideos = [];
+  }
 
   stopListeners(unsubChallenges);
   const challengesChunks = {};
@@ -2243,7 +2272,7 @@ async function deletePlayer(id){
   const p = players.find(x=>x.id===id);
   if(!p || !canAccessYear(p.year)) return besked("Ingen adgang");
 
-  let subs = [], chs = [], userDocs = [], files = [], fileListFailed = false;
+  let subs = [], chs = [], userDocs = [], videoDocs = [], files = [];
   try{
     [subs, chs] = await Promise.all([
       getDocs(query(collection(db,"submissions"), where("playerId","==",id))).then(s=>s.docs),
@@ -2253,22 +2282,22 @@ async function deletePlayer(id){
     const seen = new Set(chs.map(d=>d.id));
     chsOpponent.forEach(d=>{ if(!seen.has(d.id)) chs.push(d); });
     userDocs = (await getDocs(query(collection(db,"users"), where("playerId","==",id)))).docs;
+    videoDocs = (await getDocs(query(collection(db,"submissionVideos"), where("playerId","==",id)))).docs;
   }catch(e){
     console.error(e);
     return besked("Kunne ikke gøre op, hvad der skal slettes: " + (e.message||"ukendt fejl") + "\n\nIntet er slettet. Prøv igen.");
   }
 
-  // Filmappen listes for sig. Kan den ikke laeses, maa det IKKE stoppe sletningen: en
-  // familie, hvis anmodning er godkendt, skal ikke afvises af en midlertidig fejl hos
-  // Storage. Vi falder tilbage paa de stier, indsendelserne selv peger paa, og siger
-  // aabent i kvitteringen, at der kan ligge filer tilbage.
-  try{
-    files = (await listAll(storageRef(storage, `submissions/${id}`))).items;
-  }catch(e){
-    console.error("kunne ikke liste spillerens videofiler", e);
-    fileListFailed = true;
-    files = subs.map(d=>d.data().videoPath).filter(Boolean).map(path=>storageRef(storage, path));
-  }
+  // Videofilerne findes via stierne i databasen, ikke ved at liste mappen: ingen kan
+  // liste en videomappe laengere, heller ikke admin - det er netop dét, der lukker for,
+  // at et vilkaarligt login kan hente et barns videoer. Stierne staar i submissionVideos
+  // og, for videoer fra foer flytningen, paa selve indsendelsen. En fil, der mod
+  // forventning ikke har nogen af delene, fjernes af lagerets egen slettefrist paa 8 dage.
+  const stier = new Set([
+    ...videoDocs.map(d=>d.data().videoPath),
+    ...subs.map(d=>d.data().videoPath)
+  ].filter(Boolean));
+  files = [...stier].map(sti=>storageRef(storage, sti));
 
   const logins = userDocs.map(d=>d.data().email).filter(Boolean);
   if(!await spoerg(
@@ -2278,7 +2307,7 @@ async function deletePlayer(id){
     + `· Jongleringsstigen og Daglig fodteknik med alle registreringer og logge\n`
     + `· ${subs.length} indsendte ${subs.length===1?"video":"videoer"} og deres data\n`
     + `· ${chs.length} ${chs.length===1?"udfordring":"udfordringer"} med ${p.name}\n`
-    + `· ${files.length} ${files.length===1?"videofil":"videofiler"} i skyen${fileListFailed ? " (mappen kunne ikke læses - der kan være flere)" : ""}\n`
+    + `· ${files.length} ${files.length===1?"videofil":"videofiler"} i skyen\n`
     + `· Pladsen på klub-ranglisten\n`
     + (logins.length ? `· Adgangen for ${logins.join(", ")}\n` : "· Ingen login knyttet til spilleren\n")
     + `\nDet kan ikke fortrydes.`, {ja: "Fortsæt", farlig: true})) return;
@@ -2288,8 +2317,12 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.65 · sletter...");
-  for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
+  setSyncStatus("v15.66 · sletter...");
+  for(const f of files){
+    try{ await deleteObject(f); }
+    catch(e){ if(e?.code !== "storage/object-not-found") failed.push("videofil " + f.name); }   // allerede vaek er ikke en fejl
+  }
+  for(const d of videoDocs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("videolink " + d.id); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
   for(const d of userDocs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("login " + d.id); } }
@@ -2301,11 +2334,10 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.65 · live database aktiv");
+  setSyncStatus("v15.66 · live database aktiv");
 
   besked(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
-    + (fileListFailed ? `BEMÆRK: mappen med videofiler kunne ikke læses, så der kan ligge filer tilbage. Kør sletningen igen senere, eller tjek submissions/${id} i Firebase Console.\n\n` : "")
     + (logins.length
         ? `TILBAGE AT GØRE I HÅNDEN:\nSelve login'et kan kun fjernes i Firebase Console under Authentication. Slet denne bruger dér:\n\n${logins.join("\n")}\n\nIndtil da kan mailen ikke bruges til at oprette en ny bruger - men den giver ingen adgang, fordi brugerdokumentet er væk.`
         : `Der var intet login knyttet til spilleren, så der er ikke mere at gøre.`)
@@ -2814,11 +2846,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.65 · migrering færdig");
+    setSyncStatus("v15.66 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.65 · migrering fejlede");
+    setSyncStatus("v15.66 · migrering fejlede");
   }
 }
 
@@ -2993,34 +3025,55 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.65 · uploader video...");
-    const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
+    setSyncStatus("v15.66 · uploader video...");
+    // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
+    // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
+    const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
     const url = await getDownloadURL(sref);
     stage = "registrering";
     const step = stepIndex!=null ? steps[stepIndex] : null;
-    // Udfordringens deltagere denormaliseres på submission, så modstanderen kan få
-    // lov til at se (og senere selv slette) netop denne video via sikkerhedsreglerne,
-    // uden at reglen skal slå udfordringen op separat.
     const c = challengeId ? challenges.find(x=>x.id===challengeId) : null;
-    await addDoc(collection(db, "submissions"), {
-      playerId, playerName: p.name, year: p.year, gender: p.gender || null,
-      exercise, stepIndex: stepIndex ?? null, level: step?.level ?? null, medal: step?.medal ?? null,
-      videoPath: path, videoURL: url,
-      status: "pending",
-      challengeId: challengeId || null,
-      challengerId: c?.challengerId ?? null, opponentId: c?.opponentId ?? null,
-      submittedAt: new Date().toISOString(),
-      submittedBy: currentUser?.email || "",
-      createdAt: serverTimestamp()
-    });
-    setSyncStatus("v15.65 · live database aktiv");
+    const submittedAt = new Date().toISOString();
+    // Id'et vaelges FOER skrivningen, saa indsendelsen og dens videolink faar samme id.
+    const nyRef = doc(collection(db, "submissions"));
+    try{
+      // Indsendelsen laeses af hele aargangen og rummer derfor hverken link eller sti.
+      await setDoc(nyRef, {
+        playerId, playerName: p.name, year: p.year, gender: p.gender || null,
+        exercise, stepIndex: stepIndex ?? null, level: step?.level ?? null, medal: step?.medal ?? null,
+        status: "pending",
+        challengeId: challengeId || null,
+        challengerId: c?.challengerId ?? null, opponentId: c?.opponentId ?? null,
+        submittedAt,
+        submittedBy: currentUser?.email || "",
+        createdAt: serverTimestamp()
+      });
+      // Linket og stien ligger for sig, hvor kun traeneren, barnet selv og - efter
+      // afgoerelsen - duel-modparten kan laese dem.
+      await setDoc(doc(db, "submissionVideos", nyRef.id), {
+        playerId, year: p.year, gender: p.gender || null,
+        videoURL: url, videoPath: path,
+        challengeId: challengeId || null,
+        challengerId: c?.challengerId ?? null, opponentId: c?.opponentId ?? null,
+        decided: false,
+        submittedAt,
+        createdAt: serverTimestamp()
+      });
+    }catch(e){
+      // Registreringen fejlede, men filen ER uploadet. Foer blev den liggende for evigt,
+      // fordi oprydningen kun kender filer, der har en indsendelse - stik imod loeftet om
+      // 7 dage. Nu fjernes den med det samme; lagerets egen slettefrist er sidste vaern.
+      try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
+      throw e;
+    }
+    setSyncStatus("v15.66 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.65 · live database aktiv");
+    setSyncStatus("v15.66 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -3108,7 +3161,7 @@ function challengeCard(c, p, showActions){
   // først (så man ikke kan tilpasse sit eget forsøg efter modstanderens) og (b) træneren
   // har taget stilling til modstanderens video.
   const theirSubPending = submissions.find(sub=>sub.challengeId===c.id && sub.playerId!==p.id && sub.status==="pending");
-  const theirSub = mySub ? submissions.find(sub=>sub.challengeId===c.id && sub.playerId!==p.id && sub.status!=="pending" && sub.videoURL) : null;
+  const theirSub = mySub ? submissions.find(sub=>sub.challengeId===c.id && sub.playerId!==p.id && sub.status!=="pending" && sikkerVideoUrl(videoFor(sub)?.url)) : null;
   return `<div class="exercise-block">
     <b>${headerText}</b> ${isFreestyle ? '<span class="pill guld">Fri</span>' : ''}
     <div class="small">Mod: ${escapeHtml(otherName)} · ${statusText}</div>
@@ -3116,7 +3169,7 @@ function challengeCard(c, p, showActions){
     ${canUpload ? `<div style="margin-top:8px"><label>Upload video</label><input type="file" accept="video/*" id="chupload_${c.id}"><button class="btn smallbtn" id="chuploadbtn_${c.id}" onclick="submitChallengeVideo('${c.id}')">Upload</button></div>` : ""}
     ${theirSub ? `<div style="margin-top:8px">
       <p class="small"><b>${escapeHtml(otherName)}s video</b></p>
-      <video controls preload="metadata" style="width:100%;border-radius:10px;background:#000" src="${theirSub.videoURL}" onplay="markSubmissionViewed('${theirSub.id}')" onended="deleteViewedSubmissionVideo('${theirSub.id}')"></video>
+      <video controls preload="metadata" style="width:100%;border-radius:10px;background:#000" src="${sikkerVideoUrl(videoFor(theirSub).url)}" onplay="markSubmissionViewed('${theirSub.id}')" onended="deleteViewedSubmissionVideo('${theirSub.id}')"></video>
       <p class="small">Forsvinder, når du har set den til ende (senest 2 dage efter godkendelse).</p>
     </div>` : mySub && theirSubPending ? `<p class="small" style="margin-top:8px">${escapeHtml(otherName)} har uploadet - I ser hinandens video, når træneren har taget stilling.</p>` : ""}
   </div>`;
@@ -3255,23 +3308,55 @@ async function submitChallengeVideo(challengeId){
   if(btn){ btn.disabled = false; btn.textContent = originalText; }
 }
 
+// ---------------------------------------------------------------------------
+// VIDEOLINKET LIGGER IKKE PAA INDSENDELSEN
+// Indsendelsen (submissions) laeses af hele aargangen, fordi ranglisten skal bruge alles
+// point. Laa videolinket dér, fik ethvert login i aargangen - ogsaa demo-loginnet -
+// links til de andre boerns videoer ned i browseren, og et link virker uden login.
+// Link og sti ligger derfor i submissionVideos, med samme id som indsendelsen, og dén
+// samling maa kun traeneren, barnet selv og duel-modparten efter afgoerelsen laese.
+//
+// videoFor() er det ene sted, resten af koden spoerger. Den falder tilbage paa de gamle
+// felter paa indsendelsen, saa videoer fra foer flytningen stadig virker ("ny: false").
+function videoFor(s){
+  const sub = typeof s === "string" ? submissions.find(x=>x.id===s) : s;
+  if(!sub) return null;
+  const v = submissionVideos.find(x=>x.id===sub.id);
+  if(v) return {url: v.videoURL || null, path: v.videoPath || null, viewedAt: v.viewedAt || null, ny: true};
+  if(sub.videoURL || sub.videoPath) return {url: sub.videoURL || null, path: sub.videoPath || null, viewedAt: sub.viewedAt || null, ny: false};
+  return null;
+}
+// Linket er skrevet af en spillers browser og ender i en src-attribut hos traeneren og
+// modparten. Det skal derfor baade vaere en https-adresse og escapes - ellers kunne et
+// haandskrevet "link" bryde ud af attributten og koere kode i en andens browser.
+function sikkerVideoUrl(url){
+  return typeof url === "string" && /^https:\/\//i.test(url) ? escapeHtml(url) : "";
+}
+
 // En udfordringsvideo vises kun for modstanderen (afsenderen har jo selv videoen).
 // Den slettes automatisk, når modstanderen har set den til ende, eller senest
 // CHALLENGE_VIDEO_MAX_AGE_MS efter trænerens godkendelse/afvisning - alt efter
 // hvad der sker først. Uden Cloud Functions håndhæves tidsfristen "dovent": ethvert
 // klientkald, der alligevel har udfordringsdata liggende, fejer udløbne videoer væk.
 function markSubmissionViewed(id){
-  const s = submissions.find(x=>x.id===id);
-  if(!s || s.viewedAt) return;
-  setDoc(doc(db, "submissions", id), {viewedAt: serverTimestamp()}, {merge:true})
+  const v = videoFor(id);
+  if(!v || v.viewedAt) return;
+  setDoc(doc(db, v.ny ? "submissionVideos" : "submissions", id), {viewedAt: serverTimestamp()}, {merge:true})
     .catch(e=>console.error("kunne ikke markere video som set", e));
 }
 async function deleteViewedSubmissionVideo(id){
-  const s = submissions.find(x=>x.id===id);
-  if(!s || !s.videoPath || !s.videoURL) return;
+  const v = videoFor(id);
+  if(!v || !v.path || !v.url) return;
   try{
-    await deleteObject(storageRef(storage, s.videoPath));
-    await setDoc(doc(db, "submissions", id), {videoURL: null, videoDeletedAt: serverTimestamp()}, {merge:true});
+    try{
+      await deleteObject(storageRef(storage, v.path));
+    }catch(e){
+      // Er filen allerede vaek - slettet af en anden klient eller af lagerets egen
+      // slettefrist - skal linket stadig ryddes. Ellers proever hver oprydning forgaeves
+      // igen og igen, og traeneren ser en afspiller, der peger paa ingenting.
+      if(e?.code !== "storage/object-not-found") throw e;
+    }
+    await setDoc(doc(db, v.ny ? "submissionVideos" : "submissions", id), {videoURL: null, videoDeletedAt: serverTimestamp()}, {merge:true});
   }catch(e){
     console.error("kunne ikke slette video efter visning", e);
   }
@@ -3293,7 +3378,10 @@ function sweepExpiredVideos(){
   if(now - lastChallengeVideoSweep < 5*60*1000) return;
   lastChallengeVideoSweep = now;
   submissions.forEach(s=>{
-    if(!s.videoURL || !s.videoPath) return;
+    // Kun de videoer, denne browser overhovedet kender linket til: traeneren alle i
+    // aargangen, en spiller sine egne og de dueller, der er afgjort.
+    const v = videoFor(s);
+    if(!v || !v.url || !v.path) return;
 
     // Ubehandlet video: 7 dage fra upload, uanset type.
     if(s.status === "pending"){
@@ -3321,8 +3409,8 @@ function reviewCard(s, readOnly){
   return `<div class="exercise-block">
     <b>${escapeHtml(s.playerName)}</b> · ${escapeHtml(s.exercise)} · ${step ? step.label : ""} ${s.challengeId ? '<span class="pill guld">Udfordring</span>' : ""}
     <div class="small">${escapeHtml(yearLabel(s.year))} · Uploadet ${s.submittedAt ? new Date(s.submittedAt).toLocaleString("da-DK") : ""}</div>
-    ${s.videoURL
-      ? `<video controls preload="metadata" style="width:100%;border-radius:10px;margin:8px 0;background:#000" src="${s.videoURL}"></video>`
+    ${sikkerVideoUrl(videoFor(s)?.url)
+      ? `<video controls preload="metadata" style="width:100%;border-radius:10px;margin:8px 0;background:#000" src="${sikkerVideoUrl(videoFor(s).url)}"></video>`
       : `<p class="small" style="margin:8px 0">${s.status==="pending"
           ? "Videoen er udløbet og slettet efter 7 dage. Bed spilleren uploade igen - afvis den her, så den forsvinder fra listen."
           : "Videoen er slettet efter behandling."}</p>`}
@@ -3348,8 +3436,8 @@ function freestyleChallengesReadyForJudging(){
 function freestyleJudgeCard(c, subs){
   const subA = subs.find(s=>s.playerId===c.challengerId);
   const subB = subs.find(s=>s.playerId===c.opponentId);
-  const videoOrNote = s => s?.videoURL
-    ? `<video controls preload="metadata" style="width:100%;border-radius:10px;background:#000" src="${s.videoURL}"></video>`
+  const videoOrNote = s => sikkerVideoUrl(videoFor(s)?.url)
+    ? `<video controls preload="metadata" style="width:100%;border-radius:10px;background:#000" src="${sikkerVideoUrl(videoFor(s).url)}"></video>`
     : '<p class="small">Ingen video.</p>';
   return `<div class="exercise-block">
     <b>${escapeHtml(c.title)}</b> <span class="pill guld">Fri udfordring</span>
@@ -3388,6 +3476,11 @@ async function judgeFreestyleChallenge(challengeId, winnerId){
   for(const s of subs){
     const isWinner = s.playerId === winnerId;
     await setDoc(doc(db, "submissions", s.id), {status: isWinner?"approved":"rejected", reviewedBy: currentUser?.email||"", reviewedAt: serverTimestamp(), pointsAwarded: isWinner?CHALLENGE_BONUS:0}, {merge:true});
+    // Afgoerelsen er det, der giver modparten lov til at hente linket.
+    if(videoFor(s)?.ny){
+      try{ await setDoc(doc(db, "submissionVideos", s.id), {decided: true}, {merge:true}); }
+      catch(e){ console.error("kunne ikke frigive duel-videoen til modparten", e); }
+    }
   }
 }
 
@@ -3472,13 +3565,21 @@ async function reviewSubmission(id, approve){
   // så den slettes fra Storage med det samme for ikke at opbevare børnevideo unødigt.
   // Udfordringsvideoer beholdes derimod et stykke tid, så modstanderen kan nå at se den -
   // se markSubmissionViewed/deleteViewedSubmissionVideo/sweepExpiredChallengeVideos.
-  if(!s.challengeId && s.videoPath){
+  const v = videoFor(s);
+  if(!s.challengeId && v?.path){
     try{
-      await deleteObject(storageRef(storage, s.videoPath));
-      await setDoc(doc(db, "submissions", id), {videoURL: null, videoDeletedAt: serverTimestamp()}, {merge:true});
+      try{ await deleteObject(storageRef(storage, v.path)); }
+      catch(e){ if(e?.code !== "storage/object-not-found") throw e; }
+      // Filen er vaek, saa der er intet link at passe paa laengere: hele dokumentet ryger.
+      if(v.ny) await deleteDoc(doc(db, "submissionVideos", id));
+      else await setDoc(doc(db, "submissions", id), {videoURL: null, videoDeletedAt: serverTimestamp()}, {merge:true});
     }catch(e){
       console.error("kunne ikke slette video efter godkendelse", e);
     }
+  } else if(s.challengeId && v?.ny){
+    // Duel: foerst NU maa modparten hente linket. Reglerne kraever decided == true.
+    try{ await setDoc(doc(db, "submissionVideos", id), {decided: true}, {merge:true}); }
+    catch(e){ console.error("kunne ikke frigive duel-videoen til modparten", e); }
   }
 }
 

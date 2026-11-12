@@ -1,38 +1,45 @@
-// Firebase Storage security rules for TIF Talent Tracker's player training-video
-// uploads. This file IS deployed (see README for how); it is not just a reference.
+// Lagerregler for TIF Talent Tracker. Filen rulles ud for sig - se README.
 //
-// Videos are uploaded by a player to: submissions/{playerId}/{timestamp}_{filename}.
-// A plain training video is deleted automatically the moment a coach/admin approves
-// or rejects it (see reviewSubmission() in index.html) - only the points/pass-status
-// persist after that, not the raw footage. A challenge video is kept a bit longer so
-// the opponent can watch it once the coach has decided: it deletes itself once the
-// opponent has watched it to the end, or at the latest 2 days after the decision,
-// whichever comes first (see markSubmissionViewed/deleteViewedSubmissionVideo/
-// sweepExpiredChallengeVideos in index.html).
-
+// Videoer ligger under submissions/{login-id}/{tidsstempel}_{filnavn}.
+//
+// Tre ting er lukket her, som stod aabne foer:
+//  1. Ingen kan LISTE en mappe. Foer kunne ethvert login - ogsaa demo-loginnet - liste et
+//     barns mappe og hente videoerne, fordi mappen hed det samme som spillerens id, og
+//     det id staar paa klub-ranglisten.
+//  2. Man kan kun uploade til SIN EGEN mappe. Mappen hedder nu loginnets id, som reglerne
+//     kan sammenligne med request.auth.uid. Spiller-id'et kunne de ikke kontrollere.
+//  3. Kun ejeren kan hente filen direkte. Traeneren og duel-modparten ser videoen gennem
+//     det link, der ligger beskyttet i Firestore (submissionVideos), ikke gennem lageret.
+//
+// Reglerne her kan ikke slaa roller op i Firestore: opslaget paa tvaers af tjenesterne
+// har vist sig at fejle paa dette projekt. Derfor er sletning tilladt for ethvert login,
+// MEN kun med den praecise sti - og stien staar nu kun i submissionVideos, som kun
+// traeneren, barnet selv og duel-modparten efter afgoerelsen kan laese. Det er de samme
+// tre, appen i forvejen lader slette. Vaerste tilfaelde er, at en af dem sletter en video
+// for tidligt; ingen point og ingen data haenger paa filen.
+//
+// Boetten har desuden sin egen slettefrist (lifecycle), saa en fil, appen aldrig faar
+// ryddet op, forsvinder af sig selv efter 8 dage.
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /submissions/{playerId}/{fileName} {
-      allow read: if request.auth != null;
+    match /submissions/{mappe}/{fileName} {
+      allow get: if request.auth != null && request.auth.uid == mappe;
+      allow list: if false;
 
+      // "resource == null": stien maa ikke findes i forvejen. Uden det gik en overskrivning
+      // af en eksisterende fil igennem som en oprettelse i emulatoren, selv om opdatering
+      // er forbudt nedenfor - saa forbuddet staar begge steder. Appen rammer den aldrig,
+      // fordi hver sti indeholder et tidsstempel.
       allow create: if request.auth != null
+        && request.auth.uid == mappe
+        && resource == null
         && request.resource.size < 200 * 1024 * 1024
         && request.resource.contentType.matches('video/.*');
 
-      // Ideally this would check the requester's role like firestore.rules does
-      // (coach/admin only, matching who may approve/reject a submission), via
-      // firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).
-      // That cross-service call reliably returns storage/unauthorized on this
-      // project even for a bare existence check, independent of rule content -
-      // confirmed by testing progressively simpler rules, not a syntax issue.
-      // Not worth chasing a Google-side IAM/linkage quirk for this: deletion is
-      // only ever triggered by app code gated in firestore.rules - reviewSubmission()/
-      // judgeFreestyleChallenge() (coach/admin only) and deleteViewedSubmissionVideo()
-      // (only reachable by the opponent, once Firestore already lets them touch that
-      // submission's view/expiry fields - see submissions/{submissionId} above). Worst
-      // case if someone calls this directly from the browser console is they delete
-      // a video early (their own workflow, not anyone's points/pass-status).
+      // En fil kan ikke skiftes ud, kun slettes og uploades igen.
+      allow update: if false;
+
       allow delete: if request.auth != null;
     }
   }

@@ -1,3 +1,8 @@
 {
-  "emulators": { "firestore": { "port": 8890 }, "ui": { "enabled": false } }
+  "storage": { "rules": ".lager.rules" },
+  "emulators": {
+    "firestore": { "port": 8890 },
+    "storage": { "port": 8891 },
+    "ui": { "enabled": false }
+  }
 }
