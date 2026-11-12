@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.64</title>
+  <title>TIF Talent Tracker v15.65</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -143,7 +143,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.64 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.65 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -442,8 +442,9 @@
     <div class="backupgrid">
       <div class="mutedbox" id="backupBoxCard">
         <h3>Backup</h3>
-        <p class="small">Kopier data ud som JSON eller CSV. JSON kan bruges som fuld backup. CSV er nemmere at åbne i Excel.</p>
-        <button class="btn secondary" onclick="exportBackupJson()">Eksportér JSON</button>
+        <p class="small">Hent en kopi af alt, du har adgang til: spillere, noter, stigen, fodteknik, dueller, indsendelser og indstillinger. Videolinks er udeladt med vilje. Der sker <b>ingen automatisk backup</b>, så hent en fil jævnligt - og altid før du sletter en spiller eller ændrer noget større. CSV er en kort spillerliste til Excel.</p>
+        <button class="btn" onclick="downloadBackupJson()">Hent backup som fil</button>
+        <button class="btn secondary" onclick="exportBackupJson()">Vis JSON</button>
         <button class="btn secondary" onclick="exportBackupCsv()">Eksportér CSV</button>
         <textarea id="backupBox" placeholder="Backup vises her"></textarea>
       </div>
@@ -537,7 +538,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.64 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.65 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -1832,7 +1833,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.64 · ikke logget ind");
+    setSyncStatus("v15.65 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1858,7 +1859,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.64 · bekræft inden I går i gang");
+    setSyncStatus("v15.65 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1866,7 +1867,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.64 · vælg din egen adgangskode");
+    setSyncStatus("v15.65 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -1903,9 +1904,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.64 · live database aktiv");
+    setSyncStatus("v15.65 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.64 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.65 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2287,7 +2288,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.64 · sletter...");
+  setSyncStatus("v15.65 · sletter...");
   for(const f of files){ try{ await deleteObject(f); }catch(e){ failed.push("videofil " + f.name); } }
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
@@ -2300,7 +2301,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.64 · live database aktiv");
+  setSyncStatus("v15.65 · live database aktiv");
 
   besked(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -2813,11 +2814,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.64 · migrering færdig");
+    setSyncStatus("v15.65 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.64 · migrering fejlede");
+    setSyncStatus("v15.65 · migrering fejlede");
   }
 }
 
@@ -2992,7 +2993,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.64 · uploader video...");
+    setSyncStatus("v15.65 · uploader video...");
     const path = `submissions/${playerId}/${Date.now()}_${file.name}`;
     const sref = storageRef(storage, path);
     await uploadBytes(sref, file);
@@ -3014,12 +3015,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       submittedBy: currentUser?.email || "",
       createdAt: serverTimestamp()
     });
-    setSyncStatus("v15.64 · live database aktiv");
+    setSyncStatus("v15.65 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.64 · live database aktiv");
+    setSyncStatus("v15.65 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -3694,22 +3695,55 @@ function selectProfileForTracking(pid){
   renderTracking();
 }
 
-function exportBackupJson(){
-  if(isPlayer()) return besked("Backup er et trænerværktøj og kan ikke bruges fra et spillerlogin.");
-  const payload = {
+// Backup. Foer tog den kun spillere og logins med - stigen, fodteknikken, duellerne,
+// noterne og indstillingerne manglede, saa "fuld backup" var ikke rigtigt. Nu er alt med,
+// som den, der eksporterer, har adgang til: en admin faar hele klubben, en traener sine
+// aargange. De samlinger, alle maa laese paa tvaers af klubben (stigen, fodteknikken,
+// klub-ranglisten), skaeres derfor til efter traenerens egne spillere.
+//
+// Videolinks tages IKKE med. Et link giver adgang til videoen uden login, og en
+// backup-fil ender paa en computer, i en mail eller i en sky. Videoerne lever alligevel
+// hoejst 7 dage, saa linket ville vaere doedt, laenge foer backuppen skulle bruges.
+function backupPayload(){
+  const mine = new Set(players.map(p=>p.id));
+  const kunMine = liste => isAdmin() ? liste : liste.filter(x=>mine.has(x.id));
+  const udenLink = liste => liste.map(x=>{ const { videoURL, ...rest } = x; return rest; });
+  return {
     exportedAt: new Date().toISOString(),
     exportedBy: currentUser?.email || "",
+    omfang: isAdmin() ? "hele klubben" : "årgange: " + allowedYears().join(", "),
+    note: "Videolinks er udeladt med vilje. Der findes ingen gendan-knap i appen: filen er en læsbar kopi, som kan bruges til at genskabe data med et script.",
     users: isAdmin() ? users : [],
-    players
+    players,
+    playerNotes,
+    submissions: udenLink(submissions),
+    challenges,
+    juggleLadder: kunMine(juggleLadder),
+    juggleLog,
+    footwork: kunMine(footwork),
+    footworkLog: footworkLogs,
+    clubRanking: kunMine(clubRanking),
+    clubModules,
+    deletionRequests: isAdmin() ? deletionRequests : []
   };
-  document.getElementById("backupBox").value = JSON.stringify(payload, null, 2);
 }
-
-function csvEscape(value){
-  const s = String(value ?? "");
-  return `"${s.replaceAll('"','""')}"`;
+function exportBackupJson(){
+  if(isPlayer()) return besked("Backup er et trænerværktøj og kan ikke bruges fra et spillerlogin.");
+  document.getElementById("backupBox").value = JSON.stringify(backupPayload(), null, 2);
 }
-
+// Henter backuppen som en fil. Et tekstfelt paa flere megabyte kan ikke kopieres fra en
+// telefon, og en backup, man ikke kan faa ud, er ikke en backup.
+function downloadBackupJson(){
+  if(isPlayer()) return besked("Backup er et trænerværktøj og kan ikke bruges fra et spillerlogin.");
+  const data = backupPayload();
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `tif-backup-${dagsISO(new Date())}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+  besked(`Backuppen er hentet som ${a.download}.\n\n${data.players.length} spillere · ${data.footwork.length} med fodteknik · ${data.juggleLadder.length} på stigen · ${data.submissions.length} indsendelser · ${data.challenges.length} dueller.\n\nFilen indeholder navne, noter og joker-begrundelser. Gem den et sikkert sted, og slet gamle kopier.`);
+}
 function exportBackupCsv(){
   if(isPlayer()) return besked("Backup er et trænerværktøj og kan ikke bruges fra et spillerlogin.");
   const rows = [["name","year","note","current_step","created_or_updated","history_count"]];
@@ -4171,7 +4205,7 @@ setInterval(()=>{ if(renderVenter && !uiOptaget() && Date.now() - sidsteBeroerin
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,undoJuggle,undoJuggleTrick,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderGuideLevels,toggleYearTalentmaerke,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,undoJuggle,undoJuggleTrick,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderGuideLevels,toggleYearTalentmaerke,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,downloadBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>

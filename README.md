@@ -1,41 +1,78 @@
 # TIF Talent Tracker
 
-Gratis GitHub Pages webapp til iPhone.
+Webapp til talentarbejdet i Tjørring IF: medaljeforløbet (Talentmærket), hjemmetræning
+(Daglig fodteknik og Jongleringsstigen), dueller mellem holdkammerater og en rangliste.
+Trænere registrerer og godkender; spillere og forældre træner hjemme og følger med.
 
-## Brug
-Upload `index.html` til et GitHub repository og aktiver GitHub Pages.
+Live: https://mikkel0704.github.io/TIF-Talent-Tracker/
 
-## Gamification til spillere (v15.0)
+## Sådan hænger det sammen
 
-Ud over trænerdelen har appen nu en spillerdel: spillere kan logge ind
-selv, se og træne øvelser derhjemme, uploade video af sig selv, optjene
-point og rang (avatar-niveau), og udfordre holdkammerater i de enkelte
-øvelser. Trænere godkender/afviser hver video manuelt under fanen
-"Godkendelser" — der er ingen automatisk AI-bedømmelse i denne version.
+| Del | Hvor |
+|---|---|
+| Selve appen | `index.html` - én fil, ingen build. GitHub Pages viser `main`. |
+| Login | Firebase Authentication (email + adgangskode) |
+| Data | Cloud Firestore, projekt `tif-talent-tracker`, EU (eur3) |
+| Videoer | Cloud Storage, bøtte `tif-talent-tracker`, Belgien (europe-west1) |
+| Adgangsregler | `firestore.rules` og `storage.rules` |
+| Værn mod fremmede klienter | App Check med reCAPTCHA Enterprise, håndhævet på Firestore og Storage |
+| Tests | `tests/` - se `tests/README.md` |
 
-**Opsætning i Firebase:**
-1. **Storage er aktiveret** på Blaze-planen (pay-as-you-go), med bucket
-   `tif-talent-tracker.firebasestorage.app` i US-WEST1 (no-cost region —
-   forventet forbrug for en enkelt klub ligger inden for den gratis
-   kvote).
-2. **Sikkerhedsregler**: `firestore.rules` og `storage.rules` i dette
-   repo er deployet til det live projekt. Hvis I ændrer dem her, skal I
-   deploye igen manuelt (Firebase console → Firestore Database → Rules
-   / Storage → Rules, eller `firebase deploy` med Firebase CLI) — de
-   opdateres ikke automatisk bare fordi filerne i repoet ændres.
-3. **Videoopbevaring**: når en træner har godkendt eller afvist en
-   almindelig træningsvideo (uden udfordring), sletter appen automatisk
-   selve videofilen fra Storage med det samme — point og
-   bestået-status gemmes permanent på spilleren, men optagelsen bliver
-   ikke liggende bagefter. En udfordringsvideo beholdes lidt længere,
-   så modstanderen kan nå at se den: den slettes automatisk, når
-   modstanderen har set den til ende, eller senest 2 dage efter
-   trænerens afgørelse — alt efter hvad der sker først. Uden Cloud
-   Functions håndhæves 2-dages-fristen "dovent" client-side (se
-   `sweepExpiredChallengeVideos()` i index.html) — den rammer først,
-   næste gang en spiller eller træner med relevante data indlæst
-   rent faktisk har appen åben efter fristens udløb, ikke på klokkeslæt.
-4. **Opret spillerlogin**: som admin, gå til Admin → "Opret
-   spillerlogin", vælg en eksisterende spiller, og opret en e-mail +
-   midlertidig adgangskode til dem. Spilleren bør selv skifte
-   adgangskode under Indstillinger efter første login.
+Der er ingen server og ingen Cloud Functions. Alt, der skal håndhæves, håndhæves i
+reglerne; alt andet er brugerflade.
+
+## Udrulning
+
+**Appen:** et push til `main` ruller ud af sig selv via GitHub Pages. Det tager et minuts
+tid, og browseren kan holde på den gamle udgave lidt endnu - versionsnummeret står i
+statuslinjen øverst.
+
+**Reglerne rulles ikke ud af sig selv.** En ændring i `firestore.rules` gør ingenting, før
+den er rullet ud. Kør regeltestene først, og brug `tests/vaerktoej/udrul-regler.cjs`, som
+læser reglerne tilbage og sammenligner dem med filen. Rækkefølgen betyder noget: kræver ny
+kode en ny regel, skal reglen ud først - ellers får familierne "missing or insufficient
+permissions".
+
+`storage.rules` rulles ud for sig: Firebase Console → Storage → Rules, eller med Firebase CLI.
+
+## Service-nøgler
+
+En service-nøgle går uden om alle regler og kan læse og slette alt om alle børn.
+
+- Lav en frisk nøgle, hver gang der skal rulles regler ud.
+- Slet filen bagefter, **og slet selve nøglen** i Google Cloud Console
+  (IAM → Service Accounts → Keys). En slettet fil er ikke en slettet nøgle.
+- Læg den aldrig i repoet. `tests/.gitignore` holder den ude, men det er et sikkerhedsnet,
+  ikke en plan.
+
+## Point gemmes ikke
+
+Point fra Daglig fodteknik og Jongleringsstigen står ingen steder i databasen. Der gemmes
+kun registreringerne, og point regnes ud af dem, hver gang de vises. Derfor kan en
+rettelse, en sletning eller en bagudregistrering aldrig efterlade et forkert tal et andet
+sted - og derfor kan en spiller ikke skrive point til sig selv: der er intet pointfelt at
+skrive i. Medaljepoint står på spilleren og kan kun skrives af en træner.
+
+## Samlinger i Firestore
+
+| Samling | Indhold | Hvem må læse |
+|---|---|---|
+| `users` | Login, rolle, årgange | Brugeren selv og admin |
+| `players` | Navn, årgang, medaljer, medaljepoint, historik | Egen årgang |
+| `playerNotes` | Trænerens note | Kun trænere |
+| `submissions` | Indsendte videoer og deres status | Egen årgang |
+| `challenges` | Dueller | Egen årgang |
+| `juggleLadder` / `footwork` | Fremdrift og registreringer - kun tal og datoer | Hele klubben |
+| `juggleLog` / `footworkLog` | Hvem registrerede hvad; joker-begrundelser | Egen årgang |
+| `clubRanking` | Navn, årgang og medaljepoint til klub-top-10 | Hele klubben |
+| `clubConfig` | Hvilke årgange kører Talentmærket | Hele klubben |
+| `deletionRequests` | Anmodninger om sletning | Admin og familien selv |
+
+De samlinger, hele klubben må læse, rummer med vilje hverken navne (bortset fra
+ranglisten) eller bruger-id'er.
+
+## Backup
+
+Der er ingen automatisk backup. Under Indstillinger kan en træner eller admin hente en
+JSON-fil med alt, vedkommende har adgang til. Videolinks er udeladt. Der er ingen
+gendan-knap; filen er en læsbar kopi.
