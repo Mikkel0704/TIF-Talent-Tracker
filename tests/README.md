@@ -20,8 +20,8 @@ npm run alt
 | `logik/` | Ren beregning. `udtraek.mjs` henter fodteknik-koden ud af `index.html`. |
 | `visning/` | Tegner de rigtige sider med opdigtede data og tjekker, hvad der står. |
 | `visning/helapp.mjs` | Starter **hele** `index.html` uændret mod en efterlignet Firebase i hukommelsen og klikker rundt som spiller, demo, træner og admin. Den eneste test, hvor alle delene mødes. |
-| `regler/` | Sender rigtige forespørgsler mod reglerne i emulatoren - uden App Check og uden produktion. |
-| `vaerktoej/` | `udrul-regler.cjs` ruller reglerne ud og læser dem tilbage. |
+| `regler/` | Sender rigtige forespørgsler mod `firestore.rules` og `storage.rules` i emulatorerne - uden App Check og uden produktion. `flytning.test.mjs` prøver flytteværktøjet mod emulatoren. |
+| `vaerktoej/` | `udrul-regler.cjs` (Firestore-regler), `udrul-lager.cjs` (lagerregler og slettefrist) og `flyt-videoer.cjs` (engangsflytning af gamle videolinks). Alle læser tilbage, hvad de har gjort, og de to sidste har en tørkørsel. |
 
 ## To ting, testene har lært os på den hårde måde
 

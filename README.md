@@ -13,7 +13,7 @@ Live: https://mikkel0704.github.io/TIF-Talent-Tracker/
 | Selve appen | `index.html` - én fil, ingen build. GitHub Pages viser `main`. |
 | Login | Firebase Authentication (email + adgangskode) |
 | Data | Cloud Firestore, projekt `tif-talent-tracker`, EU (eur3) |
-| Videoer | Cloud Storage, bøtte `tif-talent-tracker`, Belgien (europe-west1) |
+| Videoer | Cloud Storage, bøtte `tif-talent-tracker`, Belgien (europe-west1). Mapperne hedder `submissions/{login-id}/`, kan ikke listes, og tømmes af en slettefrist på 8 dage. |
 | Adgangsregler | `firestore.rules` og `storage.rules` |
 | Værn mod fremmede klienter | App Check med reCAPTCHA Enterprise, håndhævet på Firestore og Storage |
 | Tests | `tests/` - se `tests/README.md` |
@@ -33,7 +33,9 @@ læser reglerne tilbage og sammenligner dem med filen. Rækkefølgen betyder nog
 kode en ny regel, skal reglen ud først - ellers får familierne "missing or insufficient
 permissions".
 
-`storage.rules` rulles ud for sig: Firebase Console → Storage → Rules, eller med Firebase CLI.
+`storage.rules` rulles ud for sig med `tests/vaerktoej/udrul-lager.cjs`, som også sætter
+bøttens slettefrist: alt under `submissions/` slettes af Google efter 8 dage, uanset hvad
+appen gør.
 
 ## Service-nøgler
 
@@ -60,7 +62,8 @@ skrive i. Medaljepoint står på spilleren og kan kun skrives af en træner.
 | `users` | Login, rolle, årgange | Brugeren selv og admin |
 | `players` | Navn, årgang, medaljer, medaljepoint, historik | Egen årgang |
 | `playerNotes` | Trænerens note | Kun trænere |
-| `submissions` | Indsendte videoer og deres status | Egen årgang |
+| `submissions` | Indsendelser: øvelse, status og point - **ikke** videolinket | Egen årgang |
+| `submissionVideos` | Link og sti til videoen, samme id som indsendelsen | Træneren, barnet selv, og duel-modparten efter afgørelsen |
 | `challenges` | Dueller | Egen årgang |
 | `juggleLadder` / `footwork` | Fremdrift og registreringer - kun tal og datoer | Hele klubben |
 | `juggleLog` / `footworkLog` | Hvem registrerede hvad; joker-begrundelser | Egen årgang |
