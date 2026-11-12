@@ -36,9 +36,9 @@ function isPlayer(){ return false; }
 function isDemoUser(){ return false; }
 function demoBlocked(){ return false; }
 function canAccessPlayer(){ return true; }
-function alert(){}
-function prompt(){ return null; }
-function confirm(){ return false; }
+function besked(){ return Promise.resolve(); }
+function indtast(){ return Promise.resolve(null); }
+function spoerg(){ return Promise.resolve(false); }
 function escapeHtml(s){ return String(s); }
 function renderFootwork(){}
 `;

@@ -98,6 +98,15 @@
     .streakbox{display:flex;gap:14px;flex-wrap:wrap;align-items:baseline}
     .streakbox div{flex:1 1 120px}
     .streakbox b{display:block;font-size:22px}
+    .dialogbag{position:fixed;inset:0;z-index:1000;background:rgba(20,16,18,.55);display:flex;align-items:flex-end;justify-content:center;padding:12px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+    @media(min-width:560px){.dialogbag{align-items:center}}
+    .dialogkort{background:var(--card,#fff);border-radius:16px;width:100%;max-width:440px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+    .dialogtekst{padding:18px 18px 6px;overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:1.45;color:var(--text)}
+    .dialogfelt{padding:6px 18px 0}
+    .dialogfelt textarea,.dialogfelt input{font-family:inherit}
+    .dialogfelt .small{margin:6px 0 0}
+    .dialogknapper{display:flex;gap:8px;justify-content:flex-end;padding:14px 18px 16px;flex-wrap:wrap}
+    .dialogknapper .btn{margin:0;min-width:96px}
     .demobanner{margin:0;padding:10px 14px;background:#fff4d6;border-bottom:1px solid #f0d99a;color:#6b4d00;font-size:14px;line-height:1.45}
     .checkrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
     .checkrow:last-child{border-bottom:0}
@@ -711,39 +720,39 @@ async function writeJuggle(pid, p, progress, logEntry){
 
 // Registrering sker fra spillerens eget login, paa tillid. Ingen video, ingen godkendelse.
 async function registerJuggle(kind, value){
-  if(!isPlayer() || !currentPlayerLink) return alert("Kun spilleren selv kan registrere trin.");
+  if(!isPlayer() || !currentPlayerLink) return besked("Kun spilleren selv kan registrere trin.");
   if(demoBlocked("Trinnet bliver ikke registreret herfra.")) return;
   const p = currentPlayerLink, pid = p.id;
   let progress = null, hvad = "";
 
   if(kind === "main"){
     const n = juggleNextMain(pid);
-    if(n === null) return alert("Du har taget hele hovedstigen. Flot!");
-    if(value !== n) return alert("Tag trinnene i rækkefølge - næste trin er " + JUGGLE_MAIN[n] + " jongleringer.");
-    if(juggleMainBlocked(pid)) return alert("Fra trin 4 skal bolden vippes op fra jorden.\n\nKlar først \"Opløft\" i Tricks - så åbner resten af stigen.");
+    if(n === null) return besked("Du har taget hele hovedstigen. Flot!");
+    if(value !== n) return besked("Tag trinnene i rækkefølge - næste trin er " + JUGGLE_MAIN[n] + " jongleringer.");
+    if(juggleMainBlocked(pid)) return besked("Fra trin 4 skal bolden vippes op fra jorden.\n\nKlar først \"Opløft\" i Tricks - så åbner resten af stigen.");
     progress = {mainStep: n + 1};
     hvad = JUGGLE_MAIN[n] + " jongleringer";
   } else if(kind === "weak"){
     const n = juggleNextWeak(pid);
-    if(n === null) return alert("Du har taget hele dårligt ben-stigen. Flot!");
-    if(value !== n) return alert("Tag trinnene i rækkefølge - næste trin er " + JUGGLE_WEAK[n] + " med dårligt ben.");
+    if(n === null) return besked("Du har taget hele dårligt ben-stigen. Flot!");
+    if(value !== n) return besked("Tag trinnene i rækkefølge - næste trin er " + JUGGLE_WEAK[n] + " med dårligt ben.");
     progress = {weakStep: n + 1};
     hvad = JUGGLE_WEAK[n] + " med dårligt ben";
   } else {
     const t = juggleTrick(value);
     if(!t) return;
-    if(juggleTricks(pid).includes(t.id)) return alert("Det trick er allerede registreret.");
+    if(juggleTricks(pid).includes(t.id)) return besked("Det trick er allerede registreret.");
     progress = {tricks: [...juggleTricks(pid), t.id]};
     hvad = t.navn;
   }
 
   const point = kind === "main" ? juggleMainPoints(value) : kind === "weak" ? juggleWeakPoints(value) : juggleTrick(value).point;
-  if(!confirm(`Registrér "${hvad}"?\n\nDet giver ${point} point på ranglisten. Træneren kan tage stikprøver til træning.`)) return;
+  if(!await spoerg(`Registrér "${hvad}"?\n\nDet giver ${point} point på ranglisten. Træneren kan tage stikprøver til træning.`)) return;
   try{
     await writeJuggle(pid, p, progress, {t: kind, v: value, at: new Date().toISOString(), by: currentUser?.uid || ""});
   }catch(e){
     console.error(e);
-    alert("Kunne ikke registrere trinnet: " + (e.message || "ukendt fejl"));
+    besked("Kunne ikke registrere trinnet: " + (e.message || "ukendt fejl"));
   }
 }
 
@@ -760,22 +769,22 @@ async function registerJuggle(kind, value){
 // at tage trinnet igen, giver det ikke point to gange i uge/maaned - se noten i
 // ladderPointsInWindow.
 async function undoJuggle(kind){
-  if(!isPlayer() || !currentPlayerLink) return alert("Kun spilleren selv kan fortryde her.");
+  if(!isPlayer() || !currentPlayerLink) return besked("Kun spilleren selv kan fortryde her.");
   if(demoBlocked("Der sker ikke noget herfra.")) return;
   const p = currentPlayerLink, pid = p.id;
   const stige = kind === "main" ? JUGGLE_MAIN : JUGGLE_WEAK;
   const nu = kind === "main" ? juggleMainStep(pid) : juggleWeakStep(pid);
-  if(nu <= 0) return alert("Der er ikke noget at fortryde endnu.");
+  if(nu <= 0) return besked("Der er ikke noget at fortryde endnu.");
   const point = kind === "main" ? juggleMainPoints(nu-1) : juggleWeakPoints(nu-1);
   const hvad = kind === "main" ? stige[nu-1] + " jongleringer" : stige[nu-1] + " med dårligt ben";
-  if(!confirm(`Fortryd "${hvad}"?\n\nDu mister ${point} point, og trinnet bliver dit næste igen.\n\nDet er kun det senest klarede trin, du kan fortryde.`)) return;
+  if(!await spoerg(`Fortryd "${hvad}"?\n\nDu mister ${point} point, og trinnet bliver dit næste igen.\n\nDet er kun det senest klarede trin, du kan fortryde.`)) return;
   try{
     await writeJuggle(pid, p, kind === "main" ? {mainStep: nu-1} : {weakStep: nu-1},
       {t: "undo", stige: kind, fra: nu, til: nu-1, at: new Date().toISOString(), by: currentUser?.uid || ""});
-  }catch(e){ console.error(e); alert("Kunne ikke fortryde: " + (e.message || "ukendt fejl")); }
+  }catch(e){ console.error(e); besked("Kunne ikke fortryde: " + (e.message || "ukendt fejl")); }
 }
 async function undoJuggleTrick(trickId){
-  if(!isPlayer() || !currentPlayerLink) return alert("Kun spilleren selv kan fortryde her.");
+  if(!isPlayer() || !currentPlayerLink) return besked("Kun spilleren selv kan fortryde her.");
   if(demoBlocked("Der sker ikke noget herfra.")) return;
   const p = currentPlayerLink, pid = p.id;
   const t = juggleTrick(trickId); if(!t) return;
@@ -786,7 +795,7 @@ async function undoJuggleTrick(trickId){
   const lukkerPorten = trickId === "oploft" && juggleMainStep(pid) > JUGGLE_GATE_AFTER;
   const tabt = t.point + (lukkerPorten
     ? JUGGLE_MAIN.slice(JUGGLE_GATE_AFTER, juggleMainStep(pid)).reduce((n,x)=>n+x, 0) : 0);
-  if(!confirm(`Fortryd "${t.navn}"?\n\n`
+  if(!await spoerg(`Fortryd "${t.navn}"?\n\n`
     + (lukkerPorten
         ? `Opløft åbner trin 4 og opefter. Fortryder du den, ruller hovedstigen tilbage til trin ${JUGGLE_GATE_AFTER}, og du mister ${tabt} point i alt.`
         : `Du mister ${t.point} point.`))) return;
@@ -795,23 +804,23 @@ async function undoJuggleTrick(trickId){
   try{
     await writeJuggle(pid, p, progress,
       {t: "undo", stige: "trick", trick: trickId, at: new Date().toISOString(), by: currentUser?.uid || ""});
-  }catch(e){ console.error(e); alert("Kunne ikke fortryde: " + (e.message || "ukendt fejl")); }
+  }catch(e){ console.error(e); besked("Kunne ikke fortryde: " + (e.message || "ukendt fejl")); }
 }
 
 // Traenerens stikproeve: saet stigen tilbage (eller frem) til et bestemt trin. Point
 // genberegnes af sig selv, fordi de aldrig blev gemt - og de fjernede trin holder op
 // med at taelle med i uge/maaned, uden at loggen skal ryddes.
 async function correctJuggle(pid, kind){
-  if(isPlayer()) return alert("Kun trænere kan rette registreringer.");
+  if(isPlayer()) return besked("Kun trænere kan rette registreringer.");
   const p = players.find(x=>x.id===pid);
-  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
   const stige = kind === "main" ? JUGGLE_MAIN : JUGGLE_WEAK;
   const nu = kind === "main" ? juggleMainStep(pid) : juggleWeakStep(pid);
   const navn = kind === "main" ? "hovedstigen" : "dårligt ben-stigen";
-  const svar = prompt(`Ret ${p.name} på ${navn}.\n\nStår nu på ${nu} af ${stige.length} trin (${nu ? stige[nu-1] : 0} jongleringer).\n\nSkriv hvor mange trin der skal være klaret (0-${stige.length}):`, String(nu));
+  const svar = await indtast(`Ret ${p.name} på ${navn}.\n\nStår nu på ${nu} af ${stige.length} trin (${nu ? stige[nu-1] : 0} jongleringer).\n\nSkriv hvor mange trin der skal være klaret (0-${stige.length}):`, {vaerdi: String(nu), tal: true});
   if(svar === null) return;
   const nyt = parseInt(svar, 10);
-  if(!Number.isFinite(nyt) || nyt < 0 || nyt > stige.length) return alert("Skriv et tal mellem 0 og " + stige.length + ".");
+  if(!Number.isFinite(nyt) || nyt < 0 || nyt > stige.length) return besked("Skriv et tal mellem 0 og " + stige.length + ".");
   if(nyt === nu) return;
   // Trinnene er ikke lige meget vaerd laengere, saa forskellen skal laegges sammen trin
   // for trin - et gangestykke ville vise et forkert tal i bekraeftelsen.
@@ -819,19 +828,19 @@ async function correctJuggle(pid, kind){
   let diff = 0;
   for(let i = Math.min(nu, nyt); i < Math.max(nu, nyt); i++) diff += pointFor(i);
   if(nyt < nu) diff = -diff;
-  if(!confirm(`Sæt ${navn} til ${nyt} trin?\n\n${diff > 0 ? "+" : ""}${diff} point. Rettelsen bliver logget med dit navn.`)) return;
+  if(!await spoerg(`Sæt ${navn} til ${nyt} trin?\n\n${diff > 0 ? "+" : ""}${diff} point. Rettelsen bliver logget med dit navn.`)) return;
   try{
     await writeJuggle(pid, p, kind === "main" ? {mainStep: nyt} : {weakStep: nyt},
       {t: "correct", stige: kind, fra: nu, til: nyt, at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""});
-  }catch(e){ console.error(e); alert("Kunne ikke rette: " + (e.message || "ukendt fejl")); }
+  }catch(e){ console.error(e); besked("Kunne ikke rette: " + (e.message || "ukendt fejl")); }
 }
 async function correctJuggleTrick(pid, trickId){
-  if(isPlayer()) return alert("Kun trænere kan rette registreringer.");
+  if(isPlayer()) return besked("Kun trænere kan rette registreringer.");
   const p = players.find(x=>x.id===pid);
-  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
   const t = juggleTrick(trickId); if(!t) return;
   const har = juggleTricks(pid).includes(trickId);
-  if(!confirm(`${har ? "Fjern" : "Giv"} "${t.navn}" for ${p.name}?\n\n${har ? "-" : "+"}${t.point} point. Rettelsen bliver logget med dit navn.`)) return;
+  if(!await spoerg(`${har ? "Fjern" : "Giv"} "${t.navn}" for ${p.name}?\n\n${har ? "-" : "+"}${t.point} point. Rettelsen bliver logget med dit navn.`)) return;
   const tricks = har ? juggleTricks(pid).filter(x=>x!==trickId) : [...juggleTricks(pid), trickId];
   const progress = {tricks};
   // Fjernes Oploeft, lukker porten igen - saa skal hovedstigen ogsaa tilbage til trin 3.
@@ -839,7 +848,7 @@ async function correctJuggleTrick(pid, trickId){
   try{
     await writeJuggle(pid, p, progress,
       {t: "correct", stige: "trick", trick: trickId, til: har ? "fjernet" : "givet", at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""});
-  }catch(e){ console.error(e); alert("Kunne ikke rette: " + (e.message || "ukendt fejl")); }
+  }catch(e){ console.error(e); besked("Kunne ikke rette: " + (e.message || "ukendt fejl")); }
 }
 function jugglePhaseFor(trinNr){ return JUGGLE_PHASES.find(f=>trinNr<=f.til) || JUGGLE_PHASES[JUGGLE_PHASES.length-1]; }
 
@@ -1317,19 +1326,19 @@ async function writeFootwork(pid, p, patch, logEntry, reasonPatch){
 
 // Familien taeller op og ned paa den valgte dag. Ingen video, ingen godkendelse.
 async function registerFootwork(kode, delta){
-  if(!isPlayer() || !currentPlayerLink) return alert("Kun spilleren selv kan registrere fodteknik.");
+  if(!isPlayer() || !currentPlayerLink) return besked("Kun spilleren selv kan registrere fodteknik.");
   if(demoBlocked("Gennemførelsen bliver ikke registreret herfra.")) return;
   const ex = footworkEx(kode); if(!ex) return;
   const p = currentPlayerLink, pid = p.id, dato = footworkSelectedDay();
-  if(!footworkDayOpenForPlayer(dato)) return alert(`Dagen er låst.\n\nI kan selv registrere op til ${FOOTWORK_BACKDATE_DAYS} dage tilbage. Ældre dage kan en træner rette.`);
-  if(footworkJokerStatus(pid, dato) === "approved") return alert("Dagen er dækket af en godkendt joker, så den giver ingen point.\n\nVil I registrere træning på dagen, skal træneren først fjerne jokeren.");
+  if(!footworkDayOpenForPlayer(dato)) return besked(`Dagen er låst.\n\nI kan selv registrere op til ${FOOTWORK_BACKDATE_DAYS} dage tilbage. Ældre dage kan en træner rette.`);
+  if(footworkJokerStatus(pid, dato) === "approved") return besked("Dagen er dækket af en godkendt joker, så den giver ingen point.\n\nVil I registrere træning på dagen, skal træneren først fjerne jokeren.");
   const nu = footworkCount(pid, dato, ex.kode);
   if(delta > 0 && !nu && footworkDays(pid).length >= FOOTWORK_MAX_DAYS){
-    return alert(`Der er registreret ${FOOTWORK_MAX_DAYS} dage, og det er så langt, ét dokument må fylde.\n\nIngen point går tabt - men der kan ikke komme flere dage på. Skriv til mikkel0704@hotmail.com, så bliver der gjort plads.`);
+    return besked(`Der er registreret ${FOOTWORK_MAX_DAYS} dage, og det er så langt, ét dokument må fylde.\n\nIngen point går tabt - men der kan ikke komme flere dage på. Skriv til mikkel0704@hotmail.com, så bliver der gjort plads.`);
   }
   const ny = Math.max(0, Math.min(FOOTWORK_MAX_PER_DAY, nu + delta));
   if(ny === nu){
-    if(delta > 0) alert(`Der er plads til højst ${FOOTWORK_MAX_PER_DAY} gennemførelser af den samme øvelse på én dag.`);
+    if(delta > 0) besked(`Der er plads til højst ${FOOTWORK_MAX_PER_DAY} gennemførelser af den samme øvelse på én dag.`);
     return;
   }
   try{
@@ -1337,7 +1346,7 @@ async function registerFootwork(kode, delta){
       {d: dato, e: ex.id, fra: nu, til: ny, at: new Date().toISOString(), by: currentUser?.uid || ""});
   }catch(e){
     console.error(e);
-    alert("Kunne ikke registrere: " + (e.message || "ukendt fejl"));
+    besked("Kunne ikke registrere: " + (e.message || "ukendt fejl"));
   }
 }
 // Et felt, der skal VAEK, kan ikke bare udelades: {merge:true} fletter kort sammen, saa
@@ -1353,41 +1362,46 @@ async function requestFootworkJoker(){
   if(!isPlayer() || !currentPlayerLink) return;
   if(demoBlocked("Jokeren bliver ikke sendt herfra.")) return;
   const p = currentPlayerLink, pid = p.id, dato = footworkSelectedDay();
-  if(footworkJokerStatus(pid, dato)) return alert("Der er allerede en joker på den dag.");
-  if(!footworkDayOpenForPlayer(dato)) return alert(`I kan søge joker op til ${FOOTWORK_BACKDATE_DAYS} dage tilbage.`);
-  const aarsag = (prompt(
+  if(footworkJokerStatus(pid, dato)) return besked("Der er allerede en joker på den dag.");
+  if(!footworkDayOpenForPlayer(dato)) return besked(`I kan søge joker op til ${FOOTWORK_BACKDATE_DAYS} dage tilbage.`);
+  // Hjaelpeteksten staar under selve feltet, hvor den bliver laest - ikke kun i broedteksten.
+  // Graensen paa 200 tegn haandhaeves af feltet, saa ingen skriver en lang forklaring og
+  // derefter faar den afvist.
+  const aarsag = (await indtast(
     `Søg joker for ${datoTekst(dato)}.\n\n`
     + `Jokeren betyder, at streaken ikke bliver brudt. Dagen giver ingen point og tæller ikke som en aktiv dag.\n\n`
-    + `Skriv kort hvorfor. Hold det kort, og skriv ikke helbredsdetaljer - "syg" er nok:`) || "").trim();
+    + `Skriv kort hvorfor:`,
+    {flerlinjet: true, maks: 200, pladsholder: "Fx: syg",
+     hjaelp: 'Hold det kort, og skriv ikke helbredsdetaljer - "syg" er nok.', ja: "Send til træneren"}) || "").trim();
   if(!aarsag) return;
-  if(aarsag.length > 200) return alert("Hold det under 200 tegn.");
+  if(aarsag.length > 200) return besked("Hold det under 200 tegn.");
   try{
     await writeFootwork(pid, p, {jokerRequests: {[dato]: true}},
       {d: dato, e: "joker", til: "søgt", at: new Date().toISOString(), by: currentUser?.uid || ""},
       {[dato]: {tekst: aarsag, at: new Date().toISOString(), by: currentUser?.uid || ""}});
-    alert("Jokeren er sendt til træneren. Streaken er ikke brudt, mens I venter.");
-  }catch(e){ console.error(e); alert("Kunne ikke sende jokeren: " + (e.message || "ukendt fejl")); }
+    besked("Jokeren er sendt til træneren. Streaken er ikke brudt, mens I venter.");
+  }catch(e){ console.error(e); besked("Kunne ikke sende jokeren: " + (e.message || "ukendt fejl")); }
 }
 async function cancelFootworkJoker(){
   if(!isPlayer() || !currentPlayerLink) return;
   if(demoBlocked("Der sker ikke noget herfra.")) return;
   const p = currentPlayerLink, pid = p.id, dato = footworkSelectedDay();
-  if(footworkJokerStatus(pid, dato) !== "pending") return alert("Jokeren er allerede behandlet og kan kun ændres af en træner.");
-  if(!confirm(`Træk jokeren for ${datoTekst(dato)} tilbage?`)) return;
+  if(footworkJokerStatus(pid, dato) !== "pending") return besked("Jokeren er allerede behandlet og kan kun ændres af en træner.");
+  if(!await spoerg(`Træk jokeren for ${datoTekst(dato)} tilbage?`)) return;
   try{
     await writeFootwork(pid, p, {jokerRequests: {[dato]: deleteField()}},
       {d: dato, e: "joker", til: "trukket tilbage", at: new Date().toISOString(), by: currentUser?.uid || ""},
       {[dato]: deleteField()});
-  }catch(e){ console.error(e); alert("Kunne ikke trække jokeren tilbage: " + (e.message || "ukendt fejl")); }
+  }catch(e){ console.error(e); besked("Kunne ikke trække jokeren tilbage: " + (e.message || "ukendt fejl")); }
 }
 
 // Traenerens afgoerelse. Den ligger i Godkendelser ved siden af videoerne.
 async function decideFootworkJoker(pid, dato, approve){
-  if(isPlayer()) return alert("Kun trænere kan afgøre jokere.");
+  if(isPlayer()) return besked("Kun trænere kan afgøre jokere.");
   const p = players.find(x=>x.id===pid);
-  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
   const foer = footworkCurrentStreak(pid);
-  if(!confirm(`${approve ? "Godkend" : "Afvis"} jokeren for ${p.name} den ${datoTekst(dato)}?\n\n`
+  if(!await spoerg(`${approve ? "Godkend" : "Afvis"} jokeren for ${p.name} den ${datoTekst(dato)}?\n\n`
     + (approve
       ? "Dagen bryder ikke streaken, men den tæller ikke som aktiv dag og giver ingen point."
       : "Dagen bliver en almindelig dag uden aktivitet, så streaken genberegnes - og kan blive brudt.")
@@ -1398,63 +1412,63 @@ async function decideFootworkJoker(pid, dato, approve){
       {[dato]: {afgjort: approve ? "approved" : "rejected", afgjortAf: currentUser?.email || "", afgjortAt: new Date().toISOString()}});
     const efter = footworkCurrentStreak(pid);
     if(foer.laengde !== efter.laengde) console.log(`streak for ${p.name}: ${foer.laengde} → ${efter.laengde}`);
-  }catch(e){ console.error(e); alert("Kunne ikke afgøre jokeren: " + (e.message || "ukendt fejl")); }
+  }catch(e){ console.error(e); besked("Kunne ikke afgøre jokeren: " + (e.message || "ukendt fejl")); }
 }
 async function clearFootworkJoker(pid, dato){
-  if(isPlayer()) return alert("Kun trænere kan fjerne jokere.");
+  if(isPlayer()) return besked("Kun trænere kan fjerne jokere.");
   const p = players.find(x=>x.id===pid);
-  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
-  if(!confirm(`Fjern jokeren for ${p.name} den ${datoTekst(dato)} helt?\n\nDagen bliver en almindelig dag, og streaken genberegnes.`)) return;
+  if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
+  if(!await spoerg(`Fjern jokeren for ${p.name} den ${datoTekst(dato)} helt?\n\nDagen bliver en almindelig dag, og streaken genberegnes.`)) return;
   try{
     await writeFootwork(pid, p, {jokers: {[dato]: deleteField()}, jokerRequests: {[dato]: deleteField()}},
       {d: dato, e: "joker", til: "fjernet", at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""},
       {[dato]: deleteField()});
-  }catch(e){ console.error(e); alert("Kunne ikke fjerne jokeren: " + (e.message || "ukendt fejl")); }
+  }catch(e){ console.error(e); besked("Kunne ikke fjerne jokeren: " + (e.message || "ukendt fejl")); }
 }
 
 // Traenerens stikproeve: ret en enkelt oevelse paa en enkelt dag, eller nulstil dagen.
 async function correctFootwork(pid, dato, kode){
-  if(isPlayer()) return alert("Kun trænere kan rette registreringer.");
+  if(isPlayer()) return besked("Kun trænere kan rette registreringer.");
   const p = players.find(x=>x.id===pid);
-  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
   const ex = footworkEx(kode); if(!ex) return;
   const nu = footworkCount(pid, dato, ex.kode);
-  const svar = prompt(`Ret ${p.name} · ${ex.navn} · ${datoTekst(dato)}.\n\nStår nu på ${nu} gennemførelser.\n\nSkriv det rigtige antal (0-${FOOTWORK_MAX_PER_DAY}):`, String(nu));
+  const svar = await indtast(`Ret ${p.name} · ${ex.navn} · ${datoTekst(dato)}.\n\nStår nu på ${nu} gennemførelser.\n\nSkriv det rigtige antal (0-${FOOTWORK_MAX_PER_DAY}):`, {vaerdi: String(nu), tal: true});
   if(svar === null) return;
   const ny = parseInt(svar, 10);
-  if(!Number.isFinite(ny) || ny < 0 || ny > FOOTWORK_MAX_PER_DAY) return alert(`Skriv et tal mellem 0 og ${FOOTWORK_MAX_PER_DAY}.`);
+  if(!Number.isFinite(ny) || ny < 0 || ny > FOOTWORK_MAX_PER_DAY) return besked(`Skriv et tal mellem 0 og ${FOOTWORK_MAX_PER_DAY}.`);
   if(ny === nu) return;
   try{
     await writeFootwork(pid, p, {days: {[dato]: footworkDayPatch(pid, dato, ex.kode, ny)}},
       {d: dato, e: ex.id, fra: nu, til: ny, at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""});
-  }catch(e){ console.error(e); alert("Kunne ikke rette: " + (e.message || "ukendt fejl")); }
+  }catch(e){ console.error(e); besked("Kunne ikke rette: " + (e.message || "ukendt fejl")); }
 }
 // To trin, fordi en dag kan have flere oevelser: vaelg oevelsen, ret saa tallet.
 async function correctFootworkDay(pid, dato){
-  if(isPlayer()) return alert("Kun trænere kan rette registreringer.");
+  if(isPlayer()) return besked("Kun trænere kan rette registreringer.");
   const brugt = FOOTWORK.filter(ex=>footworkCount(pid, dato, ex.kode) > 0);
-  if(!brugt.length) return alert("Der er ikke registreret noget den dag.");
+  if(!brugt.length) return besked("Der er ikke registreret noget den dag.");
   if(brugt.length === 1) return correctFootwork(pid, dato, brugt[0].kode);
-  const svar = prompt(`${datoTekst(dato)} - hvilken øvelse skal rettes?\n\n`
+  const svar = await indtast(`${datoTekst(dato)} - hvilken øvelse skal rettes?\n\n`
     + brugt.map((ex,i)=>`${i+1}. ${ex.navn} (${footworkCount(pid, dato, ex.kode)})`).join("\n")
-    + `\n\nSkriv nummeret:`);
+    + `\n\nSkriv nummeret:`, {tal: true});
   if(svar === null) return;
   const valg = brugt[parseInt(svar, 10) - 1];
-  if(!valg) return alert("Det var ikke et af numrene.");
+  if(!valg) return besked("Det var ikke et af numrene.");
   return correctFootwork(pid, dato, valg.kode);
 }
 async function resetFootworkDay(pid, dato){
-  if(isPlayer()) return alert("Kun trænere kan nulstille en dag.");
+  if(isPlayer()) return besked("Kun trænere kan nulstille en dag.");
   const p = players.find(x=>x.id===pid);
-  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
   const counts = footworkDayCounts(pid, dato);
   const i_alt = counts.reduce((a,b)=>a+b, 0);
-  if(!i_alt) return alert("Der er ikke registreret noget den dag.");
-  if(!confirm(`Nulstil ${p.name}s fodteknik den ${datoTekst(dato)}?\n\n${i_alt} ${i_alt===1?"gennemførelse":"gennemførelser"} forsvinder. Dagen holder op med at tælle som aktiv, så streaken genberegnes - og kan blive brudt.\n\nRettelsen bliver logget med dit navn.`)) return;
+  if(!i_alt) return besked("Der er ikke registreret noget den dag.");
+  if(!await spoerg(`Nulstil ${p.name}s fodteknik den ${datoTekst(dato)}?\n\n${i_alt} ${i_alt===1?"gennemførelse":"gennemførelser"} forsvinder. Dagen holder op med at tælle som aktiv, så streaken genberegnes - og kan blive brudt.\n\nRettelsen bliver logget med dit navn.`)) return;
   try{
     await writeFootwork(pid, p, {days: {[dato]: deleteField()}},
       {d: dato, e: "nulstil", fra: i_alt, til: 0, at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""});
-  }catch(e){ console.error(e); alert("Kunne ikke nulstille: " + (e.message || "ukendt fejl")); }
+  }catch(e){ console.error(e); besked("Kunne ikke nulstille: " + (e.message || "ukendt fejl")); }
 }
 
 // Joker-aarsagen er fritekst og kan strejfe helbred, selv med den bedste hjaelpetekst.
@@ -1664,14 +1678,14 @@ function applyModuleVisibility(){
 }
 
 async function toggleYearTalentmaerke(year){
-  if(!isAdmin()) return alert("Kun admin kan ændre det.");
+  if(!isAdmin()) return besked("Kun admin kan ændre det.");
   const y = normalizeYearValue(year);
   const on = talentmaerkeOn(y);
   if(on){
     // Slukker vi for en aargang, der allerede er i gang, forsvinder optjente medaljer
     // fra familiernes skaerm. De bliver i databasen og kommer igen, men det skal siges.
     const iGang = players.filter(p=>normalizeYearValue(p.year) === y && Object.keys(p.passed || {}).length).length;
-    if(!confirm(`Slå Talentmærket FRA for årgang ${y}?\n\n`
+    if(!await spoerg(`Slå Talentmærket FRA for årgang ${y}?\n\n`
       + `Familierne mister fanen "Talentmærket", medaljestoffet under Guides og øvelses-dueller. `
       + `Fodteknik, Jonglering, frie dueller og ranglisten kører videre.\n\n`
       + (iGang ? `ADVARSEL: ${iGang} ${iGang===1?"spiller har":"spillere har"} allerede bestået øvelser i årgangen. Deres medaljer bliver skjult, så længe forløbet er slået fra. Point og data bevares, og alt kommer igen, hvis du slår det til.\n\n` : "")
@@ -1683,12 +1697,12 @@ async function toggleYearTalentmaerke(year){
       {merge:true});
   }catch(e){
     console.error(e);
-    alert("Kunne ikke ændre indstillingen: " + (e.message || "ukendt fejl"));
+    besked("Kunne ikke ændre indstillingen: " + (e.message || "ukendt fejl"));
   }
 }
 function demoBlocked(what){
   if(!isDemoUser()) return false;
-  alert(`Det her er en demo-bruger, så I kan se, hvordan appen ser ud.\n\n${what}\n\nMed et rigtigt spillerlogin ville det virke helt som forventet.`);
+  besked(`Det her er en demo-bruger, så I kan se, hvordan appen ser ud.\n\n${what}\n\nMed et rigtigt spillerlogin ville det virke helt som forventet.`);
   return true;
 }
 // Traenerens note ligger i sin egen samling, ikke paa spilleren. Grunden: en spiller skal
@@ -1697,9 +1711,9 @@ function demoBlocked(what){
 // Nu er den et separat dokument, som spillere slet ikke maa laese.
 function noteFor(pid){ return playerNotes.find(n=>n.id===pid)?.note || ""; }
 async function saveNote(pid){
-  if(isPlayer()) return alert("Kun traenere kan skrive noter.");
+  if(isPlayer()) return besked("Kun traenere kan skrive noter.");
   const p = players.find(x=>x.id===pid);
-  if(!p || !canAccessPlayer(p.year, p.gender)) return alert("Ingen adgang");
+  if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
   const el = document.getElementById("noteInput_"+pid);
   const note = (el?.value || "").trim().slice(0, 1000);
   try{
@@ -1707,8 +1721,8 @@ async function saveNote(pid){
       note, year: normalizeYearValue(p.year), gender: p.gender || null,
       updatedAt: serverTimestamp(), updatedBy: currentUser?.email || ""
     });
-    alert(note ? "Noten er gemt." : "Noten er slettet.");
-  }catch(e){ console.error(e); alert("Kunne ikke gemme noten: " + (e.message||"ukendt fejl")); }
+    besked(note ? "Noten er gemt." : "Noten er slettet.");
+  }catch(e){ console.error(e); besked("Kunne ikke gemme noten: " + (e.message||"ukendt fejl")); }
 }
 function allowedYears(){ return isAdmin() ? allKnownYears() : normalizeYearsList(currentUserDoc?.years || []); }
 function canAccessYear(y){ return isAdmin() || allowedYears().includes(normalizeYearValue(y)); }
@@ -1787,23 +1801,23 @@ async function login(){
     await signInWithEmailAndPassword(auth, email, password);
   }catch(e){
     console.error(e);
-    alert(authErrorText(e));
+    besked(authErrorText(e));
   }
 }
 
 async function resetPassword(){
   const email = document.getElementById("loginEmail").value.trim();
-  if(!email) return alert("Skriv først din email i feltet ovenfor - så sender vi et link til at vælge en ny adgangskode.");
+  if(!email) return besked("Skriv først din email i feltet ovenfor - så sender vi et link til at vælge en ny adgangskode.");
   try{
     await sendPasswordResetEmail(auth, email);
     // Bekræfter altid, uanset om emailen findes: ellers kan man bruge siden til at
     // gætte sig frem til, hvilke emails der er oprettet i klubben.
-    alert("Hvis der findes en bruger med " + email + ", er der nu sendt en email med et link til at vælge en ny adgangskode.\n\nTjek også spam-mappen - den kommer fra Firebase.");
+    besked("Hvis der findes en bruger med " + email + ", er der nu sendt en email med et link til at vælge en ny adgangskode.\n\nTjek også spam-mappen - den kommer fra Firebase.");
   }catch(e){
     console.error(e);
-    if(e?.code === "auth/invalid-email") return alert("Email-adressen ser ikke rigtig ud. Tjek om den er stavet korrekt.");
-    if(e?.code === "auth/too-many-requests") return alert("Der er sendt for mange anmodninger. Vent et par minutter og prøv igen.");
-    alert("Hvis der findes en bruger med " + email + ", er der nu sendt en email med et link til at vælge en ny adgangskode.\n\nTjek også spam-mappen - den kommer fra Firebase.");
+    if(e?.code === "auth/invalid-email") return besked("Email-adressen ser ikke rigtig ud. Tjek om den er stavet korrekt.");
+    if(e?.code === "auth/too-many-requests") return besked("Der er sendt for mange anmodninger. Vent et par minutter og prøv igen.");
+    besked("Hvis der findes en bruger med " + email + ", er der nu sendt en email med et link til at vælge en ny adgangskode.\n\nTjek også spam-mappen - den kommer fra Firebase.");
   }
 }
 async function logout(){ await signOut(auth); location.reload(); }
@@ -1830,7 +1844,7 @@ onAuthStateChanged(auth, async (user)=>{
     currentUserDoc = usnap.data();
   }
   if(currentUserDoc.active === false){
-    alert("Din adgang til appen er deaktiveret af en admin. Kontakt din klub, hvis du mener det er en fejl.");
+    besked("Din adgang til appen er deaktiveret af en admin. Kontakt din klub, hvis du mener det er en fejl.");
     await signOut(auth);
     return;
   }
@@ -2079,11 +2093,11 @@ function renderYearOptions(){
 async function addPlayer(){
   const name = document.getElementById("playerName").value.trim();
   const year = normalizeYearValue(document.getElementById("playerYear").value);
-  if(!year || !yearsForCreate().map(normalizeYearValue).includes(year)){ alert("Denne årgang er lukket for oprettelse."); return; }
+  if(!year || !yearsForCreate().map(normalizeYearValue).includes(year)){ besked("Denne årgang er lukket for oprettelse."); return; }
   const gender = document.getElementById("playerGender").value;
   const note = document.getElementById("playerNote").value.trim();
-  if(!name) return alert("Skriv spillerens navn");
-  if(!canAccessPlayer(year, gender)) return alert("Du har ikke adgang til at oprette denne årgang/køn-kombination");
+  if(!name) return besked("Skriv spillerens navn");
+  if(!canAccessPlayer(year, gender)) return besked("Du har ikke adgang til at oprette denne årgang/køn-kombination");
   const id = Date.now().toString();
   await setDoc(doc(db,"players",id), {
     name, year, gender, passed:{}, points:0,
@@ -2112,10 +2126,10 @@ async function syncClubRanking(id, name, year, points){
 // egen samling, kopieres over og fjernes fra spilleren. Foerst naar de er FJERNET, er
 // hullet lukket - en kopi loeser ingenting, saa laenge originalen bliver liggende.
 async function moveNotesOffPlayers(){
-  if(!isAdmin()) return alert("Kun admin kan flytte noter.");
+  if(!isAdmin()) return besked("Kun admin kan flytte noter.");
   const withNote = players.filter(p=>typeof p.note === "string" && p.note.trim());
-  if(!withNote.length) return alert("Der er ingen noter tilbage paa spillerdokumenterne. Alt er allerede flyttet.");
-  if(!confirm(`Flyt trænernoter for ${withNote.length} spillere?\n\nNoterne kopieres til det trænerbeskyttede felt og fjernes fra selve spilleren, så spillerlogins ikke længere kan læse dem.`)) return;
+  if(!withNote.length) return besked("Der er ingen noter tilbage paa spillerdokumenterne. Alt er allerede flyttet.");
+  if(!await spoerg(`Flyt trænernoter for ${withNote.length} spillere?\n\nNoterne kopieres til det trænerbeskyttede felt og fjernes fra selve spilleren, så spillerlogins ikke længere kan læse dem.`)) return;
   let moved = 0; const failed = [];
   for(const p of withNote){
     try{
@@ -2127,11 +2141,11 @@ async function moveNotesOffPlayers(){
       moved++;
     }catch(e){ console.error(e); failed.push(p.name); }
   }
-  alert(`Flyttet: ${moved}` + (failed.length ? `\nFejlede: ${failed.join(", ")}` : ""));
+  besked(`Flyttet: ${moved}` + (failed.length ? `\nFejlede: ${failed.join(", ")}` : ""));
 }
 async function rebuildClubRanking(){
-  if(!isAdmin()) return alert("Kun admin kan genopbygge klub-ranglisten.");
-  if(!confirm(`Genopbyg klub-ranglisten ud fra de ${players.length} spillere, du kan se?`)) return;
+  if(!isAdmin()) return besked("Kun admin kan genopbygge klub-ranglisten.");
+  if(!await spoerg(`Genopbyg klub-ranglisten ud fra de ${players.length} spillere, du kan se?`)) return;
   let ok = 0, failed = 0;
   for(const p of players){
     try{ await syncClubRanking(p.id, p.name, p.year, p.points); ok++; }
@@ -2144,7 +2158,7 @@ async function rebuildClubRanking(){
       try{ await deleteDoc(doc(db,"clubRanking",r.id)); removed++; }catch{}
     }
   }
-  alert(`Klub-rangliste opdateret.\n\nSkrevet: ${ok}\nFejlede: ${failed}\nFjernet (slettede spillere): ${removed}`);
+  besked(`Klub-rangliste opdateret.\n\nSkrevet: ${ok}\nFejlede: ${failed}\nFjernet (slettede spillere): ${removed}`);
 }
 // Anmodning om sletning. Familien kan ikke slette selv - det ville lade ét barn slette
 // sin egen historik i vrede, og det ville omgaa den kontrol, en voksen skal lave. I
@@ -2158,34 +2172,35 @@ async function requestOwnDeletion(){
   if(!isPlayer() || !currentPlayerLink) return;
   if(demoBlocked("Anmodningen bliver ikke sendt herfra.")) return;
   const p = currentPlayerLink;
-  if(!confirm(`Bed om at få slettet alt om ${p.name}?\n\nDin træner får besked og godkender det. Når det er gjort, forsvinder profil, point, medaljer, historik, videoer og adgangen til appen - for altid.\n\nDu kan fortryde anmodningen, indtil den er behandlet.`)) return;
-  const reason = (prompt("Vil du skrive hvorfor? (frivilligt - tryk OK for at springe over)") || "").trim();
+  if(!await spoerg(`Bed om at få slettet alt om ${p.name}?\n\nDin træner får besked og godkender det. Når det er gjort, forsvinder profil, point, medaljer, historik, videoer og adgangen til appen - for altid.\n\nDu kan fortryde anmodningen, indtil den er behandlet.`)) return;
+  const reason = (await indtast("Vil du skrive hvorfor?\n\nDet er frivilligt - lad feltet stå tomt, hvis du ikke vil.",
+    {flerlinjet: true, maks: 500, ja: "Send anmodningen", hjaelp: "Kun klubbens administrator kan se det."}) || "").trim();
   try{
     await setDoc(doc(db, "deletionRequests", p.id), {
       playerId: p.id, playerName: p.name, year: p.year,
       requestedBy: currentUser?.email || "", requestedAt: serverTimestamp(),
       reason: reason.slice(0,500), status: "pending"
     });
-    alert("Din anmodning er sendt. Din træner behandler den hurtigst muligt og senest inden for 30 dage.");
+    besked("Din anmodning er sendt. Din træner behandler den hurtigst muligt og senest inden for 30 dage.");
   }catch(e){
     console.error(e);
-    alert("Kunne ikke sende anmodningen: " + (e.message||"ukendt fejl") + "\n\nDu kan i stedet skrive til mikkel0704@hotmail.com.");
+    besked("Kunne ikke sende anmodningen: " + (e.message||"ukendt fejl") + "\n\nDu kan i stedet skrive til mikkel0704@hotmail.com.");
   }
 }
 async function cancelOwnDeletionRequest(){
   const r = myDeletionRequest();
   if(!r) return;
-  if(!confirm("Fortryd anmodningen om sletning?\n\nAlt bliver, som det er, og du kan altid anmode igen senere.")) return;
-  try{ await deleteDoc(doc(db, "deletionRequests", r.id)); alert("Anmodningen er trukket tilbage."); }
-  catch(e){ console.error(e); alert("Kunne ikke trække anmodningen tilbage: " + (e.message||"ukendt fejl")); }
+  if(!await spoerg("Fortryd anmodningen om sletning?\n\nAlt bliver, som det er, og du kan altid anmode igen senere.")) return;
+  try{ await deleteDoc(doc(db, "deletionRequests", r.id)); besked("Anmodningen er trukket tilbage."); }
+  catch(e){ console.error(e); besked("Kunne ikke trække anmodningen tilbage: " + (e.message||"ukendt fejl")); }
 }
 async function declineDeletionRequest(pid){
-  if(!isAdmin()) return alert("Kun admin kan behandle anmodninger.");
+  if(!isAdmin()) return besked("Kun admin kan behandle anmodninger.");
   const r = deletionRequests.find(x=>x.id===pid);
   if(!r) return;
-  if(!confirm(`Afvis anmodningen fra ${r.playerName}?\n\nAnmodningen forsvinder fra listen, og intet bliver slettet. Kontakt familien, så de ved hvorfor - appen sender ingen besked.`)) return;
+  if(!await spoerg(`Afvis anmodningen fra ${r.playerName}?\n\nAnmodningen forsvinder fra listen, og intet bliver slettet. Kontakt familien, så de ved hvorfor - appen sender ingen besked.`)) return;
   try{ await deleteDoc(doc(db, "deletionRequests", pid)); }
-  catch(e){ console.error(e); alert("Kunne ikke afvise: " + (e.message||"ukendt fejl")); }
+  catch(e){ console.error(e); besked("Kunne ikke afvise: " + (e.message||"ukendt fejl")); }
 }
 function renderDeletionRequests(){
   const area = document.getElementById("deletionRequestsArea");
@@ -2223,9 +2238,9 @@ function renderDeletionRequests(){
 // klaret. Der spørges direkte i databasen frem for i klientens hukommelse, så en liste,
 // der ikke er fuldt indlæst, ikke får noget til at slippe igennem.
 async function deletePlayer(id){
-  if(!isAdmin()) return alert("Kun admin kan slette spillere.");
+  if(!isAdmin()) return besked("Kun admin kan slette spillere.");
   const p = players.find(x=>x.id===id);
-  if(!p || !canAccessYear(p.year)) return alert("Ingen adgang");
+  if(!p || !canAccessYear(p.year)) return besked("Ingen adgang");
 
   let subs = [], chs = [], userDocs = [], files = [], fileListFailed = false;
   try{
@@ -2239,7 +2254,7 @@ async function deletePlayer(id){
     userDocs = (await getDocs(query(collection(db,"users"), where("playerId","==",id)))).docs;
   }catch(e){
     console.error(e);
-    return alert("Kunne ikke gøre op, hvad der skal slettes: " + (e.message||"ukendt fejl") + "\n\nIntet er slettet. Prøv igen.");
+    return besked("Kunne ikke gøre op, hvad der skal slettes: " + (e.message||"ukendt fejl") + "\n\nIntet er slettet. Prøv igen.");
   }
 
   // Filmappen listes for sig. Kan den ikke laeses, maa det IKKE stoppe sletningen: en
@@ -2255,7 +2270,7 @@ async function deletePlayer(id){
   }
 
   const logins = userDocs.map(d=>d.data().email).filter(Boolean);
-  if(!confirm(
+  if(!await spoerg(
     `Slet ALT om ${p.name} (${yearLabel(p.year)})?\n\n`
     + `Dette fjerner for altid:\n`
     + `· Profilen med point, niveauer, medaljer, note og historik\n`
@@ -2265,10 +2280,10 @@ async function deletePlayer(id){
     + `· ${files.length} ${files.length===1?"videofil":"videofiler"} i skyen${fileListFailed ? " (mappen kunne ikke læses - der kan være flere)" : ""}\n`
     + `· Pladsen på klub-ranglisten\n`
     + (logins.length ? `· Adgangen for ${logins.join(", ")}\n` : "· Ingen login knyttet til spilleren\n")
-    + `\nDet kan ikke fortrydes.`)) return;
+    + `\nDet kan ikke fortrydes.`, {ja: "Fortsæt", farlig: true})) return;
 
-  if((prompt(`Skriv spillerens navn for at bekræfte:\n\n${p.name}`) || "").trim() !== p.name.trim()){
-    return alert("Navnet passede ikke. Intet er slettet.");
+  if((await indtast(`Skriv spillerens navn for at bekræfte:\n\n${p.name}`, {ja: "Slet alt", farlig: true}) || "").trim() !== p.name.trim()){
+    return besked("Navnet passede ikke. Intet er slettet.");
   }
 
   const failed = [];
@@ -2287,7 +2302,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
   setSyncStatus("v15.64 · live database aktiv");
 
-  alert(
+  besked(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
     + (fileListFailed ? `BEMÆRK: mappen med videofiler kunne ikke læses, så der kan ligge filer tilbage. Kør sletningen igen senere, eller tjek submissions/${id} i Firebase Console.\n\n` : "")
     + (logins.length
@@ -2462,13 +2477,13 @@ function medalHandoverText(p, si){
 
 async function toggleMedalHandedOver(pid, si){
   const p = players.find(x=>x.id===pid);
-  if(!p || !canAccessYear(p.year)) return alert("Ingen adgang");
-  if(isPlayer()) return alert("Kun trænere kan registrere, at en medalje er overrakt.");
-  if(!isStepComplete(p, si)) return alert("Medaljen er ikke optjent endnu - alle 5 øvelser på trinnet skal være bestået først.");
+  if(!p || !canAccessYear(p.year)) return besked("Ingen adgang");
+  if(isPlayer()) return besked("Kun trænere kan registrere, at en medalje er overrakt.");
+  if(!isStepComplete(p, si)) return besked("Medaljen er ikke optjent endnu - alle 5 øvelser på trinnet skal være bestået først.");
   const step = steps[si];
   const key = String(si);
   const wasHandedOver = medalHandedOver(p, si);
-  if(wasHandedOver && !confirm(`Fjern registreringen af, at ${p.name} har fået sin ${step.label}-medalje?`)) return;
+  if(wasHandedOver && !await spoerg(`Fjern registreringen af, at ${p.name} har fået sin ${step.label}-medalje?`)) return;
   const history = [...(p.history||[])];
   history.unshift({
     type: wasHandedOver ? "medal_undone" : "medal_handed_over",
@@ -2487,7 +2502,7 @@ async function toggleMedalHandedOver(pid, si){
 
 async function togglePassed(pid, si, ex){
   const p=players.find(x=>x.id===pid);
-  if(!p || !canAccessYear(p.year)) return alert("Ingen adgang");
+  if(!p || !canAccessYear(p.year)) return besked("Ingen adgang");
   const passed = {...(p.passed||{})};
   const key=getKey(si,ex);
   const newValue = !passed[key];
@@ -2588,10 +2603,10 @@ async function updateClosedYearsForAll(closedYears){
 }
 
 async function addAdminYear(){
-  if(!isAdmin()) return alert("Kun admin kan tilføje årgange.");
+  if(!isAdmin()) return besked("Kun admin kan tilføje årgange.");
   const input = document.getElementById("newAdminYear");
   const y = normalizeYearValue(input.value);
-  if(!/^\d{4}$/.test(y)){ alert("Skriv årgang som årstal, fx 2019."); return; }
+  if(!/^\d{4}$/.test(y)){ besked("Skriv årgang som årstal, fx 2019."); return; }
 
   localExtraYears.push(y);
 
@@ -2607,11 +2622,11 @@ async function addAdminYear(){
   currentUserDoc = {...currentUserDoc, years: adminYears, closedYears};
   input.value = "";
   renderAll();
-  alert("Årgang " + y + " er tilføjet og åbnet.");
+  besked("Årgang " + y + " er tilføjet og åbnet.");
 }
 
 async function toggleAdminYear(y){
-  if(!isAdmin()) return alert("Kun admin kan ændre årgange.");
+  if(!isAdmin()) return besked("Kun admin kan ændre årgange.");
   y = normalizeYearValue(y);
   let closed = closedYearsForCurrentUser();
   if(closed.includes(y)){
@@ -2633,7 +2648,7 @@ function renderGenderMigration(){
   </div>`;
 }
 async function setPlayerGender(id, gender){
-  if(!isAdmin()) return alert("Kun admin kan rette køn på spillere.");
+  if(!isAdmin()) return besked("Kun admin kan rette køn på spillere.");
   await setDoc(doc(db,"players",id), {gender, updatedAt:serverTimestamp()}, {merge:true});
 }
 
@@ -2695,7 +2710,7 @@ function accountActionButtons(u){
 async function toggleUserActive(uid){
   const u = users.find(x=>x.uid===uid);
   if(!u) return;
-  if(uid === currentUser?.uid) return alert("Du kan ikke deaktivere din egen adgang.");
+  if(uid === currentUser?.uid) return besked("Du kan ikke deaktivere din egen adgang.");
   const makeActive = u.active === false;
   await setDoc(doc(db,"users",uid), {active: makeActive, updatedAt: serverTimestamp()}, {merge:true});
   // Hold players.hasActiveLogin i sync, så udfordringslisten (kun spillere med aktivt
@@ -2707,8 +2722,8 @@ async function toggleUserActive(uid){
 async function deleteUserAccess(uid){
   const u = users.find(x=>x.uid===uid);
   if(!u) return;
-  if(uid === currentUser?.uid) return alert("Du kan ikke slette din egen adgang.");
-  if(!confirm(`Slet denne kontos adgang til appen: ${u.email}?\n\nBemærk: dette sletter ikke selve login'et i Firebase Authentication (det kræver Firebase-konsollen), så samme e-mail kan IKKE bruges til at oprette en ny bruger bagefter, før det er ryddet manuelt der. Vil du blot lukke midlertidigt for adgang (og evt. åbne igen senere) uden det problem, så brug "Deaktiver" i stedet.`)) return;
+  if(uid === currentUser?.uid) return besked("Du kan ikke slette din egen adgang.");
+  if(!await spoerg(`Slet denne kontos adgang til appen: ${u.email}?\n\nBemærk: dette sletter ikke selve login'et i Firebase Authentication (det kræver Firebase-konsollen), så samme e-mail kan IKKE bruges til at oprette en ny bruger bagefter, før det er ryddet manuelt der. Vil du blot lukke midlertidigt for adgang (og evt. åbne igen senere) uden det problem, så brug "Deaktiver" i stedet.`)) return;
   await deleteDoc(doc(db,"users",uid));
   if(u.role==="player" && u.playerId){
     await setDoc(doc(db,"players",u.playerId), {hasActiveLogin: false, updatedAt: serverTimestamp()}, {merge:true});
@@ -2758,7 +2773,7 @@ async function saveCoachAccess(uid){
 }
 
 async function syncPlayerLoginFlags(){
-  if(!isAdmin()) return alert("Kun admin kan gøre dette.");
+  if(!isAdmin()) return besked("Kun admin kan gøre dette.");
   const activeLoginPlayerIds = new Set(users.filter(u=>u.role==="player" && u.playerId && u.active!==false).map(u=>u.playerId));
   let count = 0;
   for(const p of players){
@@ -2768,18 +2783,18 @@ async function syncPlayerLoginFlags(){
       count++;
     }
   }
-  alert(`Synkronisering færdig: ${count} spillere opdateret.`);
+  besked(`Synkronisering færdig: ${count} spillere opdateret.`);
 }
 async function migrateOldPlayers(){
-  if(!isAdmin()) return alert("Kun admin kan migrere gamle spillere.");
-  if(!confirm("Migrér gamle spillere fra sharedState til players collection? Brug kun én gang.")) return;
+  if(!isAdmin()) return besked("Kun admin kan migrere gamle spillere.");
+  if(!await spoerg("Migrér gamle spillere fra sharedState til players collection? Brug kun én gang.")) return;
   try{
     const oldRef = doc(db, "tifTalentTracker", "sharedState");
     const oldSnap = await getDoc(oldRef);
-    if(!oldSnap.exists()) return alert("Fandt ikke tifTalentTracker/sharedState.");
+    if(!oldSnap.exists()) return besked("Fandt ikke tifTalentTracker/sharedState.");
     const old = oldSnap.data();
     const oldPlayers = old.players || [];
-    if(!oldPlayers.length) return alert("Der er ingen gamle spillere i sharedState.");
+    if(!oldPlayers.length) return besked("Der er ingen gamle spillere i sharedState.");
     let count = 0;
     for(const oldPlayer of oldPlayers){
       const id = String(oldPlayer.id || Date.now() + "_" + count);
@@ -2797,11 +2812,11 @@ async function migrateOldPlayers(){
       await setDoc(doc(db, "players", id), newPlayer, {merge:true});
       count++;
     }
-    alert("Migrering færdig: " + count + " spillere flyttet til players collection.");
+    besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
     setSyncStatus("v15.64 · migrering færdig");
   }catch(e){
     console.error(e);
-    alert("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
+    besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
     setSyncStatus("v15.64 · migrering fejlede");
   }
 }
@@ -2809,7 +2824,7 @@ async function migrateOldPlayers(){
 
 
 async function createCoachFromAdmin(){
-  if(!isAdmin()) return alert("Kun admin kan oprette trænere.");
+  if(!isAdmin()) return besked("Kun admin kan oprette trænere.");
   const email = document.getElementById("newCoachEmail").value.trim();
   const password = document.getElementById("newCoachPassword").value;
   const selectedYears = Array.from(document.querySelectorAll(".newCoachYear:checked")).map(x=>x.value);
@@ -2818,9 +2833,9 @@ async function createCoachFromAdmin(){
     const sel = document.querySelector(`.newCoachYearGender[data-year="${year}"]`);
     yearGenders[year] = sel ? sel.value : "begge";
   });
-  if(!email) return alert("Skriv trænerens email.");
-  if(!password || password.length < 6) return alert("Password skal være mindst 6 tegn.");
-  if(!selectedYears.length) return alert("Vælg mindst én årgang.");
+  if(!email) return besked("Skriv trænerens email.");
+  if(!password || password.length < 6) return besked("Password skal være mindst 6 tegn.");
+  if(!selectedYears.length) return besked("Vælg mindst én årgang.");
   try{
     const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
     await setDoc(doc(db, "users", cred.user.uid), {
@@ -2838,23 +2853,23 @@ async function createCoachFromAdmin(){
     await signOut(secondaryAuth);
     document.getElementById("newCoachEmail").value = "";
     document.getElementById("newCoachPassword").value = "";
-    alert("Træner oprettet: " + email);
+    besked("Træner oprettet: " + email);
   }catch(e){
     console.error(e);
-    alert("Kunne ikke oprette træner: " + e.message);
+    besked("Kunne ikke oprette træner: " + e.message);
   }
 }
 
 async function createPlayerLoginFromAdmin(){
-  if(!isAdmin()) return alert("Kun admin kan oprette spillerlogin.");
+  if(!isAdmin()) return besked("Kun admin kan oprette spillerlogin.");
   const playerId = document.getElementById("newPlayerLoginPlayer").value;
   const email = document.getElementById("newPlayerLoginEmail").value.trim();
   const password = document.getElementById("newPlayerLoginPassword").value;
   const demo = !!document.getElementById("newPlayerLoginDemo")?.checked;
   const p = players.find(x=>x.id===playerId);
-  if(!p) return alert("Vælg en spiller.");
-  if(!email) return alert("Skriv spillerens email.");
-  if(!password || password.length < 6) return alert("Password skal være mindst 6 tegn.");
+  if(!p) return besked("Vælg en spiller.");
+  if(!email) return besked("Skriv spillerens email.");
+  if(!password || password.length < 6) return besked("Password skal være mindst 6 tegn.");
   try{
     const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
     await setDoc(doc(db, "users", cred.user.uid), {
@@ -2886,32 +2901,32 @@ async function createPlayerLoginFromAdmin(){
     document.getElementById("newPlayerLoginEmail").value = "";
     document.getElementById("newPlayerLoginPassword").value = "";
     document.getElementById("newPlayerLoginDemo").checked = false;
-    alert((demo ? "Demo-login" : "Spillerlogin") + " oprettet til " + p.name + ": " + email);
+    besked((demo ? "Demo-login" : "Spillerlogin") + " oprettet til " + p.name + ": " + email);
   }catch(e){
     console.error(e);
-    alert("Kunne ikke oprette spillerlogin: " + e.message);
+    besked("Kunne ikke oprette spillerlogin: " + e.message);
   }
 }
 
 async function changeOwnPassword(){
   // Samme grund: en demo-bruger maa ikke kunne aendre den faelles kode for alle andre.
-  if(isDemoUser()) return alert("Demo-adgangen deles med flere familier, så dens kode kan ikke ændres herfra.\n\nVil I have jeres eget login, så skriv til mikkel0704@hotmail.com.");
+  if(isDemoUser()) return besked("Demo-adgangen deles med flere familier, så dens kode kan ikke ændres herfra.\n\nVil I have jeres eget login, så skriv til mikkel0704@hotmail.com.");
   const pw = document.getElementById("newPasswordInput").value;
-  if(!pw || pw.length < 6) return alert("Adgangskoden skal være mindst 6 tegn.");
+  if(!pw || pw.length < 6) return besked("Adgangskoden skal være mindst 6 tegn.");
   try{
     await updatePassword(currentUser, pw);
     document.getElementById("newPasswordInput").value = "";
     if(currentUserDoc?.mustChangePassword){
       await setDoc(doc(db, "users", currentUser.uid), {mustChangePassword: false}, {merge:true});
-      alert("Adgangskode ændret. Så er du klar - god fornøjelse!");
+      besked("Adgangskode ændret. Så er du klar - god fornøjelse!");
       // Genindlæs i stedet for at pille ved fanerne i hånden: login-flowet sætter roller,
       // faner og lyttere op ét sted, og det skal ikke duplikeres her.
       location.reload();
       return;
     }
-    alert("Adgangskode ændret.");
+    besked("Adgangskode ændret.");
   }catch(e){
-    alert("Kunne ikke skifte adgangskode: " + e.message + ". Log evt. ud og ind igen, og prøv igen.");
+    besked("Kunne ikke skifte adgangskode: " + e.message + ". Log evt. ud og ind igen, og prøv igen.");
   }
 }
 // Første login: koden kom fra en mail, så den skal skiftes, før man kommer videre.
@@ -2947,14 +2962,14 @@ async function acceptPrivacy(){
     location.reload();
   }catch(e){
     console.error(e);
-    alert("Kunne ikke gemme din bekræftelse: " + (e.message || "ukendt fejl") + "\n\nPrøv igen - hjælper det ikke, så kontakt din træner.");
+    besked("Kunne ikke gemme din bekræftelse: " + (e.message || "ukendt fejl") + "\n\nPrøv igen - hjælper det ikke, så kontakt din træner.");
   }
 }
 async function changeForcedPassword(){
   const pw = document.getElementById("forcePasswordInput").value;
   const pw2 = document.getElementById("forcePasswordInput2").value;
-  if(!pw || pw.length < 6) return alert("Adgangskoden skal være mindst 6 tegn.");
-  if(pw !== pw2) return alert("De to adgangskoder er ikke ens. Prøv igen.");
+  if(!pw || pw.length < 6) return besked("Adgangskoden skal være mindst 6 tegn.");
+  if(pw !== pw2) return besked("De to adgangskoder er ikke ens. Prøv igen.");
   document.getElementById("newPasswordInput").value = pw;
   document.getElementById("forcePasswordInput").value = "";
   document.getElementById("forcePasswordInput2").value = "";
@@ -2968,10 +2983,10 @@ function submissionStatusPill(sub){
 }
 
 async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId){
-  if(!file) return alert("Vælg en video først.");
-  if(file.size > 200*1024*1024) return alert("Videoen er for stor (maks 200 MB).");
+  if(!file) return besked("Vælg en video først.");
+  if(file.size > 200*1024*1024) return besked("Videoen er for stor (maks 200 MB).");
   const p = currentPlayerLink;
-  if(!p) return alert("Din spillerprofil blev ikke fundet.");
+  if(!p) return besked("Din spillerprofil blev ikke fundet.");
   // Hvilket trin vi er naaet til. Bruges i fejlbeskeden, for "permission denied" siger
   // intet om, hvorvidt det var selve videoen eller registreringen bagefter, der fejlede -
   // og de to ting fejler af vidt forskellige grunde.
@@ -3000,10 +3015,10 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       createdAt: serverTimestamp()
     });
     setSyncStatus("v15.64 · live database aktiv");
-    alert("Video uploadet! Din træner skal godkende den.");
+    besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
-    alert(uploadErrorText(stage, e));
+    besked(uploadErrorText(stage, e));
     setSyncStatus("v15.64 · live database aktiv");
   }
 }
@@ -3024,7 +3039,7 @@ async function submitTraining(playerId, stepIndex, exercise){
   if(demoBlocked("Videoen bliver ikke sendt til træneren herfra.")) return;
   const input = document.getElementById(`upload_${stepIndex}_${exercise}`);
   const file = input?.files?.[0];
-  if(!file) return alert("Vælg en video først.");
+  if(!file) return besked("Vælg en video først.");
   const btn = document.getElementById(`uploadbtn_${stepIndex}_${exercise}`);
   const originalText = btn?.textContent;
   if(btn){ btn.disabled = true; btn.textContent = "Uploader..."; }
@@ -3187,11 +3202,11 @@ async function createChallenge(playerId){
   const p = currentPlayerLink;
   const opponentId = document.getElementById("challengeOpponent").value;
   const opponent = players.find(x=>x.id===opponentId);
-  if(!opponent) return alert("Vælg en modstander.");
+  if(!opponent) return besked("Vælg en modstander.");
 
   if(challengeCreateType === "freestyle"){
     const title = document.getElementById("challengeFreeTitle").value.trim();
-    if(!title) return alert('Skriv en udfordring, fx "Flest jongleringer".');
+    if(!title) return besked('Skriv en udfordring, fx "Flest jongleringer".');
     await addDoc(collection(db, "challenges"), {
       type: "freestyle", title,
       challengerId: playerId, challengerName: p.name,
@@ -3200,7 +3215,7 @@ async function createChallenge(playerId){
       status: "pending",
       createdAt: serverTimestamp()
     });
-    alert("Udfordring sendt til " + opponent.name + "!");
+    besked("Udfordring sendt til " + opponent.name + "!");
     return;
   }
 
@@ -3215,7 +3230,7 @@ async function createChallenge(playerId){
     status: "pending",
     createdAt: serverTimestamp()
   });
-  alert("Udfordring sendt til " + opponent.name + "!");
+  besked("Udfordring sendt til " + opponent.name + "!");
 }
 
 async function respondChallenge(challengeId, accept){
@@ -3229,7 +3244,7 @@ async function submitChallengeVideo(challengeId){
   if(!c || !currentPlayerLink) return;
   const input = document.getElementById(`chupload_${challengeId}`);
   const file = input?.files?.[0];
-  if(!file) return alert("Vælg en video først.");
+  if(!file) return besked("Vælg en video først.");
   const btn = document.getElementById(`chuploadbtn_${challengeId}`);
   const originalText = btn?.textContent;
   if(btn){ btn.disabled = true; btn.textContent = "Uploader..."; }
@@ -3350,10 +3365,10 @@ function freestyleJudgeCard(c, subs){
 }
 async function judgeFreestyleChallenge(challengeId, winnerId){
   const c = challenges.find(x=>x.id===challengeId);
-  if(!c || !canAccessYear(c.year)) return alert("Ingen adgang");
+  if(!c || !canAccessYear(c.year)) return besked("Ingen adgang");
   const subs = submissions.filter(s=>s.challengeId===challengeId && s.status==="pending");
   const winnerPlayer = players.find(x=>x.id===winnerId);
-  if(!winnerPlayer) return alert("Kunne ikke finde vinderens spillerprofil.");
+  if(!winnerPlayer) return besked("Kunne ikke finde vinderens spillerprofil.");
 
   const history = [...(winnerPlayer.history||[])];
   history.unshift({
@@ -3412,7 +3427,7 @@ async function reviewSubmission(id, approve){
   const s = submissions.find(x=>x.id===id);
   if(!s) return;
   const p = players.find(x=>x.id===s.playerId);
-  if(!p || !canAccessYear(s.year)) return alert("Ingen adgang");
+  if(!p || !canAccessYear(s.year)) return besked("Ingen adgang");
   let pointsAwarded = 0;
   if(approve){
     // Niveauet på videoen er skrevet af spillerens egen browser og kan derfor ikke
@@ -3420,14 +3435,14 @@ async function reviewSubmission(id, approve){
     // hverken kan udløse point for et niveau, spilleren ikke har låst op endnu,
     // eller point igen for en øvelse, der allerede er registreret bestået.
     const step = steps[s.stepIndex];
-    if(!step) return alert("Videoen har et ugyldigt niveau og kan ikke godkendes. Afvis den i stedet.");
+    if(!step) return besked("Videoen har et ugyldigt niveau og kan ikke godkendes. Afvis den i stedet.");
     const reached = currentStepIndex(p);
     if(s.stepIndex > reached){
       const reachedText = reached >= steps.length ? "alle niveauer gennemført" : steps[reached].label;
-      return alert(`Videoen er markeret som ${step.label}, men ${p.name} er kun nået til ${reachedText}.\n\nDen kan ikke godkendes på det niveau. Afvis den, og bed spilleren uploade igen fra sit aktuelle niveau.`);
+      return besked(`Videoen er markeret som ${step.label}, men ${p.name} er kun nået til ${reachedText}.\n\nDen kan ikke godkendes på det niveau. Afvis den, og bed spilleren uploade igen fra sit aktuelle niveau.`);
     }
     const alreadyPassed = !!p.passed?.[getKey(s.stepIndex, s.exercise)];
-    if(alreadyPassed && !confirm(`${s.exercise} · ${step.label} er allerede registreret bestået for ${p.name}.\n\nGodkend videoen uden at give point igen?`)) return;
+    if(alreadyPassed && !await spoerg(`${s.exercise} · ${step.label} er allerede registreret bestået for ${p.name}.\n\nGodkend videoen uden at give point igen?`)) return;
     pointsAwarded = alreadyPassed ? 0 : pointsForStep(step);
     const passed = {...(p.passed||{})};
     passed[getKey(s.stepIndex, s.exercise)] = true;
@@ -3548,8 +3563,8 @@ function renderLeaderboard(){
 }
 
 async function migrateYearsToBirthYears(){
-  if(!isAdmin()) return alert("Kun admin kan migrere årgange.");
-  if(!confirm("Konverter årgange fra U-format til årstal? Fx U9 → 2017. Brug kun én gang.")) return;
+  if(!isAdmin()) return besked("Kun admin kan migrere årgange.");
+  if(!await spoerg("Konverter årgange fra U-format til årstal? Fx U9 → 2017. Brug kun én gang.")) return;
   try{
     let playerCount = 0;
     for(const p of players){
@@ -3568,10 +3583,10 @@ async function migrateYearsToBirthYears(){
         userCount++;
       }
     }
-    alert(`Årgange migreret. Spillere opdateret: ${playerCount}. Brugere opdateret: ${userCount}.`);
+    besked(`Årgange migreret. Spillere opdateret: ${playerCount}. Brugere opdateret: ${userCount}.`);
   }catch(e){
     console.error(e);
-    alert("Migrering af årgange fejlede: " + e.message);
+    besked("Migrering af årgange fejlede: " + e.message);
   }
 }
 
@@ -3680,7 +3695,7 @@ function selectProfileForTracking(pid){
 }
 
 function exportBackupJson(){
-  if(isPlayer()) return alert("Backup er et trænerværktøj og kan ikke bruges fra et spillerlogin.");
+  if(isPlayer()) return besked("Backup er et trænerværktøj og kan ikke bruges fra et spillerlogin.");
   const payload = {
     exportedAt: new Date().toISOString(),
     exportedBy: currentUser?.email || "",
@@ -3696,7 +3711,7 @@ function csvEscape(value){
 }
 
 function exportBackupCsv(){
-  if(isPlayer()) return alert("Backup er et trænerværktøj og kan ikke bruges fra et spillerlogin.");
+  if(isPlayer()) return besked("Backup er et trænerværktøj og kan ikke bruges fra et spillerlogin.");
   const rows = [["name","year","note","current_step","created_or_updated","history_count"]];
   players.forEach(p=>{
     const si = currentStepIndex(p);
@@ -3945,6 +3960,120 @@ function renderFootwork(){
         : dagAntal >= 3 ? '<p class="small" style="margin:10px 0 0">Dagens gennemførelser kan ikke sættes sammen til en kombi. Prøv tre forskellige øvelser - eller den samme tre gange.</p>' : ""}
       ${raekker}
     </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// DIALOGER
+// Appens egne beskeder, spoergsmaal og indtastninger i stedet for browserens
+// alert/confirm/prompt. Browserens bokse kan ikke styles, viser sidens adresse som
+// overskrift, har ingen plads til hjaelpetekst - joker-begrundelsen blev skrevet i et
+// felt paa én linje - og nogle browsere tilbyder at slaa dem helt fra, hvorefter
+// browserens bekraeftelse tavst svarer nej til alt.
+//
+//   besked(tekst)             -> loefte, der indfries naar der er trykket OK
+//   await spoerg(tekst)       -> true / false
+//   await indtast(tekst, ..)  -> det skrevne, eller null ved Annullér
+//
+// Teksten saettes med textContent og aldrig som HTML, saa et spillernavn eller en
+// duel-titel ikke kan smugle markup ind. Dialoger staar i koe: kommer der en besked,
+// mens en anden er aaben, vises den bagefter - saa raekkefoelgen er den, koden skrev.
+const dialogKoe = [];
+let dialogAktiv = null, dialogFokusFoer = null;
+function dialogByg(){
+  let bag = document.getElementById("appDialog");
+  if(bag) return bag;
+  bag = document.createElement("div");
+  bag.id = "appDialog";
+  bag.className = "dialogbag hidden";
+  bag.innerHTML = `<div class="dialogkort" role="dialog" aria-modal="true" aria-labelledby="dialogTekst">
+    <div class="dialogtekst" id="dialogTekst"></div>
+    <div class="dialogfelt hidden" id="dialogFelt"></div>
+    <div class="dialogknapper">
+      <button type="button" class="btn secondary" id="dialogNej">Annullér</button>
+      <button type="button" class="btn" id="dialogJa">OK</button>
+    </div></div>`;
+  document.body.appendChild(bag);
+  bag.querySelector("#dialogJa").addEventListener("click", ()=>dialogSvar(true));
+  bag.querySelector("#dialogNej").addEventListener("click", ()=>dialogSvar(false));
+  // Et tryk ved siden af lukker kun en ren besked. Et spoergsmaal eller en indtastning
+  // skal besvares med vilje - ellers ryger en halvskrevet begrundelse paa et fejltryk.
+  bag.addEventListener("click", e=>{ if(e.target === bag && dialogAktiv?.o.type === "besked") dialogSvar(true); });
+  bag.addEventListener("keydown", e=>{
+    if(e.key === "Escape"){ e.preventDefault(); dialogSvar(dialogAktiv?.o.type === "besked"); }
+    else if(e.key === "Enter" && e.target.tagName !== "TEXTAREA" && e.target.id !== "dialogNej"){ e.preventDefault(); dialogSvar(true); }
+    else if(e.key === "Tab"){
+      // Hold tabulatoren inde i dialogen, saa man ikke lander paa siden bagved.
+      const f = Array.from(bag.querySelectorAll("button, input, textarea")).filter(x=>!x.closest(".hidden"));
+      const foerste = f[0], sidste = f[f.length-1];
+      if(e.shiftKey && document.activeElement === foerste){ e.preventDefault(); sidste.focus(); }
+      else if(!e.shiftKey && document.activeElement === sidste){ e.preventDefault(); foerste.focus(); }
+    }
+  });
+  return bag;
+}
+function dialogVis(o){
+  return new Promise(indfri=>{ dialogKoe.push({o, indfri}); dialogNaeste(); });
+}
+function dialogNaeste(){
+  if(dialogAktiv || !dialogKoe.length) return;
+  dialogAktiv = dialogKoe.shift();
+  const o = dialogAktiv.o, bag = dialogByg();
+  if(!dialogAaben) dialogFokusFoer = document.activeElement;
+  dialogAaben = 1;
+  bag.querySelector("#dialogTekst").textContent = o.tekst == null ? "" : String(o.tekst);
+  const ja = bag.querySelector("#dialogJa"), nej = bag.querySelector("#dialogNej"), felt = bag.querySelector("#dialogFelt");
+  ja.textContent = o.ja || "OK";
+  ja.className = "btn" + (o.farlig ? " danger" : "");
+  nej.textContent = o.nej || "Annullér";
+  nej.classList.toggle("hidden", o.type === "besked");
+  felt.classList.toggle("hidden", o.type !== "indtast");
+  felt.textContent = "";
+  let fokus = ja;
+  if(o.type === "indtast"){
+    const el = document.createElement(o.flerlinjet ? "textarea" : "input");
+    el.id = "dialogInput";
+    if(o.flerlinjet) el.rows = 3; else el.type = "text";
+    if(o.tal){ el.inputMode = "numeric"; el.pattern = "[0-9]*"; }
+    if(o.maks) el.maxLength = o.maks;
+    if(o.pladsholder) el.placeholder = o.pladsholder;
+    el.value = o.vaerdi == null ? "" : String(o.vaerdi);
+    el.setAttribute("aria-labelledby", "dialogTekst");
+    felt.appendChild(el);
+    if(o.hjaelp || o.maks){
+      const h = document.createElement("p");
+      h.className = "small";
+      const taeller = ()=>{ h.textContent = (o.hjaelp || "") + (o.maks ? `${o.hjaelp ? " · " : ""}${el.value.length}/${o.maks} tegn` : ""); };
+      el.addEventListener("input", taeller); taeller();
+      felt.appendChild(h);
+    }
+    fokus = el;
+  }
+  bag.classList.remove("hidden");
+  fokus.focus();
+  if(fokus.select && o.type === "indtast") fokus.select();
+}
+function dialogSvar(ja){
+  const d = dialogAktiv;
+  if(!d) return;
+  const bag = dialogByg();
+  let svar;
+  if(d.o.type === "besked") svar = undefined;
+  else if(d.o.type === "spoerg") svar = !!ja;
+  else svar = ja ? bag.querySelector("#dialogInput").value : null;
+  dialogAktiv = null;
+  if(dialogKoe.length){ d.indfri(svar); dialogNaeste(); return; }
+  bag.classList.add("hidden");
+  dialogAaben = 0;
+  // Markoeren tilbage, hvor den kom fra - hvis det sted stadig findes.
+  if(dialogFokusFoer && dialogFokusFoer.isConnected && dialogFokusFoer.focus) dialogFokusFoer.focus();
+  dialogFokusFoer = null;
+  d.indfri(svar);
+}
+function besked(tekst){ return dialogVis({type:"besked", tekst}); }
+function spoerg(tekst, valg){ return dialogVis(Object.assign({type:"spoerg", tekst}, valg || {})); }
+// valg maa vaere en streng (startvaerdien), saa indtast kan staa, hvor browserens indtastning stod.
+function indtast(tekst, valg){
+  return dialogVis(Object.assign({type:"indtast", tekst}, typeof valg === "string" ? {vaerdi: valg} : (valg || {})));
 }
 
 // ---------------------------------------------------------------------------
