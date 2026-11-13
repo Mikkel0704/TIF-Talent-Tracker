@@ -85,7 +85,7 @@ const resultat = await page.evaluate(()=>{
 let ok=0,d=0; const t=(n,b)=>{b?(ok++,console.log("  ok   "+n)):(d++,console.log("  FEJL "+n));};
 console.log("\nDemo-login efter rettelsen");
 t("ingen JS-fejl", fejl.length === 0); if(fejl.length) console.log("   "+fejl.join("\n   "));
-t("plus/minus-knapperne er der nu (20)", resultat.taellere === 20);
+t("plus/minus-knapperne er der nu (24)", resultat.taellere === 24);
 // "Søg joker" hoerer kun til en dag UDEN registreringer, saa den skal findes paa en tom
 // dag - ikke paa i dag, hvor der staar syv gennemfoerelser.
 const tomDag = await page.evaluate(()=>{ setFootworkDay(document.querySelectorAll(".daychip")[12].getAttribute("onclick").match(/'([^']+)'/)[1]); return document.getElementById("footworkArea").innerText; });

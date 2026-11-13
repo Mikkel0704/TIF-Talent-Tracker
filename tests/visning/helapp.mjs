@@ -91,6 +91,25 @@ t("skrivningen sender kun det ene felt, ikke hele fremdriften", (() => { const s
 t("tælleren står på 1 efter gentegning", await a.page.evaluate(() => [...document.querySelectorAll("#footworkArea .ladderrow")]
   .find(r => r.textContent.includes("Toe-taps"))?.querySelector(".counter b")?.textContent === "1"));
 
+// De to nye øvelser: de skal staa i den rigtige gruppe, med deres egen takst, og gemmes
+// under deres egen kode.
+const raekkeNavne = grad => a.page.evaluate(g => { const hoved = [...document.querySelectorAll("#footworkArea .phasehead")].find(h => h.textContent.trim().startsWith(g));
+  const ud = []; for (let e = hoved?.nextElementSibling; e && !e.classList.contains("phasehead"); e = e.nextElementSibling) ud.push(e.querySelector("b")?.textContent); return ud; }, grad);
+t("Yder-yder-stop står under Mellem", (await raekkeNavne("Mellem")).includes("Yder-yder-stop"));
+t("V+L rul står under Svær", (await raekkeNavne("Svær")).includes("V+L rul"));
+t("og begge viser deres takst og tekst", await a.page.evaluate(() => { const r = n => [...document.querySelectorAll("#footworkArea .ladderrow")].find(x => x.querySelector("b").textContent === n)?.textContent || "";
+  return /3 point/.test(r("Yder-yder-stop")) && /ydersiden/.test(r("Yder-yder-stop")) && /4 point/.test(r("V+L rul")) && /V-rul og lige efter et L-rul/.test(r("V+L rul")); }));
+await a.page.evaluate(() => { window.__skrivninger.length = 0; });
+await a.page.click('#footworkArea .counter button[aria-label^="Tilføj en gennemførelse af Yder-yder-stop"]');
+await a.page.waitForTimeout(300);
+await a.page.click('#footworkArea .counter button[aria-label^="Tilføj en gennemførelse af V+L rul"]');
+await a.page.waitForTimeout(300);
+w = await a.skrivninger();
+t("Yder-yder-stop gemmes under koden y", w.some(x => x.navn === "footwork" && x.data.days?.[iso(0)]?.y === 1));
+t("V+L rul gemmes under koden k", w.some(x => x.navn === "footwork" && x.data.days?.[iso(0)]?.k === 1));
+t("og toe-taps fra før er stadig der", await a.page.evaluate(() => [...document.querySelectorAll("#footworkArea .ladderrow")].find(r => r.textContent.includes("Toe-taps"))?.querySelector(".counter b")?.textContent === "1"));
+await a.page.evaluate(() => { window.__skrivninger.length = 0; });
+
 await a.page.click("#footworkArea .daychip:nth-child(3)");          // en tom dag
 await a.page.waitForTimeout(150);
 await a.page.click('#footworkArea button:has-text("Søg joker")');
@@ -407,7 +426,7 @@ const vaelgFil = async (a, navn, fil) => {
 a = await start("u-admin");
 await a.page.evaluate(() => { window.__maerker = { admin: true }; });
 await aabnAdmin(a);
-t("alle 21 pladser står der", (await a.page.evaluate(() => document.querySelectorAll("#guideVideoAdminArea .coachrow").length)) === 21);
+t("alle 23 pladser står der", (await a.page.evaluate(() => document.querySelectorAll("#guideVideoAdminArea .coachrow").length)) === 23);
 t("en tom plads har kun 'Læg op'", JSON.stringify((await raekke(a, "Toe-taps"))?.knapper) === JSON.stringify(["Læg op"]));
 await vaelgFil(a, "Toe-taps", klip.pathname);
 w = await a.skrivninger();

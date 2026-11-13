@@ -46,17 +46,21 @@ t("3 forskellige mellem", K.footworkBoost(i("vrul"), i("traekskub"), i("stepover
 t("2 mellem + 1 svær", K.footworkBoost(i("vrul"), i("traekskub"), i("lrul")), 5);
 t("1 mellem + 2 svære", K.footworkBoost(i("vrul"), i("lrul"), i("croqueta")), 5);
 t("3 forskellige svære", K.footworkBoost(i("lrul"), i("croqueta"), i("square")), 8);
-t("point pr. sværhedsgrad - jonglering har sin egen takst", K.FOOTWORK.map(x=>K.footworkPointsFor(x)), [2,2,2,3,3,3,8,4,4,4]);
+t("point pr. sværhedsgrad - jonglering har sin egen takst", K.FOOTWORK.map(x=>K.footworkPointsFor(x)), [2,2,2,3,3,3,3,8,4,4,4,4]);
 
 afsnit("Jongleringstræning har sin egen blok og takst");
 const jong = K.footworkEx("jongler");
 t("5 minutter, ikke 3 × 30 sek.", K.footworkBlock(jong), "5 minutter");
-t("de ni andre har standardblokken",
+t("alle andre har standardblokken",
   K.FOOTWORK.filter(x=>x.id!=="jongler").every(x=>K.footworkBlock(x) === K.FOOTWORK_DEFAULT_BLOCK), true);
 t("8 point", K.footworkPointsFor(jong), 8);
 t("den er stadig 'mellem', så kombierne er uændrede", jong.grad, "mellem");
-t("der er fortsat kun tre svære øvelser (+8-kombien er ikke blevet lettere)",
-  K.FOOTWORK.filter(x=>x.grad==="svaer").length, 3);
+// Der var før tre svære øvelser, så +8-kombien krævede dem alle tre hver gang. Med V+L rul
+// er der fire at vælge imellem - det er et bevidst valg, ikke et udslag. Kombien kræver
+// stadig tre FORSKELLIGE svære øvelser, og tallet står her, så en femte ikke slipper ind
+// uden at nogen har set det.
+t("der er fire svære øvelser (+8-kombien vælger tre forskellige af dem)",
+  K.FOOTWORK.filter(x=>x.grad==="svaer").length, 4);
 // Taksten skal ligge mellem let og mellem pr. minut: jonglering optjener jo også point
 // på stigen, så den må ikke være den bedste forretning i modulet.
 const prMinut = (p, min) => p / min;
@@ -114,6 +118,53 @@ t("nødløsningen rammer aldrig over det rigtige svar", (()=>{
   // give et tal, der er lovligt (dvs. ikke højere end 3 kombier pr. 9 gennemførelser).
   const b = boost(Object.fromEntries(K.FOOTWORK.map(ex=>[ex.id, 10])));
   return b > 0 && b <= Math.floor(100/3) * 8;
+})(), true);
+
+// ---------------------------------------------------------------------------
+afsnit("Yder-yder-stop og V+L rul");
+const yd = K.footworkEx("yderstop"), vl = K.footworkEx("vlrul");
+t("begge findes, med deres egen kode", [yd?.kode, vl?.kode], ["y", "k"]);
+t("Yder-yder-stop er mellem og giver 3 point", [yd.grad, K.footworkPointsFor(yd)], ["mellem", 3]);
+t("V+L rul er svær og giver 4 point", [vl.grad, K.footworkPointsFor(vl)], ["svaer", 4]);
+t("begge har standardblokken, 3 × 30 sek.", [K.footworkBlock(yd), K.footworkBlock(vl)], [K.FOOTWORK_DEFAULT_BLOCK, K.FOOTWORK_DEFAULT_BLOCK]);
+t("begge har en tekst, og ingen af dem gemmer sig bag jonglerings undtagelse", [!!yd.tekst, !!vl.tekst, "point" in yd, "point" in vl], [true, true, false, false]);
+t("koderne er entydige - ellers lægges to øvelsers dage sammen i databasen",
+  new Set(K.FOOTWORK.map(x=>x.kode)).size, K.FOOTWORK.length);
+t("og ids er entydige", new Set(K.FOOTWORK.map(x=>x.id)).size, K.FOOTWORK.length);
+t("og koderne er ét bogstav", K.FOOTWORK.every(x=>/^[a-z]$/.test(x.kode)), true);
+t("de gamle ti koder er uændrede, så gemte dage stadig passer",
+  ["toetaps","saalerul","trommestik","vrul","traekskub","stepover","jongler","lrul","croqueta","square"].map(id=>K.footworkEx(id).kode),
+  ["t","s","d","v","p","o","j","l","c","q"]);
+t("Yder-yder-stop indgår i kombierne som en mellem", K.footworkBoost(i("toetaps"), i("yderstop"), i("lrul")), 5);
+t("tre forskellige mellem, hvor den nye er den ene", K.footworkBoost(i("vrul"), i("traekskub"), i("yderstop")), 5);
+t("1 let + 2 mellem, med den nye", K.footworkBoost(i("toetaps"), i("vrul"), i("yderstop")), 3);
+t("V+L rul tæller som svær i allround", K.footworkBoost(i("toetaps"), i("vrul"), i("vlrul")), 5);
+t("tre forskellige svære giver stadig 8 - også med V+L rul", K.footworkBoost(i("lrul"), i("vlrul"), i("square")), 8);
+t("og to svære plus V+L rul og croqueta er ikke fire i en kombi", K.footworkBoost(i("vlrul"), i("vlrul"), i("croqueta")), 0);
+saet({dage: {[d(0)]: {[kode("yderstop")]: 2, [kode("vlrul")]: 1}}});
+t("point for en dag: 2 × 3 + 1 × 4, ingen kombi på tre gennemførelser af to slags", K.footworkDayPoints(PID, d(0)), 2*3 + 4);
+saet({dage: {[d(0)]: {[kode("yderstop")]: 1, [kode("vlrul")]: 1, [kode("toetaps")]: 1}}});
+t("allround med begge nye: 3 + 4 + 2 + 5", K.footworkDayPoints(PID, d(0)), 3 + 4 + 2 + 5);
+saet({dage: {[d(0)]: {[kode("lrul")]: 1, [kode("vlrul")]: 1, [kode("croqueta")]: 1}}});
+t("tre svære, hvoraf den ene er V+L rul: 12 + 8", K.footworkDayPoints(PID, d(0)), 3*4 + 8);
+t("aktive dage tæller en dag med kun de nye", (saet({dage: {[d(0)]: {[kode("vlrul")]: 1}}}), K.footworkActiveDays(PID)), [d(0)]);
+t("totalerne tæller de nye øvelser, og alle tolv er med",
+  (saet({dage: {[d(0)]: {[kode("yderstop")]: 2}, [d(-1)]: {[kode("yderstop")]: 1, [kode("vlrul")]: 4}}}),
+   (()=>{ const x = K.footworkTotals(PID); return [x.length, x[K.FOOTWORK.findIndex(e=>e.id==="yderstop")].antal, x[K.FOOTWORK.findIndex(e=>e.id==="vlrul")].antal]; })()), [12, 3, 4]);
+// Den udtømmende søgning er eksponentiel i antallet af øvelser. Med tolv øvelser er den
+// værste dag 12 × 3 = 36 gennemførelser - og den skal stadig svare hurtigt, og ikke give
+// mindre end nødløsningen.
+t("en dag med alle tolv øvelser tre gange hver svarer hurtigt og giver bonus", (()=>{
+  const counts = K.FOOTWORK.map(()=>3);
+  K.footworkComboMemo.clear();
+  const t0 = Date.now(); const r = K.footworkDayCombos(counts); const koldt = Date.now() - t0;
+  const t1 = Date.now(); K.footworkDayCombos(counts); const varmt = Date.now() - t1;
+  return [koldt < 2000, varmt < 20, r.boost > 0, r.kombier.length * 3 <= 36];
+})(), [true, true, true, true]);
+t("og ti af hver er stadig lovligt", (()=>{
+  K.footworkComboMemo.clear();
+  const r = K.footworkDayCombos(K.FOOTWORK.map(()=>10));
+  return r.boost > 0 && r.kombier.length * 3 <= 120;
 })(), true);
 
 // ---------------------------------------------------------------------------
@@ -274,7 +325,7 @@ t("og sidst-datoen er den nyeste", vedId("toetaps").sidst, d(0));
 t("v-rul talt rigtigt", vedId("vrul").antal, 1);
 t("l-rul kun på den gamle dag", [vedId("lrul").antal, vedId("lrul").sidst], [1, d(-5)]);
 t("en øvelse der aldrig er lavet", [vedId("croqueta").antal, vedId("croqueta").sidst], [0, null]);
-t("alle ti øvelser er med i oversigten", tot.length, K.FOOTWORK.length);
+t("alle øvelser er med i oversigten", tot.length, K.FOOTWORK.length);
 
 const split = K.footworkGradeSplit(PID);
 t("i alt otte gennemførelser", split.i_alt, 8);

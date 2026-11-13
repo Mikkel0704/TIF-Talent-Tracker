@@ -345,7 +345,7 @@
       <p class="small" id="guideIntroOn">Kort fortalt er der tre slags træning i appen: <b>Talentmærket</b>, hvor træneren bedømmer og der er medaljer på spil · <b>Fodteknik</b> og <b>Jonglering</b>, som I selv registrerer hjemmefra og får point for · og <b>Duel</b>, hvor I måler jer mod en holdkammerat.</p>
       <p class="small hidden" id="guideIntroOff">Jeres årgang kører <b>hjemmetræningen</b>: <b>Fodteknik</b> og <b>Jonglering</b>, som I selv registrerer og får point for, og <b>Duel</b>, hvor I måler jer mod en holdkammerat. Talentmærket med medaljer er ikke slået til på jeres årgang endnu.</p>
       <p id="guideTalentIntro"><b>"Talentmærket":</b> Her er medaljerne. I ser øvelserne for jeres niveau, optager en kort video, hvor I udfører øvelsen, og uploader den. Træneren godkender eller afviser, og I kan følge status direkte under øvelsen. Det er den eneste del af appen, der giver bronze, sølv og guld.</p>
-      <p><b>"Fodteknik":</b> Daglig fodteknik. Ti korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen, undtagen jongleringstræning, som er 5 minutter og giver flere point. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning.</p>
+      <p><b>"Fodteknik":</b> Daglig fodteknik. Tolv korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen, undtagen jongleringstræning, som er 5 minutter og giver flere point. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning.</p>
       <p><b>"Jonglering":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. I får lige så mange point, som I jonglerer - 40 jongleringer giver 40 point - og med det dårlige ben tæller det dobbelt. Også her er det på tillid, uden video. Stigen giver point, men ingen medaljer.</p>
       <p><b>"Duel":</b> Udfordr en holdkammerat i en fri duel, som "flest jongleringer" eller "fedeste trick" - eller, hvis jeres årgang kører Talentmærket, i en af øvelserne derfra. Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
       <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Point fra alle delene tæller med.</p>
@@ -952,7 +952,7 @@ const FOOTWORK_BACKDATE_DAYS = 14;  // hvor langt familien selv maa registrere b
 const FOOTWORK_MAX_DAYS = 1500;
 const FOOTWORK_GRADE_POINTS = {let:2, mellem:3, svaer:4};
 const FOOTWORK_GRADE_NAMES = {let:"Let", mellem:"Mellem", svaer:"Svær"};
-// Blokken er 3 x 30 sek. for de ni gulvoevelser, hvor foden er paa bolden hele tiden.
+// Blokken er 3 x 30 sek. for de elleve gulvoevelser, hvor foden er paa bolden hele tiden.
 // Jonglering er en anden slags arbejde - bolden ryger, man samler op, stiller sig til
 // rette - saa 30 sekunder bliver mest opstilling. Den har derfor sin egen blok og sin
 // egen takst (se "varighed" og "point" paa oevelsen), og begge dele staar paa selve
@@ -967,13 +967,15 @@ const FOOTWORK = [
   {id:"vrul",       kode:"v", navn:"V-rul",              grad:"mellem", tekst:"Træk bolden tilbage med sålen, og spil den frem med indersiden af samme fod. Skift fod."},
   {id:"traekskub",  kode:"p", navn:"Træk-skub",          grad:"mellem", tekst:"Træk bolden tilbage med sålen, og skub den frem igen. Skift fod."},
   {id:"stepover",   kode:"o", navn:"Step-over",          grad:"mellem", tekst:"Før foden rundt om bolden uden at røre den. Skiftevis."},
+  {id:"yderstop",   kode:"y", navn:"Yder-yder-stop",     grad:"mellem", tekst:"Skub bolden to gange med ydersiden af foden, og stop den med indersiden. Skift fod."},
   {id:"jongler",    kode:"j", navn:"Jongleringstræning", grad:"mellem", point:8, varighed:"5 minutter", tekst:"Fri jonglering i 5 minutter. Saml bolden op og fortsæt, hver gang den rammer jorden.", fokus:"Dette er den daglige øvelse - ikke Jongleringsstigen. Her er der ingen trin at nå, og det gør ikke noget, at bolden falder. Det er forsøgene, der tæller."},
   {id:"lrul",       kode:"l", navn:"L-rul",              grad:"svaer",  tekst:"Træk bolden tilbage med sålen, og spil den bag om standbenet med indersiden."},
+  {id:"vlrul",      kode:"k", navn:"V+L rul",            grad:"svaer",  tekst:"Lav et V-rul og lige efter et L-rul i ét flow, uden at sætte foden fra dig imellem. Skift fod."},
   {id:"croqueta",   kode:"c", navn:"Croqueta",           grad:"svaer",  tekst:"Flyt bolden fra inderside til inderside med et lille sideskridt."},
   {id:"square",     kode:"q", navn:"Square",             grad:"svaer",  tekst:"Før bolden rundt i et kvadrat med sålen (frem, til siden, tilbage, til siden). Skift fod."}
 ];
 const FOOTWORK_RULES = [
-  "1 gennemførelse = øvelsen lavet i den tid, der står på den. De ni gulvøvelser tager 3 × 30 sekunder. Der registreres kun, at den er gennemført - ikke hvor godt.",
+  "1 gennemførelse = øvelsen lavet i den tid, der står på den. De elleve gulvøvelser tager 3 × 30 sekunder. Der registreres kun, at den er gennemført - ikke hvor godt.",
   "Jongleringstræning er den ene undtagelse: den er 5 minutter i træk, fordi bolden falder undervejs, og 30 sekunder mest ville blive til at samle op og stille sig til rette.",
   "Du må lave den samme øvelse flere gange om dagen, og så mange øvelser du vil.",
   "Point pr. gennemførelse: Let 2 · Mellem 3 · Svær 4 - og 8 for jongleringstræning, fordi den tager længere tid. Tallet står altid på øvelsen.",
@@ -1139,7 +1141,7 @@ function footworkDayCombos(counts){
   if(husket) return husket;
 
   // Den udtoemmende soegning er eksponentiel i antallet af oevelser, saa den faar et
-  // budget. Det er ikke teoretisk: 10 oevelser lavet 3 gange hver er 30 gennemfoerelser
+  // budget. Det er ikke teoretisk: 12 oevelser lavet 3 gange hver er 36 gennemfoerelser
   // - en lang, men mulig dag - og uden bremsen brugte den flere sekunder OG endte med
   // at give nul. Den stod oven i koebet og regnede forfra ved hver eneste optegning,
   // fordi et afbrudt soeg ikke naaede at blive husket. Derfor: lavt budget, en
@@ -2478,7 +2480,7 @@ function renderTracking(){
         </tr>`).join("")}
       </table></div>
       <p class="small">${split.i_alt} gennemførelser i alt · let ${split.pct.let}% · mellem ${split.pct.mellem}% · svær ${split.pct.svaer}%${
-        aldrig.length ? ` · <b>aldrig prøvet:</b> ${aldrig.map(ex=>escapeHtml(ex.navn)).join(", ")}` : " · har prøvet alle ti øvelser"}</p>`;
+        aldrig.length ? ` · <b>aldrig prøvet:</b> ${aldrig.map(ex=>escapeHtml(ex.navn)).join(", ")}` : " · har prøvet alle øvelserne"}</p>`;
     })()}
     ${fDage.length ? fDage.map(dato=>{
       const counts = footworkDayCounts(p.id, dato);

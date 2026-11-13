@@ -63,6 +63,10 @@ await proev('træneren afgør jokeren','ALLOW',
   ()=>setDoc(doc(db('traener'),'footwork','p1'), {...AARG, jokers:{'2026-11-05':'approved'}}, {merge:true}));
 await proev('og bagefter kan spilleren STADIG registrere (uden at røre afgørelsen)','ALLOW',
   ()=>setDoc(doc(db('spiller'),'footwork','p1'), {...AARG, days:{[DAG]:{t:3}}}, {merge:true}));
+await proev('de to nye øvelser (koderne y og k) gemmes på samme måde som de gamle, uden at røre andre dage','ALLOW',
+  ()=>setDoc(doc(db('spiller'),'footwork','p1'), {...AARG, days:{[DAG]:{y:2, k:1}}}, {merge:true}));
+await proev('men spilleren kan stadig ikke skrive en dag i en andens dokument, også med de nye koder','DENY',
+  ()=>setDoc(doc(db('spiller'),'footwork','p2'), {...AARG, days:{[DAG]:{y:2, k:1}}}, {merge:true}));
 await proev('men spilleren kan ikke ændre trænerens afgørelse bagefter','DENY',
   ()=>setDoc(doc(db('spiller'),'footwork','p1'), {...AARG, jokers:{'2026-11-05':'rejected'}}, {merge:true}));
 

@@ -87,7 +87,7 @@ console.log("\nVisning i browser (390px bred)");
 t("ingen JS-fejl på siden", fejl.length === 0);
 if(fejl.length) console.log("   " + fejl.join("\n   "));
 t("14 dag-knapper", resultat.dagChips === 14);
-t("en knap pr. retning pr. øvelse (10 øvelser)", resultat.taellere === 20);
+t("en knap pr. retning pr. øvelse (12 øvelser)", resultat.taellere === 24);
 t("jokerdage er markeret", resultat.jokerChips === 2);
 t("dage med træning er markeret", resultat.aktiveChips === 3);
 t("dagens kombier står på siden", /Dagens kombier/.test(resultat.tekst));
