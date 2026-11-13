@@ -16,3 +16,8 @@ logik/backupkode.mjs
 .lager.rules
 visning/helapp-klip.mp4
 visning/helapp-notat.txt
+# Sløringsværktøjet: videoer af børn og et lokalt Python-miljø må aldrig i repoet
+vaerktoej/sloer/original/
+vaerktoej/sloer/ud/
+vaerktoej/sloer/stills/
+vaerktoej/sloer/venv/
