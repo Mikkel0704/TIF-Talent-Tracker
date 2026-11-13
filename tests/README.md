@@ -21,7 +21,7 @@ npm run alt
 | `visning/` | Tegner de rigtige sider med opdigtede data og tjekker, hvad der står. |
 | `visning/helapp.mjs` | Starter **hele** `index.html` uændret mod en efterlignet Firebase i hukommelsen og klikker rundt som spiller, demo, træner og admin. Den eneste test, hvor alle delene mødes. |
 | `regler/` | Sender rigtige forespørgsler mod `firestore.rules` og `storage.rules` i emulatorerne - uden App Check og uden produktion. `flytning.test.mjs` prøver flytteværktøjet mod emulatoren. |
-| `vaerktoej/` | `udrul-regler.cjs` (Firestore-regler), `udrul-lager.cjs` (lagerregler og slettefrist) og `flyt-videoer.cjs` (engangsflytning af gamle videolinks). Alle læser tilbage, hvad de har gjort, og de to sidste har en tørkørsel. |
+| `vaerktoej/` | `udrul-regler.cjs` (Firestore-regler), `udrul-lager.cjs` (lagerregler og slettefrist), `flyt-videoer.cjs` (engangsflytning af gamle videolinks) og `saet-admin-maerke.cjs` (giver aktive administratorer lov til at uploade instruktionsvideoer). Alle læser tilbage, hvad de har gjort, og alle på nær den første har en tørkørsel. |
 
 ## To ting, testene har lært os på den hårde måde
 

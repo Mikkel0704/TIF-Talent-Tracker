@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.66</title>
+  <title>TIF Talent Tracker v15.67</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -107,6 +107,13 @@
     .dialogfelt .small{margin:6px 0 0}
     .dialogknapper{display:flex;gap:8px;justify-content:flex-end;padding:14px 18px 16px;flex-wrap:wrap}
     .dialogknapper .btn{margin:0;min-width:96px}
+    .btn.videoknap{margin:6px 0 0}
+    .videobag{position:fixed;inset:0;z-index:990;background:rgba(12,9,10,.88);display:flex;align-items:center;justify-content:center;padding:12px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+    .videokort{width:100%;max-width:520px;display:flex;flex-direction:column;gap:10px}
+    .videotitel{color:#fff;font-weight:800;font-size:17px}
+    .videokort video{width:100%;max-height:66vh;background:#000;border-radius:12px}
+    .videofejl{color:#fff;font-size:14px;line-height:1.4}
+    .videokort .btn{margin:0}
     .demobanner{margin:0;padding:10px 14px;background:#fff4d6;border-bottom:1px solid #f0d99a;color:#6b4d00;font-size:14px;line-height:1.45}
     .checkrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
     .checkrow:last-child{border-bottom:0}
@@ -143,7 +150,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.66 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.67 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -402,6 +409,16 @@
       </div>
     </details>
 
+    <details class="accordion" id="adminGuideVideos">
+      <summary><span>Instruktionsvideoer</span></summary>
+      <div class="accordion-body">
+        <p class="small">Læg en kort video op til hver øvelse. Spillerne får en "Se video"-knap på øvelsen under Fodteknik, Jonglering og Guides. En øvelse uden video viser ingen knap, så I kan lægge dem op én ad gangen.</p>
+        <p class="small"><b>Sådan bliver de gode:</b> 20-40 sekunder, filmet i højformat, højst 100 MB. På iPhone afspilles videoen på flest telefoner, hvis kameraet står til "Mest kompatibel" (Indstillinger → Kamera → Formater).</p>
+        <p class="small"><b>Hvem der er med:</b> Videoerne kan ses af alle, der er logget ind i klubben. Den, der viser øvelsen, skal have sagt ja til det - er det et barn, er det forældrene, der siger ja.</p>
+        <div id="guideVideoAdminArea"></div>
+      </div>
+    </details>
+
     <details class="accordion">
       <summary><span>Tilføj ny træner</span></summary>
       <div class="accordion-body">
@@ -468,7 +485,7 @@
   <div class="card">
     <h2 style="margin-top:0">Sådan behandler vi jeres data</h2>
     <p class="small">TIF Talent Tracker · dataansvarlig: Mikkel Brogaard Pedersen · udgave 2026-11-12</p>
-    <p class="small">Denne udgave strammer beskyttelsen af videoerne - se afsnittet "Videoer". Den forrige tilføjede "Daglig fodteknik". Der kommer ikke noget nyt til at ske med de data, I allerede har sagt ja til, så I bliver ikke bedt om at bekræfte igen. Er I alligevel i tvivl, så skriv til adressen nedenfor.</p>
+    <p class="small">Denne udgave strammer beskyttelsen af de indsendte videoer og tilføjer klubbens egne instruktionsvideoer - se afsnittet "Videoer". Den forrige tilføjede "Daglig fodteknik". Der kommer ikke noget nyt til at ske med de data, I allerede har sagt ja til, så I bliver ikke bedt om at bekræfte igen. Er I alligevel i tvivl, så skriv til adressen nedenfor.</p>
 
     <div class="accordion" open style="background:#e7eef5;border-color:#c9d8e8">
       <div class="accordion-body">
@@ -498,9 +515,10 @@
       <li>En træningsvideo slettes i samme øjeblik, træneren godkender eller afviser den.</li>
       <li>En udfordringsvideo slettes, når modparten har set den færdig - og senest 2 døgn efter trænerens afgørelse.</li>
       <li><b>Under alle omstændigheder slettes enhver video senest 7 dage efter upload</b>, også hvis ingen har nået at se på den. Så må man uploade igen.</li>
-      <li>Som ekstra sikring sletter selve lageret alt, der er ældre end 8 dage - også hvis appen af en eller anden grund ikke har fået ryddet op.</li>
+      <li>Som ekstra sikring sletter selve lageret enhver indsendt video, der er ældre end 8 dage - også hvis appen af en eller anden grund ikke har fået ryddet op.</li>
     </ul>
     <p><b>Én ting du skal vide:</b> mens videoen findes, har den en webadresse med en lang, tilfældig kode i. Adressen kan ikke gættes, men den er ikke hemmelig: får en person adressen udleveret, kan videoen ses uden at logge ind. Appen udleverer den kun til træneren, til jer selv og - ved en duel - til modparten, når træneren har afgjort den. Ingen kan slå op, hvilke videoer der ligger i lageret. Derfor slettes videoerne så hurtigt, som de gør - og derfor bør man ikke videresende links til andres videoer.</p>
+    <p><b>Instruktionsvideoer er noget andet.</b> Klubben kan lægge en kort video op, der viser, hvordan en øvelse laves. Dem lægger kun en administrator op, og de kan ses af alle, der er logget ind i klubben. De ligger i samme lager i EU, men slettes ikke automatisk - de bliver liggende, til en administrator skifter dem ud eller sletter dem. Ingen bliver filmet til en instruktionsvideo uden at have sagt ja; er det et barn, er det forældrene, der siger ja, og videoen fjernes igen, hvis I fortryder.</p>
 
     <h3>Hvem kan se hvad</h3>
     <table>
@@ -539,7 +557,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.66 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.67 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -547,7 +565,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, deleteField, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
+import { getStorage, ref as storageRef, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app-check.js";
 
 const firebaseConfig = {
@@ -1623,6 +1641,7 @@ let unsubJuggleLog = null;
 let unsubFootwork = null;
 let unsubFootworkLog = null;
 let unsubClubModules = null;
+let unsubGuideVideos = null;
 let unsubDeletionRequests = null;
 let unsubPlayerNotes = null;
 
@@ -1836,7 +1855,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.66 · ikke logget ind");
+    setSyncStatus("v15.67 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -1862,7 +1881,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.66 · bekræft inden I går i gang");
+    setSyncStatus("v15.67 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -1870,7 +1889,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.66 · vælg din egen adgangskode");
+    setSyncStatus("v15.67 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -1907,9 +1926,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.66 · live database aktiv");
+    setSyncStatus("v15.67 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.66 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.67 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2046,6 +2065,13 @@ function startListeners(){
     renderAll();
     applyModuleVisibility();
   }, (e)=>console.error("clubConfig listener", e));
+
+  // Instruktionsvideoerne: ét dokument med adressen pr. oevelse, laest af alle aktive logins.
+  if(unsubGuideVideos) unsubGuideVideos();
+  unsubGuideVideos = onSnapshot(doc(db, "clubConfig", "guideVideos"), (snap)=>{
+    guideVideos = snap.exists() ? snap.data() : {};
+    guideVideosAendret();
+  }, (e)=>console.error("guideVideos listener", e));
 
   if(unsubClubRanking) unsubClubRanking();
   unsubClubRanking = onSnapshot(collection(db, "clubRanking"), (snap)=>{
@@ -2318,7 +2344,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.66 · sletter...");
+  setSyncStatus("v15.67 · sletter...");
   for(const f of files){
     try{ await deleteObject(f); }
     catch(e){ if(e?.code !== "storage/object-not-found") failed.push("videofil " + f.name); }   // allerede vaek er ikke en fejl
@@ -2335,7 +2361,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.66 · live database aktiv");
+  setSyncStatus("v15.67 · live database aktiv");
 
   besked(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -2590,6 +2616,7 @@ function renderExerciseInfo(){
   document.getElementById("exerciseInfo").innerHTML = exercises.map((ex, i)=>{
     const d = exerciseDescriptions[ex];
     return `<details class="accordion"><summary>${ex}</summary><div class="accordion-body">
+      <div id="guidevideo-${i}"></div>
       <div id="krav-${i}"></div>
       <p><b>Formål:</b> ${escapeHtml(d.Formål)}</p>
       <p><b>Opsætning:</b>${listItems(d.Opsætning)}</p>
@@ -2598,6 +2625,7 @@ function renderExerciseInfo(){
     </div></details>`;
   }).join("");
   renderGuideLevels();
+  renderGuideVideoKnapper();
 }
 function renderGuideLevels(){
   const level = document.getElementById("criteriaLevel")?.value || "1";
@@ -2688,6 +2716,7 @@ async function setPlayerGender(id, gender){
 
 function renderAdmin(){
   renderYearControl();
+  renderGuideVideoAdmin();
   renderGenderMigration();
   const newYears=document.getElementById("newCoachYears");
   if(newYears && isAdmin()){
@@ -2847,11 +2876,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.66 · migrering færdig");
+    setSyncStatus("v15.67 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.66 · migrering fejlede");
+    setSyncStatus("v15.67 · migrering fejlede");
   }
 }
 
@@ -3026,7 +3055,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.66 · uploader video...");
+    setSyncStatus("v15.67 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -3069,12 +3098,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.66 · live database aktiv");
+    setSyncStatus("v15.67 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.66 · live database aktiv");
+    setSyncStatus("v15.67 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -3814,7 +3843,7 @@ function backupPayload(){
     exportedAt: new Date().toISOString(),
     exportedBy: currentUser?.email || "",
     omfang: isAdmin() ? "hele klubben" : "årgange: " + allowedYears().join(", "),
-    note: "Videolinks er udeladt med vilje. Der findes ingen gendan-knap i appen: filen er en læsbar kopi, som kan bruges til at genskabe data med et script.",
+    note: "Links til spillernes indsendte videoer er udeladt med vilje; adresserne på klubbens instruktionsvideoer er med. Der findes ingen gendan-knap i appen: filen er en læsbar kopi, som kan bruges til at genskabe data med et script.",
     users: isAdmin() ? users : [],
     players,
     playerNotes,
@@ -3826,6 +3855,7 @@ function backupPayload(){
     footworkLog: footworkLogs,
     clubRanking: kunMine(clubRanking),
     clubModules,
+    guideVideos,
     deletionRequests: isAdmin() ? deletionRequests : []
   };
 }
@@ -3958,7 +3988,7 @@ function renderJuggle(){
     const klaret = tricks.includes(t.id);
     return `<div class="ladderrow ${klaret ? "done" : ""}">
       <div class="laddermid"><b>${klaret ? "✓ " : ""}${escapeHtml(t.navn)}</b>${t.id === "oploft" ? '<span class="medalmark">Åbner trin 4</span>' : ""}
-        <div class="ladderstep">${escapeHtml(t.tekst)} · ${t.point} point</div></div>
+        <div class="ladderstep">${escapeHtml(t.tekst)} · ${t.point} point</div>${guideVideoKnap("t_" + t.id, t.navn)}</div>
       ${klaret
         ? `<button class="btn secondary smallbtn" onclick="undoJuggleTrick('${t.id}')">Fortryd</button>`
         : knap("trick", t.id, "Klaret")}
@@ -4005,7 +4035,7 @@ function renderFootwork(){
       <div class="phasehead">${FOOTWORK_GRADE_NAMES[grad]}</div>
       ${FOOTWORK.filter(ex=>ex.grad===grad).map(ex=>`<div class="ladderrow">
         <div class="laddermid"><b>${escapeHtml(ex.navn)}</b><span class="medalmark">${footworkBlock(ex)} · ${footworkPointsFor(ex)} point</span>
-          <div class="ladderstep">${escapeHtml(ex.tekst)}${ex.fokus ? " <i>Fokus: " + escapeHtml(ex.fokus) + "</i>" : ""}</div></div>
+          <div class="ladderstep">${escapeHtml(ex.tekst)}${ex.fokus ? " <i>Fokus: " + escapeHtml(ex.fokus) + "</i>" : ""}</div>${guideVideoKnap("f_" + ex.kode, ex.navn)}</div>
       </div>`).join("")}`).join("")
       + `<div class="phasehead">Kombi-bonus<span>Tre gennemførelser fra samme dag</span></div>`
       + FOOTWORK_COMBO_TEXT.map(t=>`<p class="small" style="margin:0 0 6px">${escapeHtml(t)}</p>`).join("");
@@ -4050,7 +4080,7 @@ function renderFootwork(){
       const n = footworkCount(pid, dato, ex.kode);
       return `<div class="ladderrow ${n?"done":""}">
         <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${n ? `<span class="medalmark">${n * footworkPointsFor(ex)} point</span>` : ""}
-          <div class="ladderstep">${footworkBlock(ex)} · ${footworkPointsFor(ex)} point · ${escapeHtml(ex.tekst)}</div></div>
+          <div class="ladderstep">${footworkBlock(ex)} · ${footworkPointsFor(ex)} point · ${escapeHtml(ex.tekst)}</div>${guideVideoKnap("f_" + ex.kode, ex.navn)}</div>
         ${joker !== "approved" ? `<div class="counter">
           <button type="button" onclick="registerFootwork('${ex.kode}',-1)" ${n?"":"disabled"} aria-label="Fjern en gennemførelse af ${escapeHtml(ex.navn)}">−</button>
           <b>${n}</b>
@@ -4096,6 +4126,259 @@ function renderFootwork(){
         : dagAntal >= 3 ? '<p class="small" style="margin:10px 0 0">Dagens gennemførelser kan ikke sættes sammen til en kombi. Prøv tre forskellige øvelser - eller den samme tre gange.</p>' : ""}
       ${raekker}
     </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// INSTRUKTIONSVIDEOER
+// Én kort video pr. oevelse, lagt op af en administrator og vist som en "Se video"-knap
+// der, hvor barnet i forvejen staar: paa fodteknik-oevelserne, paa stigens tricks og
+// under Guides. En plads uden video viser ingen knap, saa de kan komme én ad gangen.
+//
+// Hvor tingene ligger:
+//  - Filen:   guides/{plads}/{tidsstempel}_{filnavn} i klubbens eget lager. Mappen ligger
+//             uden for submissions/, saa lagerets 8-dages slettefrist ikke rammer den.
+//  - Adressen: ét dokument, clubConfig/guideVideos, med et felt pr. plads. Alle aktive
+//             logins laeser det; kun en administrator kan skrive (firestore.rules).
+//
+// Lagerreglerne kan ikke slaa roller op i Firestore, saa upload og sletning kraever et
+// maerke paa selve loginnet ("admin"). Det saettes uden for appen med
+// tests/vaerktoej/saet-admin-maerke.cjs. Maerket styrer KUN, hvem der kan laegge filer i
+// mappen - om en video vises, afgoer dokumentet, og det foelger rollen i appen.
+//
+// Videoen hentes foerst, naar nogen trykker. Siden bliver ikke tungere af, at der
+// ligger videoer, og ingen bruger mobildata uden at have bedt om det.
+const GUIDE_VIDEO_MAX_BYTES = 100 * 1024 * 1024;
+let guideVideos = {};
+let guideUpload = null;          // {key, pct}, mens en upload koerer
+let guideVideoFokusFoer = null;
+
+function guideVideoPladser(){
+  return [
+    {gruppe:"Fodteknik",         pladser: FOOTWORK.map(ex=>({key:"f_" + ex.kode, navn: ex.navn}))},
+    {gruppe:"Jongleringstricks", pladser: JUGGLE_TRICKS.map(t=>({key:"t_" + t.id, navn: t.navn}))},
+    {gruppe:"Talentmærket",      pladser: exercises.map((ex, i)=>({key:"m_" + i, navn: ex}))}
+  ];
+}
+function guideVideoNavn(key){
+  for(const g of guideVideoPladser()){
+    const pl = g.pladser.find(x=>x.key === key);
+    if(pl) return pl.navn;
+  }
+  return "";
+}
+// Adressen kommer fra databasen og ender som kilde i en afspiller. Den skal vaere en
+// https-adresse - samme krav som til de indsendte videoer (sikkerVideoUrl).
+function guideVideoFor(key){
+  const v = guideVideos && guideVideos[key];
+  return v && typeof v === "object" && sikkerVideoUrl(v.url) ? v : null;
+}
+function guideVideoKnap(key, navn){
+  if(!guideVideoFor(key)) return "";
+  return `<button type="button" class="btn secondary smallbtn videoknap" onclick="visGuideVideo('${key}')" aria-label="Se video af ${escapeHtml(navn)}">▶ Se video</button>`;
+}
+// Guides-harmonikaen bygges kun én gang (se renderExerciseInfo), saa knapperne dér
+// saettes ind for sig, hver gang listen over videoer aendrer sig.
+function renderGuideVideoKnapper(){
+  exercises.forEach((ex, i)=>{
+    const maal = document.getElementById("guidevideo-" + i);
+    if(maal) maal.innerHTML = guideVideoKnap("m_" + i, ex);
+  });
+}
+function guideVideosAendret(){
+  // "Øvelserne - hvad er hvad" under Fodteknik tegnes ogsaa kun én gang; maerket fjernes,
+  // saa naeste tegning tager de nye knapper med.
+  const ex = document.getElementById("footworkExerciseArea");
+  if(ex) delete ex.dataset.filled;
+  renderGuideVideoKnapper();
+  // Administratorens egen liste tegnes med det samme. Den har ingen skrivefelter at
+  // traede paa, og den skal ikke vente paa, at kvitteringen for en upload bliver lukket -
+  // ellers staar pladsen som tom, mens beskeden siger, at videoen er lagt op.
+  renderGuideVideoAdmin();
+  renderAll();
+}
+
+function guideVideoByg(){
+  let bag = document.getElementById("guideVideoBag");
+  if(bag) return bag;
+  bag = document.createElement("div");
+  bag.id = "guideVideoBag";
+  bag.className = "videobag hidden";
+  bag.innerHTML = `<div class="videokort" role="dialog" aria-modal="true" aria-labelledby="guideVideoTitel">
+    <div class="videotitel" id="guideVideoTitel"></div>
+    <video id="guideVideoEl" controls playsinline preload="metadata" controlslist="nodownload" tabindex="0"></video>
+    <div class="videofejl hidden" id="guideVideoFejl">Videoen kan ikke afspilles her. Prøv at åbne appen i en anden browser - og sig det til din træner, hvis den stadig ikke virker.</div>
+    <button type="button" class="btn" id="guideVideoLuk">Luk</button></div>`;
+  document.body.appendChild(bag);
+  const video = bag.querySelector("#guideVideoEl"), luk = bag.querySelector("#guideVideoLuk");
+  luk.addEventListener("click", lukGuideVideo);
+  bag.addEventListener("click", e=>{ if(e.target === bag) lukGuideVideo(); });
+  // Fejlen vises kun, mens afspilleren er aaben: at toemme kilden ved lukning maa ikke
+  // efterlade en fejltekst til naeste video.
+  video.addEventListener("error", ()=>{ if(!bag.classList.contains("hidden") && video.getAttribute("src")) bag.querySelector("#guideVideoFejl").classList.remove("hidden"); });
+  bag.addEventListener("keydown", e=>{
+    if(e.key === "Escape"){ e.preventDefault(); lukGuideVideo(); }
+    else if(e.key === "Tab"){
+      // Hold tabulatoren mellem afspilleren og Luk, saa man ikke lander paa siden bagved.
+      e.preventDefault();
+      (document.activeElement === luk ? video : luk).focus();
+    }
+  });
+  return bag;
+}
+function visGuideVideo(key){
+  const v = guideVideoFor(key);
+  if(!v) return besked("Videoen findes ikke længere.");
+  const bag = guideVideoByg(), video = bag.querySelector("#guideVideoEl");
+  guideVideoFokusFoer = document.activeElement;
+  bag.querySelector("#guideVideoTitel").textContent = guideVideoNavn(key);
+  bag.querySelector("#guideVideoFejl").classList.add("hidden");
+  bag.classList.remove("hidden");
+  video.src = v.url;                         // sat som egenskab, aldrig som HTML
+  const spil = video.play();
+  if(spil && spil.catch) spil.catch(()=>{}); // maa browseren ikke starte selv, trykker man paa afspil
+  bag.querySelector("#guideVideoLuk").focus();
+}
+function lukGuideVideo(){
+  const bag = document.getElementById("guideVideoBag");
+  if(!bag || bag.classList.contains("hidden")) return;
+  const video = bag.querySelector("#guideVideoEl");
+  bag.classList.add("hidden");
+  // Kilden fjernes, saa browseren holder op med at hente - ellers loeber resten af
+  // videoen videre ned over mobilnettet, efter at den er lukket.
+  try{ video.pause(); video.removeAttribute("src"); video.load(); }catch(e){}
+  const f = guideVideoFokusFoer; guideVideoFokusFoer = null;
+  if(f && f.isConnected && f.focus) f.focus();
+}
+
+function renderGuideVideoAdmin(){
+  const area = document.getElementById("guideVideoAdminArea");
+  if(!area || !isAdmin()) return;
+  const laast = guideUpload ? "disabled" : "";
+  area.innerHTML = guideVideoPladser().map(g=>`
+    <div class="phasehead">${escapeHtml(g.gruppe)}</div>
+    ${g.pladser.map(pl=>{
+      const v = guideVideoFor(pl.key);
+      const iGang = guideUpload && guideUpload.key === pl.key;
+      const lagt = v && v.lagt && !isNaN(new Date(v.lagt)) ? " " + new Date(v.lagt).toLocaleDateString("da-DK") : "";
+      const status = iGang ? `<span id="guideUploadPct">Uploader… ${guideUpload.pct} %</span> · bliv på siden, til den er færdig`
+        : v ? "Video lagt op" + lagt : "Ingen video endnu";
+      return `<div class="coachrow"><div><b>${escapeHtml(pl.navn)}</b><div class="small">${status}</div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+          ${v ? `<button class="btn secondary smallbtn" onclick="visGuideVideo('${pl.key}')">Se</button>` : ""}
+          <button class="btn ${v ? "secondary" : ""} smallbtn" onclick="vaelgGuideVideo('${pl.key}')" ${laast}>${v ? "Udskift" : "Læg op"}</button>
+          ${v ? `<button class="btn danger smallbtn" onclick="deleteGuideVideo('${pl.key}')" ${laast}>Slet</button>` : ""}
+        </div></div>`;
+    }).join("")}`).join("");
+}
+// Filvaelgeren laves, naar der trykkes, og ligger uden for siderne. Laa den i
+// Admin-siden, ville gentegningsvaernet tro, at en valgt fil ventede paa at blive sendt,
+// og holde hele siden tilbage.
+function vaelgGuideVideo(key){
+  if(!isAdmin()) return besked("Kun en administrator kan lægge instruktionsvideoer op.");
+  if(guideUpload) return besked("Vent, til den igangværende upload er færdig.");
+  if(!guideVideoNavn(key)) return;
+  document.getElementById("guideVideoFil")?.remove();
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "video/*"; inp.id = "guideVideoFil"; inp.className = "hidden";
+  inp.addEventListener("change", ()=>{
+    const fil = inp.files && inp.files[0];
+    inp.remove();
+    if(fil) uploadGuideVideo(key, fil);
+  });
+  document.body.appendChild(inp);
+  inp.click();
+}
+// Lageret kender ikke rollerne i appen - det ser kun maerket paa loginnet. Et maerke,
+// der lige er sat, staar foerst i loginnets bevis, naar det er fornyet; derfor proeves
+// der én gang til med et frisk bevis, foer vi siger nej.
+async function harGuideUploadMaerke(){
+  if(!currentUser || !currentUser.getIdTokenResult) return false;
+  let r = await currentUser.getIdTokenResult();
+  if(r?.claims?.admin === true) return true;
+  r = await currentUser.getIdTokenResult(true);
+  return r?.claims?.admin === true;
+}
+function guideVideoFilnavn(navn){
+  return String(navn || "video").replace(/[^A-Za-z0-9._-]+/g, "_").slice(-60) || "video";
+}
+function guideVideoFejlTekst(trin, e){
+  const code = e?.code || "";
+  if(trin === "registrering") return "Videoen blev uploadet, men kunne ikke registreres i appen, så den er fjernet fra lageret igen." + (code ? "\n\n(teknisk: " + code + ")" : "");
+  if(code === "storage/unauthorized") return "Lageret afviste videoen. Filen skal være en video på højst 100 MB, og dit login skal have tilladelsen til at lægge instruktionsvideoer op.\n\n(teknisk: " + code + ")";
+  if(code === "storage/quota-exceeded") return "Der er ikke plads til flere videoer i lageret lige nu.";
+  if(code === "storage/retry-limit-exceeded" || code === "unavailable") return "Forbindelsen holdt ikke hele vejen. Prøv igen - gerne på wifi.";
+  if(code === "storage/canceled") return "Uploaden blev afbrudt. Prøv igen.";
+  return "Videoen kunne ikke lægges op: " + (e?.message || "ukendt fejl") + (code ? " (" + code + ")" : "");
+}
+async function uploadGuideVideo(key, fil){
+  if(!isAdmin()) return besked("Kun en administrator kan lægge instruktionsvideoer op.");
+  const navn = guideVideoNavn(key);
+  if(!navn || !fil) return;
+  if(guideUpload) return besked("Vent, til den igangværende upload er færdig.");
+  if(!/^video\//.test(fil.type || "")) return besked("Vælg en videofil.");
+  if(fil.size > GUIDE_VIDEO_MAX_BYTES) return besked(`Videoen fylder ${Math.round(fil.size / 1048576)} MB, og der er plads til højst 100 MB. Optag kortere eller i lavere opløsning.`);
+  const gammel = guideVideos && guideVideos[key];
+  guideUpload = {key, pct: 0};
+  renderGuideVideoAdmin();
+  let trin = "adgang", sref = null, uploadet = false;
+  try{
+    if(!(await harGuideUploadMaerke())){
+      return besked("Dit login har endnu ikke fået tilladelsen til at lægge instruktionsvideoer i lageret. Den sættes én gang uden for appen, hver gang der kommer en ny administrator - kontakt den, der driver siden.");
+    }
+    trin = "video";
+    const sti = `guides/${key}/${Date.now()}_${guideVideoFilnavn(fil.name)}`;
+    sref = storageRef(storage, sti);
+    await new Promise((faerdig, fejl)=>{
+      const opgave = uploadBytesResumable(sref, fil, {contentType: fil.type});
+      opgave.on("state_changed", s=>{
+        if(!guideUpload || !s.totalBytes) return;
+        guideUpload.pct = Math.floor(100 * s.bytesTransferred / s.totalBytes);
+        // Kun tallet skrives om - en fuld gentegning for hver procent ville faa siden til at hakke.
+        const el = document.getElementById("guideUploadPct");
+        if(el) el.textContent = `Uploader… ${guideUpload.pct} %`;
+      }, fejl, faerdig);
+    });
+    uploadet = true;
+    const url = await getDownloadURL(sref);
+    trin = "registrering";
+    await setDoc(doc(db, "clubConfig", "guideVideos"), {[key]: {url, sti, lagt: new Date().toISOString()}}, {merge:true});
+    uploadet = false;   // filen er nu den, appen viser - den skal ikke ryddes vaek
+    // Den gamle fil slettes SIDST. Gik det galt foer, staar den gamle video stadig i appen.
+    if(gammel && gammel.sti && gammel.sti !== sti){
+      try{ await deleteObject(storageRef(storage, gammel.sti)); }
+      catch(e){ console.error("den udskiftede instruktionsvideo kunne ikke slettes fra lageret", e); }
+    }
+    besked(`Videoen til "${navn}" er lagt op.`);
+  }catch(e){
+    console.error("instruktionsvideo fejlede i trin:", trin, e);
+    if(uploadet && sref){ try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); } }
+    besked(guideVideoFejlTekst(trin, e));
+  }finally{
+    guideUpload = null;
+    renderGuideVideoAdmin();
+  }
+}
+async function deleteGuideVideo(key){
+  if(!isAdmin()) return besked("Kun en administrator kan slette instruktionsvideoer.");
+  if(guideUpload) return besked("Vent, til den igangværende upload er færdig.");
+  const v = guideVideos && guideVideos[key];
+  if(!v) return;
+  if(!(await spoerg(`Slet videoen til "${guideVideoNavn(key)}"?\n\nKnappen forsvinder fra øvelsen med det samme, og filen slettes fra lageret.`, {ja:"Slet", farlig:true}))) return;
+  try{
+    // Henvisningen fjernes FOERST, saa ingen staar med en knap til en fil, der er vaek.
+    await setDoc(doc(db, "clubConfig", "guideVideos"), {[key]: deleteField()}, {merge:true});
+  }catch(e){
+    console.error("instruktionsvideoen kunne ikke fjernes", e);
+    return besked("Videoen kunne ikke fjernes: " + (e?.message || "ukendt fejl"));
+  }
+  if(v.sti){
+    try{ await deleteObject(storageRef(storage, v.sti)); }
+    catch(e){
+      console.error("instruktionsvideoens fil kunne ikke slettes fra lageret", e);
+      return besked("Videoen er fjernet fra appen, men filen kunne ikke slettes fra lageret. Den kan ikke længere ses af nogen, men bør ryddes væk - kontakt den, der driver siden.");
+    }
+  }
+  besked("Videoen er slettet.");
 }
 
 // ---------------------------------------------------------------------------
@@ -4307,7 +4590,7 @@ setInterval(()=>{ if(renderVenter && !uiOptaget() && Date.now() - sidsteBeroerin
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,undoJuggle,undoJuggleTrick,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderGuideLevels,toggleYearTalentmaerke,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,downloadBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{visGuideVideo,lukGuideVideo,vaelgGuideVideo,uploadGuideVideo,deleteGuideVideo,login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,undoJuggle,undoJuggleTrick,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderGuideLevels,toggleYearTalentmaerke,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,downloadBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>

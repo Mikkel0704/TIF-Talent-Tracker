@@ -1,6 +1,7 @@
 // Lagerregler for TIF Talent Tracker. Filen rulles ud for sig - se README.
 //
-// Videoer ligger under submissions/{login-id}/{tidsstempel}_{filnavn}.
+// Indsendte videoer ligger under submissions/{login-id}/{tidsstempel}_{filnavn}.
+// Klubbens instruktionsvideoer ligger under guides/ - se nederst.
 //
 // Tre ting er lukket her, som stod aabne foer:
 //  1. Ingen kan LISTE en mappe. Foer kunne ethvert login - ogsaa demo-loginnet - liste et
@@ -41,6 +42,39 @@ service firebase.storage {
       allow update: if false;
 
       allow delete: if request.auth != null;
+    }
+
+    // Instruktionsvideoer: guides/{plads}/{tidsstempel}_{filnavn}. Dem laegger kun en
+    // administrator op, og de bliver liggende - boettens slettefrist gaelder kun
+    // submissions/.
+    //
+    // Rollen staar i Firestore, og den kan reglerne her ikke slaa op (se oeverst). I
+    // stedet baerer administratorens login et maerke, "admin", som saettes uden for
+    // appen med tests/vaerktoej/saet-admin-maerke.cjs. Maerket kan ikke saettes fra en
+    // browser. Det styrer kun, hvem der kan laegge filer i mappen og slette dem igen:
+    // hvilken video appen VISER, staar i clubConfig/guideVideos, som kun en administrator
+    // kan skrive, og dér foelger adgangen rollen i appen fra det ene oejeblik til det naeste.
+    //
+    // Spillere og traenere ser videoen gennem adressen i det dokument, ikke gennem
+    // lageret - derfor maa heller ingen andre end administratoren hente filen direkte.
+    match /guides/{plads}/{fileName} {
+      allow get: if erAdmin();
+      allow list: if false;
+      allow create: if erAdmin()
+        && resource == null
+        && request.resource.size < 100 * 1024 * 1024
+        && request.resource.contentType.matches('video/.*');
+      allow update: if false;
+      allow delete: if erAdmin();
+    }
+
+    // "in": et login uden maerket har slet ikke feltet, og at laese et felt, der ikke
+    // findes, er en fejl - som ganske vist ogsaa ender med et nej, men det skal staa der
+    // med vilje og ikke ved et tilfaelde.
+    function erAdmin() {
+      return request.auth != null
+        && "admin" in request.auth.token
+        && request.auth.token.admin == true;
     }
   }
 }

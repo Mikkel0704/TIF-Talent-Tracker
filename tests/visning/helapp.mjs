@@ -307,6 +307,204 @@ t("duel: ingen fejl", a.fejl.length === 0);
 if (a.fejl.length) console.log("     " + [...new Set(a.fejl)].slice(0, 4).join("\n     "));
 await a.luk();
 
+// ================================================================== INSTRUKTIONSVIDEOER
+const gv = n => ({ url: linkTil("guides/" + n + ".mp4"), sti: "guides/" + n + ".mp4", lagt: new Date().toISOString() });
+const medVideoer = { clubConfig: { guideVideos: {
+  f_t: gv("f_t/1_toetaps"), t_oploft: gv("t_oploft/2_oploft"), m_1: gv("m_1/3_praecision"),
+  f_s: { url: 'javascript:alert(1)', sti: "guides/f_s/x.mp4", lagt: new Date().toISOString() },          // ikke https
+  f_d: { url: 'https://x.invalid/"><img src=x onerror="window.__hacket=1">', sti: "guides/f_d/y.mp4" }   // forsoeg paa udbrud
+} } };
+const videoknapper = (a, omr) => a.page.evaluate(o => [...document.querySelectorAll(o + " .videoknap")].map(b => b.getAttribute("aria-label")), omr);
+const afspiller = a => a.page.evaluate(() => { const b = document.getElementById("guideVideoBag");
+  return b && !b.classList.contains("hidden") ? { titel: document.getElementById("guideVideoTitel").textContent, src: document.getElementById("guideVideoEl").getAttribute("src") } : null; });
+
+console.log("\nInstruktionsvideoer · uden videoer");
+a = await start("u-spiller");
+await a.gaaTil("footwork");
+t("uden videoer er der ingen knapper på fodteknik", (await videoknapper(a, "#footwork")).length === 0);
+await a.gaaTil("juggle");
+t("eller på stigen", (await videoknapper(a, "#juggle")).length === 0);
+await a.luk();
+
+console.log("\nInstruktionsvideoer · spilleren");
+a = await start("u-spiller", medVideoer);
+await a.gaaTil("footwork");
+let knapper = await videoknapper(a, "#footworkArea");
+t("øvelserne med video får en knap - og kun dem", knapper.length === 2 && /Toe-taps/.test(knapper[0]) && /Trommestikker/.test(knapper[1]));
+t("en adresse, der ikke er https, giver ingen knap", !knapper.some(k => /Sålerul/.test(k)));
+t("oversigten 'hvad er hvad' får de samme knapper", (await videoknapper(a, "#footworkExerciseArea")).length === 2);
+const foer = (await a.skrivninger()).length;
+await a.page.click("#footworkArea .videoknap");
+await a.page.waitForTimeout(200);
+let sp = await afspiller(a);
+t("et tryk åbner afspilleren med øvelsens navn", sp?.titel === "Toe-taps");
+t("og den rigtige video", sp?.src === linkTil("guides/f_t/1_toetaps.mp4"));
+t("videoen hentes først ved trykket - der er ingen afspiller i siden før", (await a.page.evaluate(() => document.querySelectorAll("#footwork video, #juggle video, #guide video").length)) === 0);
+t("at se en video skriver ingenting", (await a.skrivninger()).length === foer);
+t("markøren står på Luk", await a.page.evaluate(() => document.activeElement?.id === "guideVideoLuk"));
+await a.page.keyboard.press("Escape");
+await a.page.waitForTimeout(150);
+t("Escape lukker afspilleren", (await afspiller(a)) === null);
+t("og kilden er fjernet, så der ikke hentes videre", await a.page.evaluate(() => !document.getElementById("guideVideoEl").hasAttribute("src")));
+t("markøren er tilbage på knappen", await a.page.evaluate(() => document.activeElement?.classList.contains("videoknap")));
+await a.page.click("#footworkArea .videoknap");
+await a.page.waitForTimeout(150);
+await a.page.click("#guideVideoLuk");
+await a.page.waitForTimeout(150);
+t("Luk-knappen lukker også", (await afspiller(a)) === null);
+await a.page.click('#footworkArea .counter button[aria-label^="Tilføj en gennemførelse af Toe-taps"]');
+await a.page.waitForTimeout(400);
+t("knapperne er der stadig efter en gentegning", (await videoknapper(a, "#footworkArea")).length === 2);
+
+await a.gaaTil("juggle");
+knapper = await videoknapper(a, "#juggleArea");
+t("tricket med video får en knap på stigen", knapper.length === 1 && /Opløft/.test(knapper[0]));
+await a.page.click("#juggleArea .videoknap");
+await a.page.waitForTimeout(150);
+t("og åbner sit eget klip", (await afspiller(a))?.src === linkTil("guides/t_oploft/2_oploft.mp4"));
+await a.page.click("#guideVideoLuk");
+
+await a.gaaTil("guide");
+knapper = await videoknapper(a, "#exerciseInfo");
+t("Guides viser videoen på den rigtige øvelse", knapper.length === 1 && /Præcision/.test(knapper[0]));
+await a.page.evaluate(() => { [...document.querySelectorAll("#exerciseInfo details")].forEach(d => d.open = true); });
+await a.page.click("#exerciseInfo .videoknap");
+await a.page.waitForTimeout(150);
+t("og afspiller den", (await afspiller(a))?.titel === "Præcision");
+await a.page.click("#guideVideoLuk");
+t("et håndskrevet link kan ikke bryde ud", !(await a.page.evaluate(() => window.__hacket)) && (await a.page.evaluate(() => document.querySelectorAll("img[src='x']").length)) === 0);
+// En ny video dukker op, mens siden er aaben - ogsaa i den harmonika, der kun bygges én gang.
+await a.page.evaluate(() => { window.__db.clubConfig.guideVideos.m_0 = { url: "https://eksempel.invalid/guides/m_0/9.mp4", sti: "guides/m_0/9.mp4" }; });
+await a.page.evaluate(async () => { const m = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  await m.setDoc(m.doc({}, "clubConfig", "guideVideos"), {}, { merge: true }); });
+await a.page.waitForTimeout(900);
+t("en video, der lægges op imens, dukker op uden genindlæsning", (await videoknapper(a, "#exerciseInfo")).length === 2);
+t("og en udfoldet øvelse er stadig foldet ud", await a.page.evaluate(() => [...document.querySelectorAll("#exerciseInfo details")].every(d => d.open)));
+t("spiller/instruktionsvideo: ingen fejl", a.fejl.length === 0);
+if (a.fejl.length) console.log("     " + [...new Set(a.fejl)].slice(0, 4).join("\n     "));
+t("spilleren har ingen upload-del", (await a.page.evaluate(() => !!document.getElementById("guideVideoAdminArea")?.offsetParent)) === false);
+await a.luk();
+
+console.log("\nInstruktionsvideoer · demo-login");
+a = await start("u-demo", medVideoer);
+await a.gaaTil("footwork");
+await a.page.click("#footworkArea .videoknap");
+await a.page.waitForTimeout(150);
+t("demo-loginnet kan også se videoen", (await afspiller(a))?.titel === "Toe-taps");
+await a.luk();
+
+console.log("\nInstruktionsvideoer · admin lægger op");
+const aabnAdmin = async a => { await a.gaaTil("admin"); await a.page.evaluate(() => document.querySelectorAll("#admin details").forEach(d => d.open = true)); };
+const raekke = (a, navn) => a.page.evaluate(n => { const r = [...document.querySelectorAll("#guideVideoAdminArea .coachrow")].find(x => x.querySelector("b").textContent === n);
+  return r ? { status: r.querySelector(".small").textContent, knapper: [...r.querySelectorAll("button")].map(b => b.textContent) } : null; }, navn);
+const vaelgFil = async (a, navn, fil) => {
+  const [vaelger] = await Promise.all([a.page.waitForEvent("filechooser", { timeout: 4000 }),
+    a.page.evaluate(n => { [...document.querySelectorAll("#guideVideoAdminArea .coachrow")].find(x => x.querySelector("b").textContent === n)
+      .querySelector("button:last-of-type, button").parentElement.querySelectorAll("button").forEach(b => { if (/Læg op|Udskift/.test(b.textContent)) b.click(); }); }, navn)]);
+  await vaelger.setFiles(fil);
+  await a.page.waitForTimeout(500);
+};
+a = await start("u-admin");
+await a.page.evaluate(() => { window.__maerker = { admin: true }; });
+await aabnAdmin(a);
+t("alle 21 pladser står der", (await a.page.evaluate(() => document.querySelectorAll("#guideVideoAdminArea .coachrow").length)) === 21);
+t("en tom plads har kun 'Læg op'", JSON.stringify((await raekke(a, "Toe-taps"))?.knapper) === JSON.stringify(["Læg op"]));
+await vaelgFil(a, "Toe-taps", klip.pathname);
+w = await a.skrivninger();
+let gop = w.find(x => x.type === "upload");
+let gdoc = w.find(x => x.navn === "clubConfig" && x.id === "guideVideos");
+t("filen lægges i mappen for øvelsen", !!gop && /^guides\/f_t\/\d+_helapp-klip\.mp4$/.test(gop.sti));
+t("og sendes som video", gop?.contentType === "video/mp4");
+t("adressen skrives i clubConfig/guideVideos - kun det ene felt, med merge", !!gdoc && gdoc.merge && Object.keys(gdoc.data).join() === "f_t"
+  && gdoc.data.f_t.sti === gop.sti && gdoc.data.f_t.url === linkTil(gop.sti) && !!gdoc.data.f_t.lagt);
+t("der står ingen e-mail eller navn i dokumentet", Object.keys(gdoc?.data.f_t || {}).sort().join() === "lagt,sti,url");
+t("kvitteringen nævner øvelsen", /Toe-taps.*lagt op/.test(await a.dialogTekst() || ""));
+await a.svar(true);
+t("pladsen viser nu Se, Udskift og Slet", JSON.stringify((await raekke(a, "Toe-taps"))?.knapper) === JSON.stringify(["Se", "Udskift", "Slet"]));
+t("og datoen", /Video lagt op \d/.test((await raekke(a, "Toe-taps"))?.status || ""));
+t("filvælgeren er ryddet væk igen", (await a.page.evaluate(() => document.getElementById("guideVideoFil"))) === null);
+
+await a.page.evaluate(() => { window.__skrivninger.length = 0; });
+await vaelgFil(a, "Toe-taps", klip.pathname);
+w = await a.skrivninger();
+const nyOp = w.find(x => x.type === "upload");
+t("ved udskiftning slettes den gamle fil - efter at den nye er registreret",
+  w.findIndex(x => x.type === "sletfil" && x.sti === gop.sti) > w.findIndex(x => x.navn === "clubConfig") && nyOp.sti !== gop.sti);
+await a.svar(true);
+
+await a.page.evaluate(() => { window.__skrivninger.length = 0; });
+await a.page.evaluate(() => { [...document.querySelectorAll("#guideVideoAdminArea .coachrow")].find(x => x.querySelector("b").textContent === "Toe-taps")
+  .querySelectorAll("button").forEach(b => { if (b.textContent === "Slet") b.click(); }); });
+await a.page.waitForTimeout(200);
+t("sletning spørger først", /Slet videoen til "Toe-taps"/.test(await a.dialogTekst() || ""));
+await a.svar(false);
+t("et nej sletter ingenting", (await a.skrivninger()).length === 0);
+await a.page.evaluate(() => { [...document.querySelectorAll("#guideVideoAdminArea .coachrow")].find(x => x.querySelector("b").textContent === "Toe-taps")
+  .querySelectorAll("button").forEach(b => { if (b.textContent === "Slet") b.click(); }); });
+await a.page.waitForTimeout(200);
+await a.svar(true);
+w = await a.skrivninger();
+t("et ja fjerner henvisningen først og filen bagefter",
+  w.findIndex(x => x.navn === "clubConfig" && x.id === "guideVideos" && !("f_t" in x.data)) === 0 && w.findIndex(x => x.type === "sletfil" && x.sti === nyOp.sti) === 1);
+await a.svar(true);
+t("pladsen er tom igen", JSON.stringify((await raekke(a, "Toe-taps"))?.knapper) === JSON.stringify(["Læg op"]));
+
+console.log("\nInstruktionsvideoer · når noget går galt");
+const tekstfil = new URL("./helapp-notat.txt", import.meta.url);
+(await import("node:fs")).writeFileSync(tekstfil, "ikke en video");
+await a.page.evaluate(() => { window.__skrivninger.length = 0; });
+await vaelgFil(a, "Sålerul", tekstfil.pathname);
+t("en fil, der ikke er en video, afvises før upload", /Vælg en videofil/.test(await a.dialogTekst() || "") && (await a.skrivninger()).length === 0);
+await a.svar(true);
+
+await a.page.evaluate(() => { window.__fejlVed = "clubConfig"; });
+await vaelgFil(a, "Sålerul", klip.pathname);
+w = await a.skrivninger();
+t("afviser reglerne registreringen, slettes den uploadede fil igen",
+  w.some(x => x.type === "upload") && w.some(x => x.type === "sletfil" && x.sti === w.find(y => y.type === "upload").sti));
+t("og det siges højt", /kunne ikke registreres/.test(await a.dialogTekst() || ""));
+await a.svar(true);
+t("pladsen står stadig tom, og knapperne er låst op igen", JSON.stringify((await raekke(a, "Sålerul"))?.knapper) === JSON.stringify(["Læg op"])
+  && (await a.page.evaluate(() => [...document.querySelectorAll("#guideVideoAdminArea button")].every(b => !b.disabled))));
+
+await a.page.evaluate(() => { window.__fejlVed = null; window.__fejlVedUpload = "storage/unauthorized"; window.__skrivninger.length = 0; });
+await vaelgFil(a, "Sålerul", klip.pathname);
+t("siger lageret nej, skrives der ingenting, og beskeden forklarer hvorfor",
+  (await a.skrivninger()).length === 0 && /Lageret afviste videoen/.test(await a.dialogTekst() || ""));
+await a.svar(true);
+
+await a.page.evaluate(() => { window.__fejlVedUpload = null; window.__maerker = {}; window.__bevisFornyet = 0; window.__skrivninger.length = 0; });
+await vaelgFil(a, "Sålerul", klip.pathname);
+t("uden mærket på loginnet uploades der ikke - efter ét forsøg med et frisk bevis",
+  (await a.skrivninger()).length === 0 && (await a.page.evaluate(() => window.__bevisFornyet)) === 1 && /har endnu ikke fået tilladelsen/.test(await a.dialogTekst() || ""));
+await a.svar(true);
+await a.page.evaluate(() => { window.__maerkerEfterFornyelse = { admin: true }; });
+await vaelgFil(a, "Sålerul", klip.pathname);
+t("er mærket lige blevet sat, finder appen det ved at forny beviset", (await a.skrivninger()).some(x => x.type === "upload") && /lagt op/.test(await a.dialogTekst() || ""));
+await a.svar(true);
+
+await a.page.evaluate(() => { window.__uploadTid = 700; });
+const [vaelger2] = await Promise.all([a.page.waitForEvent("filechooser", { timeout: 4000 }),
+  a.page.evaluate(() => { [...document.querySelectorAll("#guideVideoAdminArea .coachrow")].find(x => x.querySelector("b").textContent === "V-rul").querySelector("button").click(); })]);
+await vaelger2.setFiles(klip.pathname);
+await a.page.waitForTimeout(250);
+t("mens der uploades, vises fremdriften", /Uploader… 50 %/.test((await raekke(a, "V-rul"))?.status || ""));
+t("og de andre knapper er låst", await a.page.evaluate(() => [...document.querySelectorAll("#guideVideoAdminArea button")].filter(b => /Læg op|Udskift|Slet/.test(b.textContent)).every(b => b.disabled)));
+await a.page.waitForTimeout(900);
+await a.svar(true);
+t("admin/instruktionsvideo: browserens egne bokse blev aldrig brugt", a.nativ() === 0);
+const uventet = a.fejl.filter(f => !/instruktionsvideo fejlede/.test(f));
+t("admin/instruktionsvideo: ingen uventede fejl", uventet.length === 0);
+if (uventet.length) console.log("     " + [...new Set(uventet)].slice(0, 6).join("\n     "));
+await a.luk();
+
+a = await start("u-traener", medVideoer);
+faner = await a.faner();
+t("en træner har ingen Admin-fane og dermed ingen upload", !faner.includes("admin"));
+await a.gaaTil("guide");
+t("men ser videoen til Talentmærkets øvelse under Guides", (await videoknapper(a, "#exerciseInfo")).length === 1);
+await a.luk();
+
 await browser.close();
 console.log(`\n${ok} ok, ${fejlet} fejl`);
 process.exit(fejlet ? 1 : 0);

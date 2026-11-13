@@ -37,6 +37,27 @@ permissions".
 bøttens slettefrist: alt under `submissions/` slettes af Google efter 8 dage, uanset hvad
 appen gør.
 
+## Instruktionsvideoer
+
+En administrator kan lægge én kort video op pr. øvelse under Admin → Instruktionsvideoer.
+Spillerne får en "Se video"-knap på øvelsen under Fodteknik, Jonglering og Guides.
+
+- **Filen** ligger under `guides/{plads}/` i samme lager. Mappen er uden for
+  `submissions/`, så slettefristen rammer den ikke - en instruktionsvideo bliver liggende,
+  til en administrator skifter den ud eller sletter den.
+- **Adressen** står i ét dokument, `clubConfig/guideVideos`, med et felt pr. plads
+  (`f_` + fodteknik-kode, `t_` + trick-id, `m_` + nummeret på Talentmærkets øvelse). Alle
+  aktive logins læser det; kun en administrator kan skrive.
+- **Upload kræver et mærke på loginnet.** Lagerreglerne kan ikke slå roller op i
+  Firestore, så mappen åbnes af mærket `admin` på selve loginnet (custom claim). Det sættes
+  med `tests/vaerktoej/saet-admin-maerke.cjs`, som giver det til aktive administratorer og
+  tager det fra alle andre. Kør værktøjet, **hver gang en administrator kommer til eller
+  holder op** - indtil da kan en ny administrator alt andet, men ikke uploade en video.
+  Mærket styrer kun, hvem der kan lægge filer i mappen; hvilken video appen viser, følger
+  rollen i appen.
+- **Forældreløse filer.** Slår sletningen af en udskiftet fil fejl, bliver filen liggende
+  i `guides/` uden at blive vist nogen steder. Appen siger det, når det sker.
+
 ## Service-nøgler
 
 En service-nøgle går uden om alle regler og kan læse og slette alt om alle børn.
@@ -68,7 +89,7 @@ skrive i. Medaljepoint står på spilleren og kan kun skrives af en træner.
 | `juggleLadder` / `footwork` | Fremdrift og registreringer - kun tal og datoer | Hele klubben |
 | `juggleLog` / `footworkLog` | Hvem registrerede hvad; joker-begrundelser | Egen årgang |
 | `clubRanking` | Navn, årgang og medaljepoint til klub-top-10 | Hele klubben |
-| `clubConfig` | Hvilke årgange kører Talentmærket | Hele klubben |
+| `clubConfig` | Hvilke årgange kører Talentmærket (`modules`); adresserne på instruktionsvideoerne (`guideVideos`) | Hele klubben |
 | `deletionRequests` | Anmodninger om sletning | Admin og familien selv |
 
 De samlinger, hele klubben må læse, rummer med vilje hverken navne (bortset fra
@@ -77,5 +98,6 @@ ranglisten) eller bruger-id'er.
 ## Backup
 
 Der er ingen automatisk backup. Under Indstillinger kan en træner eller admin hente en
-JSON-fil med alt, vedkommende har adgang til. Videolinks er udeladt. Der er ingen
+JSON-fil med alt, vedkommende har adgang til. Links til spillernes indsendte videoer er
+udeladt; adresserne på instruktionsvideoerne er med. Der er ingen
 gendan-knap; filen er en læsbar kopi.

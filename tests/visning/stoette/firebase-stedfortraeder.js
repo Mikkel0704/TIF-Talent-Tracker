@@ -35,10 +35,21 @@ function giv(navn){ lyttere.forEach(l => { if (l.maal.navn === navn) setTimeout(
 export const initializeApp = () => ({});
 export const initializeAppCheck = () => ({});
 export class ReCaptchaEnterpriseProvider { constructor(){ } }
-export const getAuth = () => ({ get currentUser(){ return window.__bruger || null; } });
-export const onAuthStateChanged = (auth, cb) => { setTimeout(() => cb(window.__bruger || null), 0); return () => {}; };
+// Loginnets maerker (custom claims). window.__maerker er det, loginnets bevis rummer nu;
+// window.__maerkerEfterFornyelse er det, et FORNYET bevis rummer - saa en test kan vise,
+// at appen proever igen med et frisk bevis, foer den siger nej.
+const bruger = () => {
+  const b = window.__bruger;
+  if (b && !b.getIdTokenResult) b.getIdTokenResult = async tving => {
+    if (tving) { window.__bevisFornyet = (window.__bevisFornyet || 0) + 1; if (window.__maerkerEfterFornyelse) window.__maerker = window.__maerkerEfterFornyelse; }
+    return { claims: window.__maerker || {} };
+  };
+  return b || null;
+};
+export const getAuth = () => ({ get currentUser(){ return bruger(); } });
+export const onAuthStateChanged = (auth, cb) => { setTimeout(() => cb(bruger()), 0); return () => {}; };
 export const signOut = async () => { window.__bruger = null; };
-export const signInWithEmailAndPassword = async () => ({ user: window.__bruger });
+export const signInWithEmailAndPassword = async () => ({ user: bruger() });
 export const createUserWithEmailAndPassword = async () => ({ user: { uid: "ny-bruger" } });
 export const updatePassword = async () => {};
 export const sendPasswordResetEmail = async () => {};
@@ -85,6 +96,16 @@ export function onSnapshot(maal, cb){
 export const getStorage = () => ({});
 export const ref = (s, sti) => ({ sti, name: String(sti).split("/").pop() });
 export const uploadBytes = async r => { (window.__skrivninger ||= []).push({ type: "upload", sti: r.sti }); };
+// Upload med fremdrift, som instruktionsvideoerne bruger. window.__fejlVedUpload = "kode"
+// faar lageret til at sige nej, saa en test kan se, hvad appen goer.
+export const uploadBytesResumable = (r, fil, meta) => ({ on(haendelse, fremdrift, fejl, faerdig){
+  setTimeout(() => {
+    if (window.__fejlVedUpload) return fejl(Object.assign(new Error("afvist af lageret"), { code: window.__fejlVedUpload }));
+    (window.__skrivninger ||= []).push({ type: "upload", sti: r.sti, contentType: meta?.contentType, fremdrift: true });
+    fremdrift({ bytesTransferred: 50, totalBytes: 100 });
+    setTimeout(faerdig, window.__uploadTid || 0);
+  }, 0);
+} });
 export const getDownloadURL = async r => "https://eksempel.invalid/" + r.sti;
 export const deleteObject = async r => { (window.__skrivninger ||= []).push({ type: "sletfil", sti: r.sti }); };
 export const listAll = async () => ({ items: [] });

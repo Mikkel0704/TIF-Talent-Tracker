@@ -8,6 +8,8 @@ const nav  = ud('<nav id="mainNav"',"</nav>")+"</nav>";
 const guide= ud('<section id="guide"','</section>')+"</section>";
 const data = ud("const exercises =","// ---------------------------------------------------------------------------\n// JONGLERINGSSTIGEN");
 const rend = ud("function renderExerciseInfo(){","function renderYearControl()");
+// Videoknappen paa oevelserne: de rigtige funktioner fra appen, uden nogen videoer lagt op.
+const videoknap = "let guideVideos = {};\n" + ud("function sikkerVideoUrl(url){", "// En udfordringsvideo vises kun") + ud("function guideVideoFor(key){", "function guideVideosAendret(){");
 const side = `<!doctype html><html lang="da"><head><meta charset="utf-8">${stil}</head><body>
 ${nav.replaceAll('class="hidden"','')}
 <main>${guide}</main><script>
@@ -15,6 +17,7 @@ function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;",
 function listItems(a){return "<ul>"+(a||[]).map(x=>"<li>"+escapeHtml(x)+"</li>").join("")+"</ul>";}
 function showPage(){} 
 ${data}
+${videoknap}
 ${rend}
 document.getElementById("guide").classList.remove("hidden");
 document.getElementById("parentGuideCard").classList.remove("hidden");

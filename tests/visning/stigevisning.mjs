@@ -6,6 +6,8 @@ const ud = (a,b)=>{ const i=html.indexOf(a), j=html.indexOf(b,i); if(i<0||j<0) t
 const logik = ud("// JONGLERINGSSTIGEN","// DAGLIG FODTEKNIK");
 const render = ud("function renderJuggle(){","\nfunction renderFootwork()");
 const stil = ud("<style>","</style>")+"</style>";
+// Videoknappen paa oevelserne: de rigtige funktioner fra appen, uden nogen videoer lagt op.
+const videoknap = "let guideVideos = {};\n" + ud("function sikkerVideoUrl(url){", "// En udfordringsvideo vises kun") + ud("function guideVideoFor(key){", "function guideVideosAendret(){");
 const side = `<!doctype html><html lang="da"><head><meta charset="utf-8">${stil}</head><body>
 <div id="juggleArea"></div><div id="juggleRulesArea"></div><script>
 const juggleLadder=[{id:"p1",mainStep:10,weakStep:4,tricks:["oploft","vrist"]}];
@@ -23,6 +25,7 @@ function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;",
 function dagsISO(d){const x=new Date(d);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");}
 const db=null; function doc(){throw 0;} function setDoc(){throw 0;} function serverTimestamp(){return null;}
 ${logik}
+${videoknap}
 ${render}
 renderJuggle(); window.__klar=true;
 </script></body></html>`;

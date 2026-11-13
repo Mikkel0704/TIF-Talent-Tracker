@@ -23,6 +23,7 @@ const footwork = [{id:"p1", days:{}}, {id:"fremmed", days:{}}];
 const footworkLogs = [{id:"p1", reasons:{"2026-11-05":{tekst:"syg"}}}];
 const clubRanking = [{id:"p1", name:"Egen spiller"}, {id:"fremmed", name:"Andet barn"}];
 const clubModules = {talentmaerke:{"2014":false}};
+const guideVideos = {f_t:{url:"https://eksempel.invalid/guides/f_t/1.mp4", sti:"guides/f_t/1.mp4"}};
 const deletionRequests = [{id:"p1", reason:"flytter"}];
 ${html.slice(a, b)}
 export { backupPayload };`);
@@ -39,6 +40,7 @@ t("hele klubben, også andre årganges stige og fodteknik", [d.juggleLadder.leng
 t("logins er med", d.users.length, 1);
 t("joker-begrundelserne er med (og derfor skal filen passes på)", d.footworkLog[0].reasons["2026-11-05"].tekst, "syg");
 t("indstillingerne er med", d.clubModules.talentmaerke["2014"], false);
+t("instruktionsvideoernes adresser er med", d.guideVideos.f_t.sti, "guides/f_t/1.mp4");
 t("videolinket er IKKE med", JSON.stringify(d).includes("hemmeligt-link"), false);
 t("men indsendelsen er der stadig", [d.submissions.length, d.submissions[0].status], [1,"pending"]);
 t("omfanget står i filen", d.omfang, "hele klubben");
