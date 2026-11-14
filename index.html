@@ -950,29 +950,62 @@ const FOOTWORK_BACKDATE_DAYS = 14;  // hvor langt familien selv maa registrere b
 // nogen det alligevel, skal de have en besked, de kan forstaa, frem for en afvist
 // skrivning. Samme tal staar i firestore.rules.
 const FOOTWORK_MAX_DAYS = 1500;
-const FOOTWORK_GRADE_POINTS = {let:2, mellem:3, svaer:4};
-const FOOTWORK_GRADE_NAMES = {let:"Let", mellem:"Mellem", svaer:"Svær"};
+// KATEGORIER. Starter, Let, Mellem og Svær er NIVEAUER - én fra hvert giver en kombi.
+// Grundtræning er IKKE et niveau: den har sin egen tid og indgår kun i "samme øvelse 3 gange".
+const FOOTWORK_KATEGORIER = {
+  starter: {navn:"Starter",      niveau:true,  point:2, krav:"3 × 30 sek."},
+  let:     {navn:"Let",          niveau:true,  point:3, krav:"3 × 30 sek."},
+  mellem:  {navn:"Mellem",       niveau:true,  point:4, krav:"3 × 30 sek."},
+  svaer:   {navn:"Svær",         niveau:true,  point:5, krav:"3 × 30 sek."},
+  grund:   {navn:"Grundtræning", niveau:false, point:5, krav:"5 minutter"}
+};
+const FOOTWORK_KATEGORI_ORDEN = ["starter","let","mellem","svaer","grund"];
+const FOOTWORK_NIVEAUER = FOOTWORK_KATEGORI_ORDEN.filter(k=>FOOTWORK_KATEGORIER[k].niveau);
+
+// VERSIONER. Der gemmes ingen point - kun antal gennemfoerelser pr. dag og oevelseskode.
+// For at historikken ALDRIG aendrer sig, naar en oevelse flyttes eller faar nye point,
+// regnes hver dag efter det katalog, der gjaldt den dag. Pointtallet skrives altsaa
+// ikke ned (det kunne et barn rette i - reglerne kan ikke se ind i et kort), men det
+// ligger fast for evigt, fordi den gamle version ligger fast her i koden.
+//
+// Skal noget flyttes igen, laves en version 3 med sin egen dato. Version 1 og 2 roeres aldrig.
+//
+// Version 2 gaelder fra og med denne dag. Saettes til udrulningsdagen, naar de nye regler
+// rulles ud - indtil da staar den langt ude i fremtiden, saa appen opfoerer sig som foer.
+const FOOTWORK_V2_FRA = "2099-01-01";
+// Version 1: kataloget, som det saa ud indtil FOOTWORK_V2_FRA. FROSSET - aendr intet her.
+// Kun de tolv oevelser, der fandtes, er med; en oevelse, der ikke staar her, fandtes ikke.
+const FOOTWORK_V1 = {
+  grad:  {t:"let", s:"let", d:"let", v:"mellem", p:"mellem", o:"mellem", y:"mellem", j:"mellem", l:"svaer", k:"svaer", c:"svaer", q:"svaer"},
+  point: {let:2, mellem:3, svaer:4},
+  saer:  {j:8},                                   // jonglering havde sin egen takst
+  navne: {let:"Let", mellem:"Mellem", svaer:"Svær"}
+};
 // Blokken er 3 x 30 sek. for de elleve gulvoevelser, hvor foden er paa bolden hele tiden.
 // Jonglering er en anden slags arbejde - bolden ryger, man samler op, stiller sig til
 // rette - saa 30 sekunder bliver mest opstilling. Den har derfor sin egen blok og sin
 // egen takst (se "varighed" og "point" paa oevelsen), og begge dele staar paa selve
 // raekken i stedet for som én faelles regel.
 const FOOTWORK_DEFAULT_BLOCK = "3 × 30 sek.";
-// kode: det ene bogstav, dagen gemmes under i databasen. Kortere noegler betyder et
+// kode: det ene bogstav, dagen gemmes under i databasen. En kode skifter ALDRIG betydning:
+// den baerer historikken. Derfor omdoebes en oevelse ved at aendre navnet, ikke koden -
+// "V-rul" hedder nu "V-rul yderside" og "V+L rul" hedder "L+V-rul", med samme koder.
+// kategori: hvor oevelsen hoerer til i version 2 (se FOOTWORK_KATEGORIER).
+// Kortere noegler betyder et
 // mindre dokument - og dokumentet her hentes af alle logins, hver gang appen aabnes.
 const FOOTWORK = [
-  {id:"toetaps",    kode:"t", navn:"Toe-taps",           grad:"let",    tekst:"Skiftevis tæer let på toppen af bolden.", fokus:"Let på fødderne, højt tempo."},
-  {id:"saalerul",   kode:"s", navn:"Sålerul",            grad:"let",    tekst:"Rul bolden på tværs med sålen, skift fod.", fokus:"Kontrol, bolden tæt."},
-  {id:"trommestik", kode:"d", navn:"Trommestikker",      grad:"let",    tekst:"Spil bolden mellem indersiderne.", fokus:"Små berøringer, bøjede knæ."},
-  {id:"vrul",       kode:"v", navn:"V-rul",              grad:"mellem", tekst:"Træk bolden tilbage med sålen, og spil den frem med indersiden af samme fod. Skift fod."},
-  {id:"traekskub",  kode:"p", navn:"Træk-skub",          grad:"mellem", tekst:"Træk bolden tilbage med sålen, og skub den frem igen. Skift fod."},
-  {id:"stepover",   kode:"o", navn:"Step-over",          grad:"mellem", tekst:"Før foden rundt om bolden uden at røre den. Skiftevis."},
-  {id:"yderstop",   kode:"y", navn:"Yder-yder-stop",     grad:"mellem", tekst:"Skub bolden to gange med ydersiden af foden, og stop den med indersiden. Skift fod."},
-  {id:"jongler",    kode:"j", navn:"Jongleringstræning", grad:"mellem", point:8, varighed:"5 minutter", tekst:"Fri jonglering i 5 minutter. Saml bolden op og fortsæt, hver gang den rammer jorden.", fokus:"Dette er den daglige øvelse - ikke Jongleringsstigen. Her er der ingen trin at nå, og det gør ikke noget, at bolden falder. Det er forsøgene, der tæller."},
-  {id:"lrul",       kode:"l", navn:"L-rul",              grad:"svaer",  tekst:"Træk bolden tilbage med sålen, og spil den bag om standbenet med indersiden."},
-  {id:"vlrul",      kode:"k", navn:"V+L rul",            grad:"svaer",  tekst:"Lav et V-rul og lige efter et L-rul i ét flow, uden at sætte foden fra dig imellem. Skift fod."},
-  {id:"croqueta",   kode:"c", navn:"Croqueta",           grad:"svaer",  tekst:"Flyt bolden fra inderside til inderside med et lille sideskridt."},
-  {id:"square",     kode:"q", navn:"Square",             grad:"svaer",  tekst:"Før bolden rundt i et kvadrat med sålen (frem, til siden, tilbage, til siden). Skift fod."}
+  {id:"toetaps",    kode:"t", navn:"Toe-taps",           kategori:"starter", tekst:"Skiftevis tæer let på toppen af bolden.", fokus:"Let på fødderne, højt tempo."},
+  {id:"saalerul",   kode:"s", navn:"Sålerul",            kategori:"starter", tekst:"Rul bolden på tværs med sålen, skift fod.", fokus:"Kontrol, bolden tæt."},
+  {id:"trommestik", kode:"d", navn:"Trommestikker",      kategori:"starter", tekst:"Spil bolden mellem indersiderne.", fokus:"Små berøringer, bøjede knæ."},
+  {id:"vrul",       kode:"v", navn:"V-rul yderside",     kategori:"mellem",  tekst:"Træk bolden tilbage med sålen, og spil den frem med indersiden af samme fod. Skift fod."},
+  {id:"traekskub",  kode:"p", navn:"Træk-skub",          kategori:"let",     tekst:"Træk bolden tilbage med sålen, og skub den frem igen. Skift fod."},
+  {id:"stepover",   kode:"o", navn:"Step-over",          kategori:"starter", tekst:"Før foden rundt om bolden uden at røre den. Skiftevis."},
+  {id:"yderstop",   kode:"y", navn:"Yder-yder-stop",     kategori:"let",     tekst:"Skub bolden to gange med ydersiden af foden, og stop den med indersiden. Skift fod."},
+  {id:"jongler",    kode:"j", navn:"Jongleringstræning", kategori:"grund",   varighed:"5 minutter", tekst:"Fri jonglering i 5 minutter. Saml bolden op og fortsæt, hver gang den rammer jorden.", fokus:"Dette er den daglige øvelse - ikke Jongleringsstigen. Her er der ingen trin at nå, og det gør ikke noget, at bolden falder. Det er forsøgene, der tæller."},
+  {id:"lrul",       kode:"l", navn:"L-rul",              kategori:"mellem",  tekst:"Træk bolden tilbage med sålen, og spil den bag om standbenet med indersiden."},
+  {id:"vlrul",      kode:"k", navn:"L+V-rul",            kategori:"svaer",   tekst:"Lav et V-rul og lige efter et L-rul i ét flow, uden at sætte foden fra dig imellem. Skift fod."},
+  {id:"croqueta",   kode:"c", navn:"Croqueta",           kategori:"svaer",   tekst:"Flyt bolden fra inderside til inderside med et lille sideskridt."},
+  {id:"square",     kode:"q", navn:"Square",             kategori:"mellem",  tekst:"Før bolden rundt i et kvadrat med sålen (frem, til siden, tilbage, til siden). Skift fod."}
 ];
 const FOOTWORK_RULES = [
   "1 gennemførelse = øvelsen lavet i den tid, der står på den. De elleve gulvøvelser tager 3 × 30 sekunder. Der registreres kun, at den er gennemført - ikke hvor godt.",
@@ -1006,9 +1039,41 @@ const FOOTWORK_COMBO_TEXT = [
 function footworkEx(idEllerKode){
   return FOOTWORK.find(x=>x.id===idEllerKode) || FOOTWORK.find(x=>x.kode===idEllerKode) || null;
 }
-// En oevelse maa saette sin egen takst. Uden det ville jonglering give 3 point for 5
-// minutter, mens en let gulvoevelse giver 2 for halvandet - og boern regner den slags ud.
-function footworkPointsFor(ex){ return Number.isInteger(ex?.point) ? ex.point : (FOOTWORK_GRADE_POINTS[ex?.grad] || 0); }
+// Hvilken version en dag regnes efter.
+function footworkVersion(dato){ return dato && dato < FOOTWORK_V2_FRA ? 1 : 2; }
+// Fandtes oevelsen paa dagen? En oevelse, der kom til i version 2, kan ikke registreres paa
+// en dag fra foer - den dag regnes efter version 1, og der fandtes den ikke.
+function footworkFindesPaa(ex, dato){ return !!ex && (footworkVersion(dato) === 2 || ex.kode in FOOTWORK_V1.grad); }
+// Kategorien paa dagen, som {noegle, navn, niveau, version}. Version 1 havde kun tre grader.
+function footworkKategoriPaa(ex, dato){
+  if(!footworkFindesPaa(ex, dato)) return null;
+  if(footworkVersion(dato) === 1){
+    const g = FOOTWORK_V1.grad[ex.kode];
+    return {noegle: g, navn: FOOTWORK_V1.navne[g], niveau: true, version: 1};
+  }
+  const k = FOOTWORK_KATEGORIER[ex.kategori];
+  return k ? {noegle: ex.kategori, navn: k.navn, niveau: k.niveau, version: 2} : null;
+}
+// Point pr. gennemfoerelse paa dagen. Det er HER, en gammel dag beholder sine gamle point.
+function footworkPointsPaa(ex, dato){
+  if(!footworkFindesPaa(ex, dato)) return 0;
+  if(footworkVersion(dato) === 1){
+    const saer = FOOTWORK_V1.saer[ex.kode];
+    return Number.isInteger(saer) ? saer : (FOOTWORK_V1.point[FOOTWORK_V1.grad[ex.kode]] || 0);
+  }
+  return FOOTWORK_KATEGORIER[ex.kategori]?.point || 0;
+}
+// Point efter de regler, der gaelder i dag - til oversigter, der ikke handler om én bestemt dag.
+function footworkPointsFor(ex, dato){ return footworkPointsPaa(ex, dato || iDagISO()); }
+// Grupperne paa dagen, i den raekkefoelge de vises: version 1 har tre, version 2 har fem.
+function footworkGrupper(dato){
+  if(footworkVersion(dato) === 1){
+    return ["let","mellem","svaer"].map(g=>({noegle: g, navn: FOOTWORK_V1.navne[g],
+      oevelser: FOOTWORK.filter(ex=>FOOTWORK_V1.grad[ex.kode] === g)}));
+  }
+  return FOOTWORK_KATEGORI_ORDEN.map(k=>({noegle: k, navn: FOOTWORK_KATEGORIER[k].navn,
+    oevelser: FOOTWORK.filter(ex=>ex.kategori === k)})).filter(g=>g.oevelser.length);
+}
 // NB: hedder ikke det samme som traenerens footworkKort i renderTracking. De to
 // kolliderede, og en lokal const ville skygge for den her funktion inde i den
 // funktion - det gaar godt, lige indtil nogen vil vise varigheden i traenervisningen.
@@ -1036,15 +1101,17 @@ function datoTekst(iso){
   return new Date(y, m-1, d).toLocaleDateString("da-DK", {weekday:"short", day:"numeric", month:"short"});
 }
 
-// --- Kombi-boost ----------------------------------------------------------
+// --- Kombi-boost, VERSION 1 -------------------------------------------------
+// Reglerne, som de var indtil FOOTWORK_V2_FRA. De bruges kun til dage fra foer skiftet,
+// og graderne kommer fra FOOTWORK_V1 - ikke fra oevelsens nuvaerende kategori.
 // Kun to slags tripler giver noget: tre gange SAMME oevelse, eller tre FORSKELLIGE.
 // "2 ens + 1 anden" giver nul, praecis som i reglerne.
+function footworkV1Grad(i){ return FOOTWORK_V1.grad[FOOTWORK[i]?.kode]; }
 function footworkBoost(i, j, k){
-  const a = FOOTWORK[i], b = FOOTWORK[j], c = FOOTWORK[k];
-  if(!a || !b || !c) return 0;
+  const grader = [footworkV1Grad(i), footworkV1Grad(j), footworkV1Grad(k)];
+  if(grader.some(g=>!g)) return 0;                           // oevelsen fandtes ikke i version 1
   if(i === j && j === k) return 2;
   if(i === j || j === k || i === k) return 0;
-  const grader = [a.grad, b.grad, c.grad];
   const lette  = grader.filter(g=>g === "let").length;
   const mellem = grader.filter(g=>g === "mellem").length;
   const svaere = grader.filter(g=>g === "svaer").length;
@@ -1058,7 +1125,7 @@ function footworkBoostNavn(i, j, k){
   if(b === 2) return "3 × " + FOOTWORK[i].navn;
   if(b === 8) return "3 forskellige svære";
   if(b === 5){
-    const grader = [FOOTWORK[i].grad, FOOTWORK[j].grad, FOOTWORK[k].grad];
+    const grader = [footworkV1Grad(i), footworkV1Grad(j), footworkV1Grad(k)];
     return grader.includes("let") ? "Allround" : "Mellem/svær";
   }
   return "3 forskellige";
@@ -1133,10 +1200,16 @@ function footworkGreedy(counts){
   return {boost, kombier};
 }
 
-function footworkDayCombos(counts){
+// version: hvilke kombiregler dagen regnes efter (footworkVersion). Den skal gives med -
+// en dag regnet efter forkerte regler ville stille og roligt give forkerte point.
+function footworkDayCombos(counts, version){
+  if(version !== 1 && version !== 2) throw new Error("footworkDayCombos: version mangler");
+  // VERSION 2: de nye kombier (samme oevelse 3 gange, og én fra hvert niveau) kommer i
+  // trin 4. Indtil da giver en dag efter de nye regler ingen kombibonus.
+  if(version === 2) return {boost:0, kombier:[]};
   const i_alt = counts.reduce((a,b)=>a+b, 0);
   if(i_alt < 3) return {boost:0, kombier:[]};
-  const noegle = "dag:" + counts.join(",");
+  const noegle = "v1:" + counts.join(",");
   const husket = footworkComboMemo.get(noegle);
   if(husket) return husket;
 
@@ -1166,7 +1239,8 @@ function footworkCount(pid, dato, kode){
   const n = footworkFor(pid)?.days?.[dato]?.[kode];
   return Number.isInteger(n) && n > 0 ? Math.min(n, FOOTWORK_MAX_PER_DAY) : 0;
 }
-function footworkDayCounts(pid, dato){ return FOOTWORK.map(ex=>footworkCount(pid, dato, ex.kode)); }
+// En oevelse, der ikke fandtes paa dagen, taeller 0 - ogsaa hvis der skulle staa et tal.
+function footworkDayCounts(pid, dato){ return FOOTWORK.map(ex=>footworkFindesPaa(ex, dato) ? footworkCount(pid, dato, ex.kode) : 0); }
 
 // Hele historikken samlet pr. oevelse: hvor mange gange i alt, og hvornaar sidst.
 // Traeneren kunne foer kun se de seneste ti dage, og saa er spoergsmaalet "har hun
@@ -1184,16 +1258,15 @@ function footworkTotals(pid){
   });
   return pr;
 }
-// Fordelingen paa svaerhedsgrad - det ene tal, der hurtigst viser, om barnet kun tager
-// de nemme. Regnet paa GENNEMFOERELSER, ikke paa antal oevelser.
+// Fordelingen paa kategori - det ene tal, der hurtigst viser, om barnet kun tager de
+// nemme. Regnet paa GENNEMFOERELSER, ikke paa antal oevelser, og efter oevelsernes
+// NUVAERENDE kategori: spoergsmaalet er, hvad barnet traener, ikke hvad det gav i point.
 function footworkGradeSplit(pid){
   const totals = footworkTotals(pid);
-  const pr = {let:0, mellem:0, svaer:0};
-  FOOTWORK.forEach((ex, i)=>{ pr[ex.grad] += totals[i].antal; });
-  const i_alt = pr.let + pr.mellem + pr.svaer;
-  return {i_alt, pct: i_alt ? {
-    let: Math.round(100*pr.let/i_alt), mellem: Math.round(100*pr.mellem/i_alt), svaer: Math.round(100*pr.svaer/i_alt)
-  } : null};
+  const pr = Object.fromEntries(FOOTWORK_KATEGORI_ORDEN.map(k=>[k, 0]));
+  FOOTWORK.forEach((ex, i)=>{ pr[ex.kategori] += totals[i].antal; });
+  const i_alt = FOOTWORK_KATEGORI_ORDEN.reduce((a, k)=>a + pr[k], 0);
+  return {i_alt, pct: i_alt ? Object.fromEntries(FOOTWORK_KATEGORI_ORDEN.map(k=>[k, Math.round(100*pr[k]/i_alt)])) : null};
 }
 
 // Joker: familien ANMODER (jokerRequests), traeneren AFGOER (jokers). De to felter er
@@ -1216,7 +1289,11 @@ function footworkJokerDays(pid){
 function footworkDayPoints(pid, dato){
   if(footworkJokerStatus(pid, dato) === "approved") return 0;
   const counts = footworkDayCounts(pid, dato);
-  return counts.reduce((sum, c, i)=>sum + c * footworkPointsFor(FOOTWORK[i]), 0) + footworkDayCombos(counts).boost;
+  return footworkGrundpoint(counts, dato) + footworkDayCombos(counts, footworkVersion(dato)).boost;
+}
+// Grundpoint for en dag: antal × point paa dagen. Kombibonus kommer oveni.
+function footworkGrundpoint(counts, dato){
+  return counts.reduce((sum, c, i)=>sum + c * footworkPointsPaa(FOOTWORK[i], dato), 0);
 }
 function footworkActiveDays(pid){
   return footworkDays(pid).filter(d=>footworkJokerStatus(pid, d) !== "approved" && footworkDayCounts(pid, d).some(c=>c > 0));
@@ -1352,6 +1429,7 @@ async function registerFootwork(kode, delta){
   if(demoBlocked("Gennemførelsen bliver ikke registreret herfra.")) return;
   const ex = footworkEx(kode); if(!ex) return;
   const p = currentPlayerLink, pid = p.id, dato = footworkSelectedDay();
+  if(!footworkFindesPaa(ex, dato)) return besked(`${ex.navn} er en ny øvelse, og den kan ikke registreres på en dag fra før de nye regler.`);
   if(!footworkDayOpenForPlayer(dato)) return besked(`Dagen er låst.\n\nI kan selv registrere op til ${FOOTWORK_BACKDATE_DAYS} dage tilbage. Ældre dage kan en træner rette.`);
   if(footworkJokerStatus(pid, dato) === "approved") return besked("Dagen er dækket af en godkendt joker, så den giver ingen point.\n\nVil I registrere træning på dagen, skal træneren først fjerne jokeren.");
   const nu = footworkCount(pid, dato, ex.kode);
@@ -1454,6 +1532,7 @@ async function correctFootwork(pid, dato, kode){
   const p = players.find(x=>x.id===pid);
   if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
   const ex = footworkEx(kode); if(!ex) return;
+  if(!footworkFindesPaa(ex, dato)) return besked(`${ex.navn} fandtes ikke ${datoTekst(dato)}, så den dag kan den ikke rettes på.`);
   const nu = footworkCount(pid, dato, ex.kode);
   const svar = await indtast(`Ret ${p.name} · ${ex.navn} · ${datoTekst(dato)}.\n\nStår nu på ${nu} gennemførelser.\n\nSkriv det rigtige antal (0-${FOOTWORK_MAX_PER_DAY}):`, {vaerdi: String(nu), tal: true});
   if(svar === null) return;
@@ -2474,12 +2553,12 @@ function renderTracking(){
       return `<div class="tablewrap" style="margin-bottom:12px"><table>
         <tr><th>Øvelse</th><th>I alt</th><th>Sidst</th></tr>
         ${FOOTWORK.map((ex, i)=>`<tr${totals[i].antal ? "" : ' style="opacity:.55"'}>
-          <td>${escapeHtml(ex.navn)} <span class="small">· ${FOOTWORK_GRADE_NAMES[ex.grad].toLowerCase()}</span></td>
+          <td>${escapeHtml(ex.navn)} <span class="small">· ${FOOTWORK_KATEGORIER[ex.kategori].navn.toLowerCase()}</span></td>
           <td>${totals[i].antal || "-"}</td>
           <td class="small">${totals[i].sidst ? escapeHtml(datoTekst(totals[i].sidst)) : "aldrig"}</td>
         </tr>`).join("")}
       </table></div>
-      <p class="small">${split.i_alt} gennemførelser i alt · let ${split.pct.let}% · mellem ${split.pct.mellem}% · svær ${split.pct.svaer}%${
+      <p class="small">${split.i_alt} gennemførelser i alt · ${FOOTWORK_KATEGORI_ORDEN.map(k=>`${FOOTWORK_KATEGORIER[k].navn.toLowerCase()} ${split.pct[k]}%`).join(" · ")}${
         aldrig.length ? ` · <b>aldrig prøvet:</b> ${aldrig.map(ex=>escapeHtml(ex.navn)).join(", ")}` : " · har prøvet alle øvelserne"}</p>`;
     })()}
     ${fDage.length ? fDage.map(dato=>{
@@ -4033,9 +4112,9 @@ function renderFootwork(){
   });
   const exArea = document.getElementById("footworkExerciseArea");
   if(exArea && !exArea.dataset.filled){
-    exArea.innerHTML = ["let","mellem","svaer"].map(grad=>`
-      <div class="phasehead">${FOOTWORK_GRADE_NAMES[grad]}</div>
-      ${FOOTWORK.filter(ex=>ex.grad===grad).map(ex=>`<div class="ladderrow">
+    exArea.innerHTML = footworkGrupper(iDagISO()).map(g=>`
+      <div class="phasehead">${escapeHtml(g.navn)}</div>
+      ${g.oevelser.map(ex=>`<div class="ladderrow">
         <div class="laddermid"><b>${escapeHtml(ex.navn)}</b><span class="medalmark">${footworkBlock(ex)} · ${footworkPointsFor(ex)} point</span>
           <div class="ladderstep">${escapeHtml(ex.tekst)}${ex.fokus ? " <i>Fokus: " + escapeHtml(ex.fokus) + "</i>" : ""}</div>${guideVideoKnap("f_" + ex.kode, ex.navn)}</div>
       </div>`).join("")}`).join("")
@@ -4072,17 +4151,19 @@ function renderFootwork(){
   const joker = footworkJokerStatus(pid, dato);
   const counts = footworkDayCounts(pid, dato);
   const dagAntal = counts.reduce((a,b)=>a+b, 0);
-  const kombier = footworkDayCombos(counts);
-  const grundPoint = counts.reduce((sum, c, i)=>sum + c * footworkPointsFor(FOOTWORK[i]), 0);
+  const kombier = footworkDayCombos(counts, footworkVersion(dato));
+  const grundPoint = footworkGrundpoint(counts, dato);
   const dagPoint = footworkDayPoints(pid, dato);
 
-  const raekker = ["let","mellem","svaer"].map(grad=>`
-    <div class="phasehead">${FOOTWORK_GRADE_NAMES[grad]}</div>
-    ${FOOTWORK.filter(ex=>ex.grad===grad).map(ex=>{
+  // Grupperne foelger dagens version: en dag fra foer skiftet viser de tre gamle grader og
+  // kun de oevelser, der fandtes dengang.
+  const raekker = footworkGrupper(dato).map(g=>`
+    <div class="phasehead">${escapeHtml(g.navn)}</div>
+    ${g.oevelser.map(ex=>{
       const n = footworkCount(pid, dato, ex.kode);
       return `<div class="ladderrow ${n?"done":""}">
-        <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${n ? `<span class="medalmark">${n * footworkPointsFor(ex)} point</span>` : ""}
-          <div class="ladderstep">${footworkBlock(ex)} · ${footworkPointsFor(ex)} point · ${escapeHtml(ex.tekst)}</div>${guideVideoKnap("f_" + ex.kode, ex.navn)}</div>
+        <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${n ? `<span class="medalmark">${n * footworkPointsPaa(ex, dato)} point</span>` : ""}
+          <div class="ladderstep">${footworkBlock(ex)} · ${footworkPointsPaa(ex, dato)} point · ${escapeHtml(ex.tekst)}</div>${guideVideoKnap("f_" + ex.kode, ex.navn)}</div>
         ${joker !== "approved" ? `<div class="counter">
           <button type="button" onclick="registerFootwork('${ex.kode}',-1)" ${n?"":"disabled"} aria-label="Fjern en gennemførelse af ${escapeHtml(ex.navn)}">−</button>
           <b>${n}</b>

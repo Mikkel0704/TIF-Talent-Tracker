@@ -5,7 +5,7 @@
   "description": "Tests for TIF Talent Tracker. De koerer mod den rigtige kode i ../index.html og de rigtige regler i ../firestore.rules - ikke mod kopier.",
   "scripts": {
     "test": "npm run logik && npm run visning",
-    "logik": "node logik/udtraek.mjs && node logik/test.mjs && node logik/stige.test.mjs && node logik/rang.test.mjs && node logik/backup.test.mjs && node logik/adminmaerke.test.mjs",
+    "logik": "node logik/udtraek.mjs && node logik/test.mjs && node logik/stige.test.mjs && node logik/rang.test.mjs && node logik/backup.test.mjs && node logik/adminmaerke.test.mjs && node logik/migrering.test.mjs",
     "visning": "for f in visning/*.mjs; do node \"$f\" || exit 1; done",
     "regler": "cp ../storage.rules .lager.rules && firebase emulators:exec --only firestore,storage --project tif-talent-tracker \"for f in regler/*.test.mjs; do node \\\"\\$f\\\" || exit 1; done\"",
     "alt": "npm test && npm run regler"

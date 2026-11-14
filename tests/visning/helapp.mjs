@@ -96,17 +96,17 @@ t("tælleren står på 1 efter gentegning", await a.page.evaluate(() => [...docu
 const raekkeNavne = grad => a.page.evaluate(g => { const hoved = [...document.querySelectorAll("#footworkArea .phasehead")].find(h => h.textContent.trim().startsWith(g));
   const ud = []; for (let e = hoved?.nextElementSibling; e && !e.classList.contains("phasehead"); e = e.nextElementSibling) ud.push(e.querySelector("b")?.textContent); return ud; }, grad);
 t("Yder-yder-stop står under Mellem", (await raekkeNavne("Mellem")).includes("Yder-yder-stop"));
-t("V+L rul står under Svær", (await raekkeNavne("Svær")).includes("V+L rul"));
+t("L+V-rul står under Svær", (await raekkeNavne("Svær")).includes("L+V-rul"));
 t("og begge viser deres takst og tekst", await a.page.evaluate(() => { const r = n => [...document.querySelectorAll("#footworkArea .ladderrow")].find(x => x.querySelector("b").textContent === n)?.textContent || "";
-  return /3 point/.test(r("Yder-yder-stop")) && /ydersiden/.test(r("Yder-yder-stop")) && /4 point/.test(r("V+L rul")) && /V-rul og lige efter et L-rul/.test(r("V+L rul")); }));
+  return /3 point/.test(r("Yder-yder-stop")) && /ydersiden/.test(r("Yder-yder-stop")) && /4 point/.test(r("L+V-rul")) && /V-rul og lige efter et L-rul/.test(r("L+V-rul")); }));
 await a.page.evaluate(() => { window.__skrivninger.length = 0; });
 await a.page.click('#footworkArea .counter button[aria-label^="Tilføj en gennemførelse af Yder-yder-stop"]');
 await a.page.waitForTimeout(300);
-await a.page.click('#footworkArea .counter button[aria-label^="Tilføj en gennemførelse af V+L rul"]');
+await a.page.click('#footworkArea .counter button[aria-label^="Tilføj en gennemførelse af L+V-rul"]');
 await a.page.waitForTimeout(300);
 w = await a.skrivninger();
 t("Yder-yder-stop gemmes under koden y", w.some(x => x.navn === "footwork" && x.data.days?.[iso(0)]?.y === 1));
-t("V+L rul gemmes under koden k", w.some(x => x.navn === "footwork" && x.data.days?.[iso(0)]?.k === 1));
+t("L+V-rul gemmes under koden k", w.some(x => x.navn === "footwork" && x.data.days?.[iso(0)]?.k === 1));
 t("og toe-taps fra før er stadig der", await a.page.evaluate(() => [...document.querySelectorAll("#footworkArea .ladderrow")].find(r => r.textContent.includes("Toe-taps"))?.querySelector(".counter b")?.textContent === "1"));
 await a.page.evaluate(() => { window.__skrivninger.length = 0; });
 
@@ -504,10 +504,10 @@ await a.svar(true);
 
 await a.page.evaluate(() => { window.__uploadTid = 700; });
 const [vaelger2] = await Promise.all([a.page.waitForEvent("filechooser", { timeout: 4000 }),
-  a.page.evaluate(() => { [...document.querySelectorAll("#guideVideoAdminArea .coachrow")].find(x => x.querySelector("b").textContent === "V-rul").querySelector("button").click(); })]);
+  a.page.evaluate(() => { [...document.querySelectorAll("#guideVideoAdminArea .coachrow")].find(x => x.querySelector("b").textContent === "V-rul yderside").querySelector("button").click(); })]);
 await vaelger2.setFiles(klip.pathname);
 await a.page.waitForTimeout(250);
-t("mens der uploades, vises fremdriften", /Uploader… 50 %/.test((await raekke(a, "V-rul"))?.status || ""));
+t("mens der uploades, vises fremdriften", /Uploader… 50 %/.test((await raekke(a, "V-rul yderside"))?.status || ""));
 t("og de andre knapper er låst", await a.page.evaluate(() => [...document.querySelectorAll("#guideVideoAdminArea button")].filter(b => /Læg op|Udskift|Slet/.test(b.textContent)).every(b => b.disabled)));
 await a.page.waitForTimeout(900);
 await a.svar(true);

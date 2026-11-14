@@ -45,7 +45,9 @@ function renderFootwork(){}
 
 const efterspil = `
 export {
-  FOOTWORK, FOOTWORK_STREAK, FOOTWORK_MAX_PER_DAY, FOOTWORK_BACKDATE_DAYS, FOOTWORK_GRADE_POINTS,
+  FOOTWORK, FOOTWORK_STREAK, FOOTWORK_MAX_PER_DAY, FOOTWORK_BACKDATE_DAYS,
+  FOOTWORK_KATEGORIER, FOOTWORK_KATEGORI_ORDEN, FOOTWORK_NIVEAUER, FOOTWORK_V1, FOOTWORK_V2_FRA,
+  footworkVersion, footworkFindesPaa, footworkKategoriPaa, footworkPointsPaa, footworkGrupper, footworkGrundpoint,
   footworkEx, footworkPointsFor, footworkBlock, FOOTWORK_DEFAULT_BLOCK, dagsISO, isoPlus, isoDage,
   footworkBoost, footworkBoostNavn, footworkDayCombos, footworkComboMemo,
   footworkDays, footworkCount, footworkDayCounts, footworkTotals, footworkGradeSplit, footworkJokerStatus, footworkJokerDays,
