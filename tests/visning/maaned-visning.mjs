@@ -1,4 +1,4 @@
-// Månedens spiller på skærmen: kortet på ranglisten, kronerne på profilen og ved navnet,
+// Månedens spiller på skærmen: kortet på ranglisten, emblemerne på profilen og ved navnet,
 // og forklaringen. Uret stilles, så både "før første kåring" og "efter" kan ses.
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -42,7 +42,12 @@ async function aabn(uid, tid, kaaringer = KAARINGER){
   await page.waitForTimeout(500);
   const gaaTil = async id => { await page.click("#tab-" + id); await page.waitForTimeout(200); };
   const tekst = s => page.evaluate(x => document.querySelector(x)?.innerText || "", s);
-  return { page, fejl, gaaTil, tekst, luk: () => ctx.close() };
+  // Emblemerne i et område: deres navn (aria-label) og størrelse.
+  const emblemer = s => page.evaluate(x => [...document.querySelectorAll(x + " svg.emblem")].map(e => e.getAttribute("aria-label") + "|" + [...e.classList].find(c => c !== "emblem")), s);
+  // Emblemer ved et bestemt navn på ranglisten.
+  const vedNavn = navn => page.evaluate(n => [...document.querySelectorAll("#leaderboardArea .player")].filter(r => r.querySelector("b")?.textContent.includes(n))
+    .flatMap(r => [...r.querySelectorAll("svg.emblem")].map(e => e.getAttribute("aria-label"))), navn);
+  return { page, fejl, gaaTil, tekst, emblemer, vedNavn, luk: () => ctx.close() };
 }
 
 console.log("\nFør den første kåring (20. november)");
@@ -64,15 +69,23 @@ a = await aabn("ida", "2026-12-10T12:00:00+01:00");
 await a.gaaTil("leaderboard");
 kort = await a.tekst("#maanedensArea");
 t("kortet viser november 2026", /November 2026/.test(kort), kort);
-t("med Ida som vinder og hendes tal", /👑 Ida Test/.test(kort) && /12 træningsdage · 18 min/.test(kort), kort);
+t("med Ida som vinder og hendes tal", /Ida Test/.test(kort) && /12 træningsdage · 18 min/.test(kort), kort);
+let em = await a.emblemer("#maanedensArea");
+t("kortet har det lille emblem i overskriften og novembers emblem ved vinderen",
+  JSON.stringify(em) === JSON.stringify(["Månedens spiller|lille", "Månedens spiller november 2026|mellem"]), em);
+t("emblemet har måned og år på sig og to bordeaux bånd", await a.page.evaluate(() => {
+  const e = document.querySelector("#maanedensArea svg.emblem.mellem");
+  return e?.querySelector("text")?.textContent === "NOV 2026" && [...e.querySelectorAll("polygon")].slice(0, 2).every(p => p.getAttribute("fill") === "#6d1b3a"); }));
 t("og siger, at det er hende", /det er dig!/.test(kort));
 t("og hvornår næste kåring er", /Næste kåring: 5\. januar for december 2026/.test(kort), kort);
 const liste = await a.tekst("#leaderboardArea");
-t("kronen står ved hendes navn på ranglisten", /Ida Test 👑/.test(liste), liste.slice(0, 200));
-t("og ikke ved de andre", !/Oscar Test 👑|Bo Test 👑/.test(liste));
+t("emblemet står ved hendes navn på ranglisten", JSON.stringify(await a.vedNavn("Ida Test")) === '["Månedens spiller november 2026"]', await a.vedNavn("Ida Test"));
+t("og ikke ved de andre", (await a.vedNavn("Oscar Test")).length === 0 && (await a.vedNavn("Bo Test")).length === 0);
 await a.gaaTil("profile");
 let profil = await a.tekst("#profileArea");
-t("profilen viser kronen med måned og år", /👑 Månedens spiller/.test(profil) && /👑 November 2026/.test(profil) && /12 træningsdage · 18 min/.test(profil), profil);
+em = await a.emblemer("#profileArea");
+t("profilen viser emblemet med måned og år", /Månedens spiller/.test(profil) && /November 2026/.test(profil) && /12 træningsdage · 18 min/.test(profil)
+  && em.includes("Månedens spiller november 2026|mellem"), [profil.slice(0, 200), em]);
 t("ingen JS-fejl", a.fejl.length === 0, a.fejl);
 await a.luk();
 
@@ -80,30 +93,32 @@ console.log("\nDecember er delt (10. januar)");
 a = await aabn("oscar", "2027-01-10T12:00:00+01:00");
 await a.gaaTil("leaderboard");
 kort = await a.tekst("#maanedensArea");
-t("december viser begge vindere og at de deler", /👑 Oscar Test og Bo Test/.test(kort) && /deler prisen/.test(kort), kort);
+t("december viser begge vindere og at de deler", /Oscar Test og Bo Test/.test(kort) && /deler prisen/.test(kort)
+  && (await a.emblemer("#maanedensArea")).includes("Månedens spiller december 2026|mellem"), kort);
 await a.gaaTil("profile");
 profil = await a.tekst("#profileArea");
-t("Oscars profil viser december som delt", /👑 December 2026/.test(profil) && /9 træningsdage · 13,5 min · delt/.test(profil), profil);
-t("og ikke november, som han ikke vandt", !/November 2026/.test(profil));
+t("Oscars profil viser december som delt", /December 2026/.test(profil) && /9 træningsdage · 13,5 min · delt/.test(profil)
+  && (await a.emblemer("#profileArea")).includes("Månedens spiller december 2026|mellem"), profil);
+t("og ikke november, som han ikke vandt", !/November 2026/.test(profil) && !(await a.emblemer("#profileArea")).some(x => /november/.test(x)));
 await a.luk();
 a = await aabn("ida", "2027-01-10T12:00:00+01:00");
 await a.gaaTil("profile");
-t("Idas profil har stadig november - kronerne bliver", /👑 November 2026/.test(await a.tekst("#profileArea")));
+t("Idas profil har stadig november - emblemerne bliver", (await a.emblemer("#profileArea")).includes("Månedens spiller november 2026|mellem"));
 await a.gaaTil("leaderboard");
-t("men på ranglisten er kronen nu hos decembers vindere", !/Ida Test 👑/.test(await a.tekst("#leaderboardArea")) && /Oscar Test 👑/.test(await a.tekst("#leaderboardArea")));
+t("men på ranglisten er emblemet nu hos decembers vindere", (await a.vedNavn("Ida Test")).length === 0 && JSON.stringify(await a.vedNavn("Oscar Test")) === '["Månedens spiller december 2026"]');
 await a.luk();
 
 console.log("\nTræneren");
 a = await aabn("tr", "2027-01-10T12:00:00+01:00");
 await a.gaaTil("leaderboard");
 kort = await a.tekst("#maanedensArea");
-t("ser hver af sine årgange", /2017: 👑 Oscar Test og Bo Test/.test(kort.replace(/\n/g, " ")) && /2016: Ingen vinder i december 2026/.test(kort.replace(/\n/g, " ")), kort);
+t("ser hver af sine årgange", /2017: Oscar Test og Bo Test/.test(kort.replace(/\n/g, " ")) && /2016: Ingen vinder i december 2026/.test(kort.replace(/\n/g, " ")), kort);
 await a.page.selectOption("#leaderboardYear", "2016"); await a.page.waitForTimeout(250);
 kort = await a.tekst("#maanedensArea");
 t("vælger træneren en årgang, viser kortet kun den", /Ingen vinder/.test(kort) && !/Oscar/.test(kort), kort);
-t("træneren ser kronerne på en spillers profil", await (async () => {
+t("træneren ser emblemerne på en spillers profil", await (async () => {
   await a.page.evaluate(() => openPlayerProfile("p2")); await a.page.waitForTimeout(250);
-  return /👑 November 2026/.test(await a.tekst("#profileArea")); })());
+  return (await a.emblemer("#profileArea")).includes("Månedens spiller november 2026|mellem"); })());
 await a.luk();
 a = await aabn("dr", "2027-01-10T12:00:00+01:00", { "2026-11_2017": KAARINGER["2026-11_2017"] });
 await a.gaaTil("leaderboard");

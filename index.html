@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.71</title>
+  <title>TIF Talent Tracker v15.72</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -89,6 +89,10 @@
     .maanedrad{padding:4px 0}
     .maanedrad.mig{background:#ecfdf5;border-radius:10px;padding:6px 8px}
     .maanedforklaring{margin-top:8px}
+    .emblem{display:inline-block;flex:0 0 auto}
+    .emblem.lille{width:18px;height:22px;vertical-align:-4px}
+    .emblem.mellem{width:46px;height:55px}
+    .emblemrad{display:flex;gap:10px;align-items:center}
     .maanedforklaring summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--maroon)}
     .kombiliste li{font-size:13.5px;margin:0 0 4px}
     .medalmark{display:inline-block;font-size:11px;font-weight:700;color:var(--blue);background:#dbe9fa;border-radius:999px;padding:1px 7px;margin-left:6px}
@@ -162,7 +166,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.71 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.72 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -362,7 +366,7 @@
       <p><b>"Jonglering":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. I får lige så mange point, som I jonglerer - 40 jongleringer giver 40 point - og med det dårlige ben tæller det dobbelt. Også her er det på tillid, uden video. Stigen giver point, men ingen medaljer.</p>
       <p><b>"Duel":</b> Udfordr en holdkammerat i en fri duel, som "flest jongleringer" eller "fedeste trick" - eller, hvis jeres årgang kører Talentmærket, i en af øvelserne derfra. Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
       <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Point fra alle delene tæller med.</p>
-      <p><b>"Månedens spiller":</b> Hver måned bliver én spiller i hver årgang Månedens spiller og får en krone 👑. Det er den, der har trænet fodteknik flest dage. Ved lighed tæller træningstid, så antal øvelser og så point. Man kan ikke vinde to måneder i træk. Vinderen findes den 5. i den næste måned og står øverst på ranglisten og på spillerens profil.</p>
+      <p><b>"Månedens spiller":</b> Hver måned bliver én spiller i hver årgang Månedens spiller og får et emblem. Det er den, der har trænet fodteknik flest dage. Ved lighed tæller træningstid, så antal øvelser og så point. Man kan ikke vinde to måneder i træk. Vinderen findes den 5. i den næste måned og står øverst på ranglisten og på spillerens profil.</p>
       <p id="guideGuidesIntro"><b>"Guides":</b> Her står kravene til hver øvelse på Talentmærket, sammen med beskrivelsen af, hvordan øvelsen sættes op og udføres.</p>
       <p><b>"Min profil":</b> Her ser I jeres point, rang (fra Debutant til Verdensstjerne) og hvilke øvelser der allerede er bestået.</p>
       <p class="small"><b>Om videoerne:</b> De bruges kun til godkendelse og slettes automatisk bagefter - ved Talentmærket med det samme, og ved en duel senest et par dage efter, at træneren har taget stilling. Vi gemmer ikke børnenes videoer permanent.</p>
@@ -573,7 +577,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.71 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.72 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -2190,7 +2194,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.71 · ikke logget ind");
+    setSyncStatus("v15.72 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2216,7 +2220,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.71 · bekræft inden I går i gang");
+    setSyncStatus("v15.72 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2224,7 +2228,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.71 · vælg din egen adgangskode");
+    setSyncStatus("v15.72 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2265,9 +2269,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.71 · live database aktiv");
+    setSyncStatus("v15.72 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.71 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.72 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2746,7 +2750,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.71 · sletter...");
+  setSyncStatus("v15.72 · sletter...");
   for(const f of files){
     try{ await deleteObject(f); }
     catch(e){ if(e?.code !== "storage/object-not-found") failed.push("videofil " + f.name); }   // allerede vaek er ikke en fejl
@@ -2763,7 +2767,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.71 · live database aktiv");
+  setSyncStatus("v15.72 · live database aktiv");
 
   besked(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -3278,11 +3282,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.71 · migrering færdig");
+    setSyncStatus("v15.72 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.71 · migrering fejlede");
+    setSyncStatus("v15.72 · migrering fejlede");
   }
 }
 
@@ -3457,7 +3461,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.71 · uploader video...");
+    setSyncStatus("v15.72 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -3500,12 +3504,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.71 · live database aktiv");
+    setSyncStatus("v15.72 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.71 · live database aktiv");
+    setSyncStatus("v15.72 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -4017,9 +4021,25 @@ async function reviewSubmission(id, approve){
 
 // ---------------------------------------------------------------------------
 // MAANEDENS SPILLER - visningen
-const MAANEDENS_IKON = "👑";
+// Emblemet: en guldmedalje med vinroed midte, guldstjerne og to bordeaux baand. Det
+// tegnes her i koden (SVG), saa der ikke skal laegges billeder op, og det er skarpt paa
+// alle skaerme. "lille" ved navne og i overskrifter; "mellem" med maaned og aar paa selve
+// emblemet. Det hedder "emblemet" i teksterne - ikke "medalje", som er Talentmaerkets.
+const MAANED_KORT = ["JAN","FEB","MAR","APR","MAJ","JUN","JUL","AUG","SEP","OKT","NOV","DEC"];
+function maanedensEmblem(maaned, stoerrelse){
+  const GULD = "#e2b23a", GULD_M = "#b8871b", VIN = "#6d1b3a";
+  const tekst = maaned && stoerrelse !== "lille" ? MAANED_KORT[Number(String(maaned).slice(5, 7)) - 1] + " " + String(maaned).slice(0, 4) : "";
+  const navn = maaned ? "Månedens spiller " + maanedNavn(maaned).toLowerCase() : "Månedens spiller";
+  const cy = tekst ? 42 : 48, r = tekst ? 15 : 20, p = [];
+  for(let i = 0; i < 10; i++){ const a = -Math.PI/2 + i*Math.PI/5, rr = i % 2 ? r*0.45 : r; p.push(`${(50+rr*Math.cos(a)).toFixed(1)},${(cy+rr*Math.sin(a)).toFixed(1)}`); }
+  return `<svg class="emblem ${stoerrelse || "lille"}" viewBox="0 0 100 120" role="img" aria-label="${escapeHtml(navn)}"><title>${escapeHtml(navn)}</title>
+    <polygon points="30,70 20,116 34,108 44,118 50,78" fill="${VIN}"/><polygon points="70,70 80,116 66,108 56,118 50,78" fill="${VIN}"/>
+    <circle cx="50" cy="48" r="42" fill="${GULD_M}"/><circle cx="50" cy="48" r="38" fill="${GULD}"/><circle cx="50" cy="48" r="29" fill="${VIN}"/>
+    <polygon points="${p.join(" ")}" fill="${GULD}"/>
+    ${tekst ? `<text x="50" y="66" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="9.5" fill="#fff">${tekst}</text>` : ""}</svg>`;
+}
 const MAANEDENS_FORKLARING = [
-  "Hver måned bliver én spiller i hver årgang Månedens spiller og får en krone 👑.",
+  "Hver måned bliver én spiller i hver årgang Månedens spiller og får et emblem.",
   "Det er den, der har trænet fodteknik flest dage i måneden.",
   "Har I trænet lige mange dage, vinder den, der har trænet længst tid. En øvelse tæller 1,5 minut. Grundtræning tæller 5 minutter.",
   "Er I stadig lige, vinder den, der har lavet flest øvelser. Og så den med flest point.",
@@ -4038,13 +4058,13 @@ function datoLang(iso){
 }
 function minutTekst(min){ return Number(min || 0).toLocaleString("da-DK", {maximumFractionDigits: 1}); }
 function maanedensKaaring(maaned, aargang){ return maanedensSpiller.find(k=>k.id === maaned + "_" + normalizeYearValue(aargang)) || null; }
-// Alle kroner, en spiller har vundet - nyeste foerst.
+// Alle emblemer, en spiller har vundet - nyeste foerst.
 function maanedensEmblemer(pid){
   return maanedensSpiller.filter(k=>Array.isArray(k.vindere) && k.vindere.some(v=>v.id === pid))
     .sort((a, b)=>String(b.maaned).localeCompare(String(a.maaned)));
 }
 function senesteAfgjorteMaaned(){ const m = maanederTilKaaring(iDagISO()); return m.length ? m[m.length - 1] : null; }
-// Kronen ved navnet paa ranglisten: kun for den seneste maaneds vinder(e).
+// Emblemet ved navnet paa ranglisten: kun for den seneste maaneds vinder(e).
 function erSenesteVinder(pid){
   const m = senesteAfgjorteMaaned();
   return !!m && maanedensSpiller.some(k=>k.maaned === m && Array.isArray(k.vindere) && k.vindere.some(v=>v.id === pid));
@@ -4073,11 +4093,11 @@ function maanedensKort(){
       const navne = v.map(x=>escapeHtml(x.navn || "Ukendt")).join(" og ");
       const tal = `${v[0].dage} træningsdage · ${minutTekst(v[0].minutter)} min${v.length > 1 ? " · deler prisen" : ""}`;
       const erMig = mig && v.some(x=>x.id === mig);
-      return `<div class="maanedrad${erMig ? " mig" : ""}">${hvem}<b>${MAANEDENS_IKON} ${navne}</b>${erMig ? " - det er dig!" : ""}<div class="small">${tal}</div></div>`;
+      return `<div class="maanedrad emblemrad${erMig ? " mig" : ""}">${maanedensEmblem(m, "mellem")}<div>${hvem}<b>${navne}</b>${erMig ? " - det er dig!" : ""}<div class="small">${tal}</div></div></div>`;
     }).join("") || '<p class="small" style="margin:0">Ingen årgange at vise.</p>');
   }
   return `<div class="profilebox maanedkort">
-      <h3 style="margin-top:0">${MAANEDENS_IKON} Månedens spiller</h3>
+      <h3 style="margin-top:0">${maanedensEmblem(null, "lille")} Månedens spiller</h3>
       ${indhold}
       ${m ? `<p class="small" style="margin:8px 0 0">Næste kåring: ${escapeHtml(datoLang(maanedAfgoeres(naeste)))} for ${escapeHtml(maanedNavn(naeste).toLowerCase())}.</p>` : ""}
       <details class="maanedforklaring"><summary>Sådan bliver man Månedens spiller</summary>
@@ -4125,7 +4145,7 @@ function renderLeaderboard(){
       const medalIcon = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`;
       const me = currentPlayerLink && r.id===currentPlayerLink.id;
       return `<div class="player" style="${me?'background:#ecfdf5;border-radius:12px;padding:6px 10px':''}">
-        <div><b>${medalIcon} ${escapeHtml(r.name||"Ukendt")}${erSenesteVinder(r.id) ? ` <span title="Månedens spiller">${MAANEDENS_IKON}</span>` : ""}</b><div class="small">${tier.icon} ${tier.name} · ${escapeHtml(yearLabel(r.year))}</div></div>
+        <div><b>${medalIcon} ${escapeHtml(r.name||"Ukendt")}${erSenesteVinder(r.id) ? " " + maanedensEmblem(senesteAfgjorteMaaned(), "lille") : ""}</b><div class="small">${tier.icon} ${tier.name} · ${escapeHtml(yearLabel(r.year))}</div></div>
         <div class="pill guld">${r.total} point</div>
       </div>`;
     }).join("") || '<p class="small">Klub-ranglisten er tom endnu. En admin kan bygge den under Admin → "Genopbyg klub-rangliste".</p>';
@@ -4168,7 +4188,7 @@ function renderLeaderboard(){
     const medalIcon = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`;
     const me = isPlayer() && currentPlayerLink && p.id===currentPlayerLink.id;
     return `<div class="player" style="${me?'background:#ecfdf5;border-radius:12px;padding:6px 10px':''}">
-      <div><b>${medalIcon} ${escapeHtml(p.name)}${erSenesteVinder(p.id) ? ` <span title="Månedens spiller">${MAANEDENS_IKON}</span>` : ""}</b><div class="small">${tier.icon} ${tier.name}</div></div>
+      <div><b>${medalIcon} ${escapeHtml(p.name)}${erSenesteVinder(p.id) ? " " + maanedensEmblem(senesteAfgjorteMaaned(), "lille") : ""}</b><div class="small">${tier.icon} ${tier.name}</div></div>
       <div class="pill guld">${periodPoints} point</div>
     </div>`;
   }).join("") || '<p class="small">Ingen spillere endnu.</p>';
@@ -4258,11 +4278,11 @@ function renderPlayerProfile(){
       </div>
       ${rankBox}
       <div class="profilebox">
-        <h3>${MAANEDENS_IKON} Månedens spiller</h3>
+        <h3>${maanedensEmblem(null, "lille")} Månedens spiller</h3>
         ${(()=>{ const e = maanedensEmblemer(p.id);
           return e.length
             ? e.map(k=>{ const v = k.vindere.find(x=>x.id === p.id) || {};
-                return `<div class="historyitem" style="border-top:0;padding:6px 0"><b>${MAANEDENS_IKON} ${escapeHtml(maanedNavn(k.maaned))}</b><div class="small">${v.dage} træningsdage · ${minutTekst(v.minutter)} min${k.vindere.length > 1 ? " · delt" : ""}</div></div>`; }).join("")
+                return `<div class="historyitem emblemrad" style="border-top:0;padding:6px 0">${maanedensEmblem(k.maaned, "mellem")}<div><b>${escapeHtml(maanedNavn(k.maaned))}</b><div class="small">${v.dage} træningsdage · ${minutTekst(v.minutter)} min${k.vindere.length > 1 ? " · delt" : ""}</div></div></div>`; }).join("")
             : `<p class="small">${isPlayer() ? "Ingen endnu. Træn fodteknik mange dage i en måned - så kan det blive dig." : "Ingen endnu."}</p>`; })()}
       </div>
       ${!medaljer ? "" : `
