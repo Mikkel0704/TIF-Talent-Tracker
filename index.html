@@ -980,13 +980,13 @@ const FOOTWORK_V1 = {
   grad:  {t:"let", s:"let", d:"let", v:"mellem", p:"mellem", o:"mellem", y:"mellem", j:"mellem", l:"svaer", k:"svaer", c:"svaer", q:"svaer"},
   point: {let:2, mellem:3, svaer:4},
   saer:  {j:8},                                   // jonglering havde sin egen takst
+  krav:  {j:"5 minutter"},                        // ... og sin egen tid; resten var FOOTWORK_DEFAULT_BLOCK
   navne: {let:"Let", mellem:"Mellem", svaer:"Svær"}
 };
-// Blokken er 3 x 30 sek. for de elleve gulvoevelser, hvor foden er paa bolden hele tiden.
-// Jonglering er en anden slags arbejde - bolden ryger, man samler op, stiller sig til
-// rette - saa 30 sekunder bliver mest opstilling. Den har derfor sin egen blok og sin
-// egen takst (se "varighed" og "point" paa oevelsen), og begge dele staar paa selve
-// raekken i stedet for som én faelles regel.
+// KRAV: hvor lang tid én gennemfoerelse varer. Det haenger paa KATEGORIEN, ikke paa den
+// enkelte oevelse: niveauerne er 3 x 30 sek., grundtraening er 5 minutter (se
+// FOOTWORK_KATEGORIER). En gammel dag viser det krav, der gjaldt dengang - i version 1
+// havde kun jongleringstraeningen 5 minutter (FOOTWORK_V1.krav).
 const FOOTWORK_DEFAULT_BLOCK = "3 × 30 sek.";
 // kode: det ene bogstav, dagen gemmes under i databasen. En kode skifter ALDRIG betydning:
 // den baerer historikken. Derfor omdoebes en oevelse ved at aendre navnet, ikke koden -
@@ -1002,7 +1002,7 @@ const FOOTWORK = [
   {id:"traekskub",  kode:"p", navn:"Træk-skub",          kategori:"let",     tekst:"Træk bolden tilbage med sålen, og skub den frem igen. Skift fod."},
   {id:"stepover",   kode:"o", navn:"Step-over",          kategori:"starter", tekst:"Før foden rundt om bolden uden at røre den. Skiftevis."},
   {id:"yderstop",   kode:"y", navn:"Yder-yder-stop",     kategori:"let",     tekst:"Skub bolden to gange med ydersiden af foden, og stop den med indersiden. Skift fod."},
-  {id:"jongler",    kode:"j", navn:"Jongleringstræning", kategori:"grund",   varighed:"5 minutter", tekst:"Fri jonglering i 5 minutter. Saml bolden op og fortsæt, hver gang den rammer jorden.", fokus:"Dette er den daglige øvelse – ikke Jongleringsstigen. Her er der ingen trin at nå, og det gør ikke noget, at bolden falder. Det er forsøgene, der tæller."},
+  {id:"jongler",    kode:"j", navn:"Jongleringstræning", kategori:"grund",   tekst:"Fri jonglering i 5 minutter. Saml bolden op og fortsæt, hver gang den rammer jorden.", fokus:"Dette er den daglige øvelse – ikke Jongleringsstigen. Her er der ingen trin at nå, og det gør ikke noget, at bolden falder. Det er forsøgene, der tæller."},
   {id:"lrul",       kode:"l", navn:"L-rul",              kategori:"mellem",  tekst:"Træk bolden tilbage med sålen, og spil den bag om standbenet med indersiden."},
   {id:"vlrul",      kode:"k", navn:"L+V-rul",            kategori:"svaer",   tekst:"Lav et L-rul og lige efter et V-rul (inderside) i ét flow, uden at sætte foden fra dig imellem. Skift fod."},
   {id:"croqueta",   kode:"c", navn:"Croqueta",           kategori:"svaer",   tekst:"Flyt bolden fra inderside til inderside med et lille sideskridt."},
@@ -1106,10 +1106,15 @@ function footworkGrupper(dato){
   return FOOTWORK_KATEGORI_ORDEN.map(k=>({noegle: k, navn: FOOTWORK_KATEGORIER[k].navn,
     oevelser: ordnet.filter(ex=>ex.kategori === k)})).filter(g=>g.oevelser.length);
 }
+// Kravet til én gennemfoerelse paa dagen: "3 × 30 sek." eller "5 minutter".
 // NB: hedder ikke det samme som traenerens footworkKort i renderTracking. De to
-// kolliderede, og en lokal const ville skygge for den her funktion inde i den
-// funktion - det gaar godt, lige indtil nogen vil vise varigheden i traenervisningen.
-function footworkBlock(ex){ return ex?.varighed || FOOTWORK_DEFAULT_BLOCK; }
+// kolliderede, og en lokal const ville skygge for den her funktion inde i den funktion.
+function footworkBlock(ex, dato){
+  const d = dato || iDagISO();
+  if(!footworkFindesPaa(ex, d)) return "";
+  if(footworkVersion(d) === 1) return FOOTWORK_V1.krav[ex.kode] || FOOTWORK_DEFAULT_BLOCK;
+  return FOOTWORK_KATEGORIER[ex.kategori]?.krav || FOOTWORK_DEFAULT_BLOCK;
+}
 
 // Dansk kalenderdag. Datoer er noegler i databasen, saa de skal skrives ud fra den
 // LOKALE dag - ikke toISOString(), som ville flytte en aftentraening til dagen efter.
@@ -4195,7 +4200,7 @@ function renderFootwork(){
       const n = footworkCount(pid, dato, ex.kode);
       return `<div class="ladderrow ${n?"done":""}">
         <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${footworkUdstyrMaerke(ex)}${n ? `<span class="medalmark">${n * footworkPointsPaa(ex, dato)} point</span>` : ""}
-          <div class="ladderstep">${footworkBlock(ex)} · ${footworkPointsPaa(ex, dato)} point · ${escapeHtml(ex.tekst)}</div>${guideVideoKnap("f_" + ex.kode, ex.navn)}</div>
+          <div class="ladderstep">${footworkBlock(ex, dato)} · ${footworkPointsPaa(ex, dato)} point · ${escapeHtml(ex.tekst)}</div>${guideVideoKnap("f_" + ex.kode, ex.navn)}</div>
         ${joker !== "approved" ? `<div class="counter">
           <button type="button" onclick="registerFootwork('${ex.kode}',-1)" ${n?"":"disabled"} aria-label="Fjern en gennemførelse af ${escapeHtml(ex.navn)}">−</button>
           <b>${n}</b>

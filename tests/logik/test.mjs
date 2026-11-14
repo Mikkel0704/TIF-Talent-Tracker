@@ -53,9 +53,9 @@ t("version 1: point pr. sværhedsgrad - jonglering har sin egen takst, og de nye
 
 afsnit("Jongleringstræning har sin egen blok og takst");
 const jong = K.footworkEx("jongler");
-t("5 minutter, ikke 3 × 30 sek.", K.footworkBlock(jong), "5 minutter");
+t("5 minutter, ikke 3 × 30 sek.", K.footworkBlock(jong, V1DAG), "5 minutter");
 t("alle andre har standardblokken",
-  K.FOOTWORK.filter(x=>x.id!=="jongler").every(x=>K.footworkBlock(x) === K.FOOTWORK_DEFAULT_BLOCK), true);
+  K.FOOTWORK.filter(x=>x.id!=="jongler" && K.footworkFindesPaa(x, V1DAG)).every(x=>K.footworkBlock(x, V1DAG) === K.FOOTWORK_DEFAULT_BLOCK), true);
 t("8 point i version 1", K.footworkPointsPaa(jong, V1DAG), 8);
 t("den var 'mellem' i version 1, så de gamle kombier er uændrede", K.FOOTWORK_V1.grad.j, "mellem");
 // Der var før tre svære øvelser, så +8-kombien krævede dem alle tre hver gang. Med V+L rul
@@ -129,7 +129,7 @@ const yd = K.footworkEx("yderstop"), vl = K.footworkEx("vlrul");
 t("begge findes, med deres egen kode", [yd?.kode, vl?.kode], ["y", "k"]);
 t("Yder-yder-stop var mellem og gav 3 point i version 1", [K.FOOTWORK_V1.grad.y, K.footworkPointsPaa(yd, V1DAG)], ["mellem", 3]);
 t("V+L rul var svær og gav 4 point i version 1", [K.FOOTWORK_V1.grad.k, K.footworkPointsPaa(vl, V1DAG)], ["svaer", 4]);
-t("begge har standardblokken, 3 × 30 sek.", [K.footworkBlock(yd), K.footworkBlock(vl)], [K.FOOTWORK_DEFAULT_BLOCK, K.FOOTWORK_DEFAULT_BLOCK]);
+t("begge har standardblokken, 3 × 30 sek.", [K.footworkBlock(yd, V1DAG), K.footworkBlock(vl, V1DAG)], [K.FOOTWORK_DEFAULT_BLOCK, K.FOOTWORK_DEFAULT_BLOCK]);
 t("begge har en tekst, og ingen af dem gemmer sig bag jonglerings undtagelse", [!!yd.tekst, !!vl.tekst, "point" in yd, "point" in vl], [true, true, false, false]);
 t("koderne er entydige - ellers lægges to øvelsers dage sammen i databasen",
   new Set(K.FOOTWORK.map(x=>x.kode)).size, K.FOOTWORK.length);
