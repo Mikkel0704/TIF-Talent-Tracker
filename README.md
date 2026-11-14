@@ -85,7 +85,7 @@ eller får nye point.
 
 - **Version 1** er reglerne fra før november 2026: Let 2, Mellem 3, Svær 4,
   jongleringstræning 8, og kombier på tre gennemførelser. Den er frosset.
-- **Version 2** gælder fra `FOOTWORK_V2_FRA`: Starter 2, Let 3, Mellem 4, Svær 5,
+- **Version 2** gælder fra `FOOTWORK_V2_FRA`, som er sat til **2026-11-14**: Starter 2, Let 3, Mellem 4, Svær 5,
   Grundtræning 5. Kombierne er "samme øvelse 3 gange" (+5) og "én fra hvert niveau" (+7).
 
 **Skiftedatoen** sættes ved at rette én linje i `index.html`:

@@ -12,7 +12,10 @@ function udtraek(startMarkoer, slutMarkoer){
   if(a < 0 || b < 0) throw new Error("kunne ikke finde " + startMarkoer);
   return html.slice(a, b);
 }
-const logik  = udtraek("// DAGLIG FODTEKNIK", "const POINT_BASE =");
+const logik  = udtraek("// DAGLIG FODTEKNIK", "const POINT_BASE =")
+  // Denne test beskriver visningen efter de GAMLE regler (version 1) - det, en dag fra før
+  // skiftet viser. Den låses derfor til version 1; de nye reglers visning tester fodteknik-v2.mjs.
+  .replace(/const FOOTWORK_V2_FRA = "[0-9-]+";/, 'const FOOTWORK_V2_FRA = "2099-01-01";');
 const render = udtraek("function renderFootwork(){", "\n// GENTEGNING UDEN AT TRAEDE PAA BRUGEREN");
 const stil   = udtraek("<style>", "</style>") + "</style>";
 

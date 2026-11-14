@@ -95,10 +95,10 @@ t("tælleren står på 1 efter gentegning", await a.page.evaluate(() => [...docu
 // under deres egen kode.
 const raekkeNavne = grad => a.page.evaluate(g => { const hoved = [...document.querySelectorAll("#footworkArea .phasehead")].find(h => h.textContent.trim().startsWith(g));
   const ud = []; for (let e = hoved?.nextElementSibling; e && !e.classList.contains("phasehead"); e = e.nextElementSibling) ud.push(e.querySelector("b")?.textContent); return ud; }, grad);
-t("Yder-yder-stop står under Mellem", (await raekkeNavne("Mellem")).includes("Yder-yder-stop"));
+t("Yder-yder-stop står under Let (nye regler)", (await raekkeNavne("Let")).includes("Yder-yder-stop"));
 t("L+V-rul står under Svær", (await raekkeNavne("Svær")).includes("L+V-rul"));
 t("og begge viser deres takst og tekst", await a.page.evaluate(() => { const r = n => [...document.querySelectorAll("#footworkArea .ladderrow")].find(x => x.querySelector("b").textContent === n)?.textContent || "";
-  return /3 point/.test(r("Yder-yder-stop")) && /ydersiden/.test(r("Yder-yder-stop")) && /4 point/.test(r("L+V-rul")) && /L-rul og lige efter et V-rul/.test(r("L+V-rul")); }));
+  return /3 point/.test(r("Yder-yder-stop")) && /ydersiden/.test(r("Yder-yder-stop")) && /5 point/.test(r("L+V-rul")) && /L-rul og lige efter et V-rul/.test(r("L+V-rul")); }));
 await a.page.evaluate(() => { window.__skrivninger.length = 0; });
 await a.page.click('#footworkArea .counter button[aria-label^="Tilføj en gennemførelse af Yder-yder-stop"]');
 await a.page.waitForTimeout(300);
