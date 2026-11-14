@@ -50,6 +50,7 @@ export {
   FOOTWORK_VISNING, footworkIVisningsorden, footworkVersion, footworkFindesPaa, footworkKategoriPaa, footworkPointsPaa, footworkGrupper, footworkGrundpoint,
   footworkEx, footworkPointsFor, footworkBlock, FOOTWORK_DEFAULT_BLOCK, dagsISO, isoPlus, isoDage,
   footworkBoost, footworkBoostNavn, footworkDayCombos, footworkComboMemo,
+  footworkKombierV2, footworkKombiVisning, FOOTWORK_KOMBI_SAMME, FOOTWORK_KOMBI_NIVEAUER,
   footworkDays, footworkCount, footworkDayCounts, footworkTotals, footworkGradeSplit, footworkJokerStatus, footworkJokerDays,
   footworkDayPoints, footworkActiveDays, juggleActiveDays,
   footworkRuns, footworkStreakBonus, footworkNextStreakBonus, footworkCurrentStreak,

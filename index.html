@@ -1241,9 +1241,7 @@ function footworkGreedy(counts){
 // en dag regnet efter forkerte regler ville stille og roligt give forkerte point.
 function footworkDayCombos(counts, version){
   if(version !== 1 && version !== 2) throw new Error("footworkDayCombos: version mangler");
-  // VERSION 2: de nye kombier (samme oevelse 3 gange, og én fra hvert niveau) kommer i
-  // trin 4. Indtil da giver en dag efter de nye regler ingen kombibonus.
-  if(version === 2) return {boost:0, kombier:[]};
+  if(version === 2) return footworkKombierV2(counts);
   const i_alt = counts.reduce((a,b)=>a+b, 0);
   if(i_alt < 3) return {boost:0, kombier:[]};
   const noegle = "v1:" + counts.join(",");
@@ -1260,6 +1258,93 @@ function footworkDayCombos(counts, version){
   if(footworkComboMemo.size > 40000) footworkComboMemo.clear();
   footworkComboMemo.set(noegle, svar);
   return svar;
+}
+
+// --- Kombi-bonus, VERSION 2 -------------------------------------------------
+// To kombier, og hver gennemfoerelse kan kun vaere med i én:
+//   samme oevelse 3 gange          +5   (alle oevelser, ogsaa grundtraening)
+//   én fra hvert niveau            +7   (Starter + Let + Mellem + Svaer - IKKE grundtraening)
+// Der er ingen graense for, hvor mange kombier en dag kan give.
+//
+// Appen vaelger den fordeling, der giver den HOEJESTE SAMLEDE bonus. Det er ikke det
+// samme som at tage den stoerste bonus foerst: 6 × E-rul + Toe-taps + Traek-skub + Square
+// giver +10, hvis man tager "3 af samme" to gange, men +12 med én "3 af samme" og én
+// "én fra hvert niveau". Derfor proeves ALLE fordelinger:
+//   - Grundtraening kan kun indgaa i "samme oevelse 3 gange", saa hver tredje
+//     gennemfoerelse af samme grundtraeningsoevelse giver +5 - der er intet at vaelge.
+//   - For hvert niveau proeves ethvert antal "samme oevelse 3 gange" (fra 0 til det
+//     mulige). Hvilke oevelser tripletterne tages fra, er ligegyldigt for resten: hver
+//     triplet bruger tre gennemfoerelser fra niveauet.
+//   - For hver fordeling er antallet af "én fra hvert niveau" lig med det MINDSTE antal
+//     gennemfoerelser, der er tilbage paa et niveau.
+// Det er en udtoemmende soegning - kun over antal, ikke over hver enkelt gennemfoerelse,
+// saa selv en dag med alle 20 oevelser ti gange hver tager under et millisekund.
+// tests/logik/kombi.test.mjs holder den op mod en ren rekursion med huskeliste.
+const FOOTWORK_KOMBI_SAMME = 5;
+const FOOTWORK_KOMBI_NIVEAUER = 7;
+function footworkKombierV2(counts){
+  const noegle = "v2:" + counts.join(",");
+  const husket = footworkComboMemo.get(noegle);
+  if(husket) return husket;
+  const svar = footworkKombierV2Beregn(counts);
+  if(footworkComboMemo.size > 40000) footworkComboMemo.clear();
+  footworkComboMemo.set(noegle, svar);
+  return svar;
+}
+function footworkKombierV2Beregn(counts){
+  const kat = i => FOOTWORK[i]?.kategori;
+  const rest = counts.map(c=>Number.isInteger(c) && c > 0 ? c : 0);
+  const kombier = [];
+
+  // Grundtraening: kun "samme oevelse 3 gange".
+  rest.forEach((c, i)=>{
+    if(FOOTWORK_KATEGORIER[kat(i)]?.niveau !== false) return;
+    for(let n = 0; n < Math.floor(c / 3); n++) kombier.push({type:"samme", oevelser:[i, i, i], bonus: FOOTWORK_KOMBI_SAMME});
+    rest[i] -= 3 * Math.floor(c / 3);
+  });
+
+  // Niveauerne: proev alle antal tripletter pr. niveau.
+  const niv = FOOTWORK_NIVEAUER.map(k=>{
+    const idx = rest.map((c, i)=>i).filter(i=>rest[i] > 0 && kat(i) === k);
+    return {idx, N: idx.reduce((a, i)=>a + rest[i], 0), maxT: idx.reduce((a, i)=>a + Math.floor(rest[i] / 3), 0)};
+  });
+  const T = niv.map(()=>0);
+  let bedst = {bonus: -1, T: null, quads: 0};
+  (function soeg(l){
+    if(l === niv.length){
+      const quads = Math.min(...niv.map((n, j)=>n.N - 3 * T[j]));
+      const bonus = FOOTWORK_KOMBI_SAMME * T.reduce((a, b)=>a + b, 0) + FOOTWORK_KOMBI_NIVEAUER * quads;
+      if(bonus > bedst.bonus) bedst = {bonus, T: T.slice(), quads};
+      return;
+    }
+    for(let t = 0; t <= niv[l].maxT; t++){ T[l] = t; soeg(l + 1); }
+  })(0);
+
+  // Byg de konkrete kombier ud fra den bedste fordeling. Tripletterne tages fra de
+  // oevelser, der er lavet flest gange, og "én fra hvert niveau" tager den oevelse paa
+  // hvert niveau, der har flest tilbage - saa listen ser rimelig ud. Bonussen er den samme.
+  const quadKombier = [];
+  niv.forEach((n, j)=>{
+    let mangler = bedst.T[j];
+    n.idx.slice().sort((a, b)=>rest[b] - rest[a]).forEach(i=>{
+      while(mangler > 0 && rest[i] >= 3){ kombier.push({type:"samme", oevelser:[i, i, i], bonus: FOOTWORK_KOMBI_SAMME}); rest[i] -= 3; mangler--; }
+    });
+  });
+  for(let q = 0; q < bedst.quads; q++){
+    const valg = niv.map(n=>n.idx.reduce((b, i)=>(rest[i] > (b < 0 ? 0 : rest[b]) ? i : b), -1));
+    valg.forEach(i=>{ rest[i]--; });
+    quadKombier.push({type:"niveauer", oevelser: valg, bonus: FOOTWORK_KOMBI_NIVEAUER});
+  }
+  const alle = [...quadKombier, ...kombier];
+  return {boost: alle.reduce((a, k)=>a + k.bonus, 0), kombier: alle};
+}
+// Én kombi til visning, uanset version: {navn, oevelser:[indeks...], bonus}.
+function footworkKombiVisning(k, version){
+  if(version === 1){
+    const [i, j, l] = k;
+    return {navn: footworkBoostNavn(i, j, l), oevelser: [i, j, l], bonus: footworkBoost(i, j, l)};
+  }
+  return {navn: k.type === "samme" ? "3 × " + FOOTWORK[k.oevelser[0]].navn : "Én fra hvert niveau", oevelser: k.oevelser, bonus: k.bonus};
 }
 
 // --- Data -----------------------------------------------------------------
@@ -4242,7 +4327,7 @@ function renderFootwork(){
       <h3 style="margin-top:0">${escapeHtml(datoTekst(dato))}${dato === iDag ? " · i dag" : ""} · ${dagPoint} point</h3>
       <p class="small">${dagAntal ? `${dagAntal} ${dagAntal === 1 ? "gennemførelse" : "gennemførelser"} · ${grundPoint} point${kombier.boost ? ` + ${kombier.boost} i kombi-bonus` : ""}` : "Ingen gennemførelser endnu. 1 gennemførelse = øvelsen lavet i den tid, der står på den."}</p>
       ${jokerBlok}
-      ${kombier.kombier.length ? `<p class="small" style="margin:10px 0 0"><b>Dagens kombier</b>${kombier.kombier.map(([i,j,k])=>`<br>${escapeHtml(footworkBoostNavn(i,j,k))}: ${escapeHtml(FOOTWORK[i].navn)} + ${escapeHtml(FOOTWORK[j].navn)} + ${escapeHtml(FOOTWORK[k].navn)} · +${footworkBoost(i,j,k)}`).join("")}</p>`
+      ${kombier.kombier.length ? `<p class="small" style="margin:10px 0 0"><b>Dagens kombier</b>${kombier.kombier.map(k=>footworkKombiVisning(k, footworkVersion(dato))).map(k=>`<br>${escapeHtml(k.navn)}${k.navn.startsWith("3 × ") ? "" : ": " + k.oevelser.map(i=>escapeHtml(FOOTWORK[i].navn)).join(" + ")} · +${k.bonus}`).join("")}</p>`
         : dagAntal >= 3 ? '<p class="small" style="margin:10px 0 0">Dagens gennemførelser kan ikke sættes sammen til en kombi. Prøv tre forskellige øvelser - eller den samme tre gange.</p>' : ""}
       ${raekker}
     </div>`;
