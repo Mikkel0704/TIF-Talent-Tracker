@@ -2,7 +2,7 @@
 // ser hele årgangen, og først når måneden er afgjort. Emulatorens ur er det rigtige ur,
 // så "afgjort" testes med en måned langt tilbage (2025-01) og én langt fremme (2099-01).
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, collection, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import fs from 'fs';
 
 const env = await initializeTestEnvironment({
@@ -62,6 +62,19 @@ console.log('\n--- Hvem må læse ---');
 await proev('en spiller kan læse kåringerne', 'ALLOW', ()=>getDoc(doc(db('spiller'), 'maanedensSpiller', '2025-01_2017')));
 await proev('en træner fra en anden årgang kan læse dem', 'ALLOW', ()=>getDoc(doc(db('anden'), 'maanedensSpiller', '2025-01_2017')));
 await proev('et deaktiveret login kan ikke', 'DENY', ()=>getDoc(doc(db('lukket'), 'maanedensSpiller', '2025-01_2017')));
+
+console.log('\n--- Appen lytter på HELE samlingen (en list-forespørgsel), ikke på enkelte poster ---');
+await env.withSecurityRulesDisabled(async c => {
+  await setDoc(doc(c.firestore(),'users','u-demo'), {email:'demo@x.invalid', role:'player', playerId:'p9', years:['2017'], demo:true, active:true});
+});
+const alle = k => getDocs(collection(env.authenticatedContext(k).firestore(), 'maanedensSpiller'));
+await proev('admin må lytte på hele samlingen', 'ALLOW', ()=>alle(BRUGERE.admin.uid));
+await proev('en træner må', 'ALLOW', ()=>alle(BRUGERE.hel.uid));
+await proev('en træner, der kun ser drengene, må', 'ALLOW', ()=>alle(BRUGERE.drenge.uid));
+await proev('en træner fra en anden årgang må', 'ALLOW', ()=>alle(BRUGERE.anden.uid));
+await proev('en spiller må', 'ALLOW', ()=>alle(BRUGERE.spiller.uid));
+await proev('demo-loginnet må', 'ALLOW', ()=>alle('u-demo'));
+await proev('et deaktiveret login må ikke', 'DENY', ()=>alle(BRUGERE.lukket.uid));
 
 await env.cleanup();
 console.log(`\n${r.filter(x=>x[1]).length} / ${r.length} bestået`);

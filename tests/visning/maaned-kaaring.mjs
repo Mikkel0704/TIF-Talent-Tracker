@@ -58,6 +58,10 @@ t("og vinderens tal: 12 dage, 18 min, 12 øvelser, 24 point",
 t("december kåres ikke - den er ikke afgjort", !a.gemt.some(g => g.id.startsWith("2026-12")));
 t("ingen JS-fejl", a.fejl.length === 0, a.fejl);
 
+console.log("\nMidnat før den 5. december, dansk tid");
+t("4. december kl. 23:59: intet kåres", (await aabn("admin", "2026-12-04T23:59:00+01:00")).gemt.length === 0);
+t("5. december kl. 00:01: november kåres", (await aabn("admin", "2026-12-05T00:01:00+01:00")).gemt.some(g => g.id === "2026-11_2017"));
+
 console.log("\nHvem må ikke, og hvornår ikke");
 t("4. december kåres intet", (await aabn("admin", "2026-12-04T22:00:00+01:00")).gemt.length === 0);
 t("en træner, der kun ser drengene, kårer ikke", (await aabn("drenge", "2026-12-06T09:00:00+01:00")).gemt.length === 0);
