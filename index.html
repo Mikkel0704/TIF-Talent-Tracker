@@ -85,6 +85,11 @@
     .dagpoint span{background:var(--soft,#f4f1f2);border-radius:10px;padding:6px 10px;font-size:14px}
     .dagpoint b{font-size:17px}
     .kombiliste{margin:10px 0 0;padding:0;list-style:none}
+    .maanedkort{margin-bottom:12px;background:#fff8e1;border-color:#f3dc95}
+    .maanedrad{padding:4px 0}
+    .maanedrad.mig{background:#ecfdf5;border-radius:10px;padding:6px 8px}
+    .maanedforklaring{margin-top:8px}
+    .maanedforklaring summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--maroon)}
     .kombiliste li{font-size:13.5px;margin:0 0 4px}
     .medalmark{display:inline-block;font-size:11px;font-weight:700;color:var(--blue);background:#dbe9fa;border-radius:999px;padding:1px 7px;margin-left:6px}
     .medalmark.udstyr{color:#7a4a00;background:#fdecc8}
@@ -329,6 +334,7 @@
 <section id="leaderboard" class="page hidden">
   <div class="card">
     <h2>Rangliste</h2>
+    <div id="maanedensArea"></div>
     <div id="leaderboardScopeArea"></div>
     <div id="leaderboardPeriodArea"></div>
     <div id="leaderboardFilter"></div>
@@ -356,6 +362,7 @@
       <p><b>"Jonglering":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. I får lige så mange point, som I jonglerer - 40 jongleringer giver 40 point - og med det dårlige ben tæller det dobbelt. Også her er det på tillid, uden video. Stigen giver point, men ingen medaljer.</p>
       <p><b>"Duel":</b> Udfordr en holdkammerat i en fri duel, som "flest jongleringer" eller "fedeste trick" - eller, hvis jeres årgang kører Talentmærket, i en af øvelserne derfra. Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
       <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Point fra alle delene tæller med.</p>
+      <p><b>"Månedens spiller":</b> Hver måned bliver én spiller i hver årgang Månedens spiller og får en krone 👑. Det er den, der har trænet fodteknik flest dage. Ved lighed tæller træningstid, så antal øvelser og så point. Man kan ikke vinde to måneder i træk. Vinderen findes den 5. i den næste måned og står øverst på ranglisten og på spillerens profil.</p>
       <p id="guideGuidesIntro"><b>"Guides":</b> Her står kravene til hver øvelse på Talentmærket, sammen med beskrivelsen af, hvordan øvelsen sættes op og udføres.</p>
       <p><b>"Min profil":</b> Her ser I jeres point, rang (fra Debutant til Verdensstjerne) og hvilke øvelser der allerede er bestået.</p>
       <p class="small"><b>Om videoerne:</b> De bruges kun til godkendelse og slettes automatisk bagefter - ved Talentmærket med det samme, og ved en duel senest et par dage efter, at træneren har taget stilling. Vi gemmer ikke børnenes videoer permanent.</p>
@@ -492,8 +499,8 @@
 <section id="privacy" class="page hidden">
   <div class="card">
     <h2 style="margin-top:0">Sådan behandler vi jeres data</h2>
-    <p class="small">TIF Talent Tracker · dataansvarlig: Mikkel Brogaard Pedersen · udgave 2026-11-12</p>
-    <p class="small">Denne udgave strammer beskyttelsen af de indsendte videoer og tilføjer klubbens egne instruktionsvideoer - se afsnittet "Videoer". Den forrige tilføjede "Daglig fodteknik". Der kommer ikke noget nyt til at ske med de data, I allerede har sagt ja til, så I bliver ikke bedt om at bekræfte igen. Er I alligevel i tvivl, så skriv til adressen nedenfor.</p>
+    <p class="small">TIF Talent Tracker · dataansvarlig: Mikkel Brogaard Pedersen · udgave 2026-11-14</p>
+    <p class="small">Denne udgave tilføjer "Månedens spiller" - se afsnittet om Daglig fodteknik. Den forrige strammede beskyttelsen af de indsendte videoer og tilføjede klubbens egne instruktionsvideoer. Der kommer ikke noget nyt til at ske med de data, I allerede har sagt ja til, så I bliver ikke bedt om at bekræfte igen. Er I alligevel i tvivl, så skriv til adressen nedenfor.</p>
 
     <div class="accordion" open style="background:#e7eef5;border-color:#c9d8e8">
       <div class="accordion-body">
@@ -511,6 +518,7 @@
     <p><b>Om videoer:</b> selve videofilen, plus hvilken øvelse og hvilket niveau den hører til, hvornår den blev sendt, hvem der behandlede den, og hvor mange point den gav.</p>
     <p><b>Om Jongleringsstigen:</b> hvor langt barnet er nået på de to stiger, hvilke tricks der er klaret, hvilke <b>datoer</b> der er registreret på, og en log over hver registrering med tidspunkt og hvilket login der registrerede den. Registreringen sker på tillid hjemmefra - der er ingen video og ingen godkendelse - og træneren kan rette et trin efter en stikprøve til træning. Rettelser logges med trænerens navn. Point udregnes af tallene og gemmes ikke.</p>
     <p><b>Om Daglig fodteknik:</b> hvilke dage barnet har trænet, hvilke øvelser og hvor mange gange hver øvelse er lavet på hver dag. Også her sker registreringen på tillid hjemmefra uden video, og træneren kan rette eller nulstille en dag efter en stikprøve. Rettelser logges med trænerens navn. Point, kombi-bonus og streak udregnes af tallene og gemmes ikke.</p>
+    <p><b>Om Månedens spiller:</b> hver måned kåres én spiller i hver årgang ud fra tallene i Daglig fodteknik. Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (træningsdage, minutter, antal øvelser og point). Kåringen kan ses af alle, der er logget ind i klubben, ligesom ranglisten, og den ændres ikke bagefter.</p>
     <p><b>Om jokere i Daglig fodteknik:</b> hvis I søger en joker for en dag, gemmes datoen, om træneren har godkendt eller afvist den, og <b>den korte begrundelse, I selv skriver</b>. Begrundelsen er fritekst og kan kun ses af jer selv og af trænerne i barnets årgang. <b>Den slettes automatisk 3 døgn efter, træneren har afgjort jokeren</b> - datoen og svaret bliver, fordi de skal bruges til at regne streaken ud. Vi beder udtrykkeligt om <b>ikke</b> at skrive helbredsdetaljer; "syg" er nok.</p><p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På klub-ranglisten:</b> navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
     <p><b>På din egen telefon:</b> et tidsstempel for, hvornår du sidst åbnede "Duel". Det bruges kun til at vise det lille tal på fanen, og det forlader aldrig enheden.</p>
 
@@ -4007,7 +4015,85 @@ async function reviewSubmission(id, approve){
   }
 }
 
+// ---------------------------------------------------------------------------
+// MAANEDENS SPILLER - visningen
+const MAANEDENS_IKON = "👑";
+const MAANEDENS_FORKLARING = [
+  "Hver måned bliver én spiller i hver årgang Månedens spiller og får en krone 👑.",
+  "Det er den, der har trænet fodteknik flest dage i måneden.",
+  "Har I trænet lige mange dage, vinder den, der har trænet længst tid. En øvelse tæller 1,5 minut. Grundtræning tæller 5 minutter.",
+  "Er I stadig lige, vinder den, der har lavet flest øvelser. Og så den med flest point.",
+  "Er I helt lige, deler I prisen.",
+  "Man kan ikke vinde to måneder i træk. Så går prisen til den næste.",
+  "Vinderen findes den 5. i den næste måned. Husk at skrive din træning ind inden da."
+];
+function maanedNavn(maaned){
+  const [y, m] = String(maaned).split("-").map(Number);
+  const t = new Date(y, m - 1, 1).toLocaleDateString("da-DK", {month: "long", year: "numeric"});
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+function datoLang(iso){
+  const [y, m, d] = String(iso).split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("da-DK", {day: "numeric", month: "long"});
+}
+function minutTekst(min){ return Number(min || 0).toLocaleString("da-DK", {maximumFractionDigits: 1}); }
+function maanedensKaaring(maaned, aargang){ return maanedensSpiller.find(k=>k.id === maaned + "_" + normalizeYearValue(aargang)) || null; }
+// Alle kroner, en spiller har vundet - nyeste foerst.
+function maanedensEmblemer(pid){
+  return maanedensSpiller.filter(k=>Array.isArray(k.vindere) && k.vindere.some(v=>v.id === pid))
+    .sort((a, b)=>String(b.maaned).localeCompare(String(a.maaned)));
+}
+function senesteAfgjorteMaaned(){ const m = maanederTilKaaring(iDagISO()); return m.length ? m[m.length - 1] : null; }
+// Kronen ved navnet paa ranglisten: kun for den seneste maaneds vinder(e).
+function erSenesteVinder(pid){
+  const m = senesteAfgjorteMaaned();
+  return !!m && maanedensSpiller.some(k=>k.maaned === m && Array.isArray(k.vindere) && k.vindere.some(v=>v.id === pid));
+}
+function maanedensKort(){
+  const m = senesteAfgjorteMaaned();
+  const naeste = m ? maanedPlus(m, 1) : MAANEDENS_FOERSTE;
+  const valgt = document.getElementById("leaderboardYear")?.value;
+  const aargange = isPlayer()
+    ? (currentPlayerLink ? [normalizeYearValue(currentPlayerLink.year)] : [])
+    : [...new Set(players.map(p=>normalizeYearValue(p.year)))].filter(y=>canAccessYear(y) && (!valgt || valgt === "all" || normalizeYearValue(valgt) === y)).sort();
+  const mig = isPlayer() ? currentPlayerLink?.id : null;
+  let indhold;
+  if(!m){
+    indhold = `<p class="small" style="margin:0">Den første Månedens spiller kåres ${escapeHtml(datoLang(maanedAfgoeres(MAANEDENS_FOERSTE)))} for ${escapeHtml(maanedNavn(MAANEDENS_FOERSTE).toLowerCase())}.</p>`;
+  } else {
+    indhold = `<p class="small" style="margin:0 0 6px"><b>${escapeHtml(maanedNavn(m))}</b></p>` + (aargange.map(y=>{
+      const k = maanedensKaaring(m, y);
+      const hvem = aargange.length > 1 || !isPlayer() ? `<span class="small">${escapeHtml(yearLabel(y))}: </span>` : "";
+      if(!k){
+        const tekst = isPlayer() ? "Kåres, så snart en træner åbner appen." : kanKaareAargang(y) ? "Kåres om lidt." : "Kåres af admin eller en træner, der ser hele årgangen.";
+        return `<div class="maanedrad">${hvem}<span class="small">${tekst}</span></div>`;
+      }
+      const v = Array.isArray(k.vindere) ? k.vindere : [];
+      if(!v.length) return `<div class="maanedrad">${hvem}<span class="small">Ingen vinder i ${escapeHtml(maanedNavn(m).toLowerCase())}.</span></div>`;
+      const navne = v.map(x=>escapeHtml(x.navn || "Ukendt")).join(" og ");
+      const tal = `${v[0].dage} træningsdage · ${minutTekst(v[0].minutter)} min${v.length > 1 ? " · deler prisen" : ""}`;
+      const erMig = mig && v.some(x=>x.id === mig);
+      return `<div class="maanedrad${erMig ? " mig" : ""}">${hvem}<b>${MAANEDENS_IKON} ${navne}</b>${erMig ? " - det er dig!" : ""}<div class="small">${tal}</div></div>`;
+    }).join("") || '<p class="small" style="margin:0">Ingen årgange at vise.</p>');
+  }
+  return `<div class="profilebox maanedkort">
+      <h3 style="margin-top:0">${MAANEDENS_IKON} Månedens spiller</h3>
+      ${indhold}
+      ${m ? `<p class="small" style="margin:8px 0 0">Næste kåring: ${escapeHtml(datoLang(maanedAfgoeres(naeste)))} for ${escapeHtml(maanedNavn(naeste).toLowerCase())}.</p>` : ""}
+      <details class="maanedforklaring"><summary>Sådan bliver man Månedens spiller</summary>
+        ${MAANEDENS_FORKLARING.map(t=>`<p class="small" style="margin:6px 0 0">${escapeHtml(t)}</p>`).join("")}
+      </details>
+    </div>`;
+}
+
 function renderLeaderboard(){
+  const maanedensEl = document.getElementById("maanedensArea");
+  if(maanedensEl){
+    // Foldes forklaringen ud, skal den blive aaben, naar kortet tegnes igen.
+    const aaben = !!maanedensEl.querySelector(".maanedforklaring[open]");
+    maanedensEl.innerHTML = maanedensKort();
+    if(aaben) maanedensEl.querySelector(".maanedforklaring")?.setAttribute("open", "");
+  }
   const scopeArea = document.getElementById("leaderboardScopeArea");
   const periodArea = document.getElementById("leaderboardPeriodArea");
   const filterArea = document.getElementById("leaderboardFilter");
@@ -4039,7 +4125,7 @@ function renderLeaderboard(){
       const medalIcon = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`;
       const me = currentPlayerLink && r.id===currentPlayerLink.id;
       return `<div class="player" style="${me?'background:#ecfdf5;border-radius:12px;padding:6px 10px':''}">
-        <div><b>${medalIcon} ${escapeHtml(r.name||"Ukendt")}</b><div class="small">${tier.icon} ${tier.name} · ${escapeHtml(yearLabel(r.year))}</div></div>
+        <div><b>${medalIcon} ${escapeHtml(r.name||"Ukendt")}${erSenesteVinder(r.id) ? ` <span title="Månedens spiller">${MAANEDENS_IKON}</span>` : ""}</b><div class="small">${tier.icon} ${tier.name} · ${escapeHtml(yearLabel(r.year))}</div></div>
         <div class="pill guld">${r.total} point</div>
       </div>`;
     }).join("") || '<p class="small">Klub-ranglisten er tom endnu. En admin kan bygge den under Admin → "Genopbyg klub-rangliste".</p>';
@@ -4082,7 +4168,7 @@ function renderLeaderboard(){
     const medalIcon = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`;
     const me = isPlayer() && currentPlayerLink && p.id===currentPlayerLink.id;
     return `<div class="player" style="${me?'background:#ecfdf5;border-radius:12px;padding:6px 10px':''}">
-      <div><b>${medalIcon} ${escapeHtml(p.name)}</b><div class="small">${tier.icon} ${tier.name}</div></div>
+      <div><b>${medalIcon} ${escapeHtml(p.name)}${erSenesteVinder(p.id) ? ` <span title="Månedens spiller">${MAANEDENS_IKON}</span>` : ""}</b><div class="small">${tier.icon} ${tier.name}</div></div>
       <div class="pill guld">${periodPoints} point</div>
     </div>`;
   }).join("") || '<p class="small">Ingen spillere endnu.</p>';
@@ -4171,6 +4257,14 @@ function renderPlayerProfile(){
         ${!isPlayer() ? `<button class="btn secondary" onclick="selectProfileForTracking('${p.id}')">Åbn i registrering</button>` : ""}
       </div>
       ${rankBox}
+      <div class="profilebox">
+        <h3>${MAANEDENS_IKON} Månedens spiller</h3>
+        ${(()=>{ const e = maanedensEmblemer(p.id);
+          return e.length
+            ? e.map(k=>{ const v = k.vindere.find(x=>x.id === p.id) || {};
+                return `<div class="historyitem" style="border-top:0;padding:6px 0"><b>${MAANEDENS_IKON} ${escapeHtml(maanedNavn(k.maaned))}</b><div class="small">${v.dage} træningsdage · ${minutTekst(v.minutter)} min${k.vindere.length > 1 ? " · delt" : ""}</div></div>`; }).join("")
+            : `<p class="small">${isPlayer() ? "Ingen endnu. Træn fodteknik mange dage i en måned - så kan det blive dig." : "Ingen endnu."}</p>`; })()}
+      </div>
       ${!medaljer ? "" : `
       <div class="profilebox">
         <h3>Niveauer</h3>
