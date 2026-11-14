@@ -76,6 +76,31 @@ rettelse, en sletning eller en bagudregistrering aldrig efterlade et forkert tal
 sted - og derfor kan en spiller ikke skrive point til sig selv: der er intet pointfelt at
 skrive i. Medaljepoint står på spilleren og kan kun skrives af en træner.
 
+## Fodteknik: regler med dato
+
+Fodteknikkens kategorier, point, tider og kombier ligger i versioner med en dato
+(`FOOTWORK_V1` og `FOOTWORK_KATEGORIER` i `index.html`). Hver dag regnes efter den
+version, der gjaldt den dag, så en dag aldrig skifter point bagud, når en øvelse flyttes
+eller får nye point.
+
+- **Version 1** er reglerne fra før november 2026: Let 2, Mellem 3, Svær 4,
+  jongleringstræning 8, og kombier på tre gennemførelser. Den er frosset.
+- **Version 2** gælder fra `FOOTWORK_V2_FRA`: Starter 2, Let 3, Mellem 4, Svær 5,
+  Grundtræning 5. Kombierne er "samme øvelse 3 gange" (+5) og "én fra hvert niveau" (+7).
+
+**Skiftedatoen** sættes ved at rette én linje i `index.html`:
+`const FOOTWORK_V2_FRA = "ÅÅÅÅ-MM-DD";`. Den må aldrig sættes til en dag før i dag,
+og den må aldrig ændres, når dagen er passeret - begge dele ville give dage, der allerede
+er registreret, nye point. Står den i 2099, gælder version 1 stadig.
+
+Skal noget flyttes igen, laves en version 3 med sin egen dato. Version 1 og 2 røres ikke.
+
+**Koderne skifter aldrig betydning.** En dag gemmes som `{kode: antal}`, og koden bærer
+historikken og instruktionsvideoen. En øvelse omdøbes derfor ved at ændre navnet, ikke
+koden - "V-rul" hedder nu "V-rul yderside" (kode `v`), "V+L rul" hedder "L+V-rul" (kode `k`).
+`tests/logik/fodteknik-v1-reference.mjs` er en frossen kopi af beregningen fra før
+ændringen; migreringstesten kræver, at gamle dage giver præcis samme point som den.
+
 ## Samlinger i Firestore
 
 | Samling | Indhold | Hvem må læse |
