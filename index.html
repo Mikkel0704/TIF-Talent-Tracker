@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.69</title>
+  <title>TIF Talent Tracker v15.70</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -157,7 +157,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.69 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.70 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -420,6 +420,7 @@
       <summary><span>Instruktionsvideoer</span></summary>
       <div class="accordion-body">
         <p class="small">Læg en kort video op til hver øvelse. Spillerne får en "Se video"-knap på øvelsen under Fodteknik, Jonglering og Guides. En øvelse uden video viser ingen knap, så I kan lægge dem op én ad gangen.</p>
+        <p class="small"><b>Fodteknik:</b> en øvelse vises først for spillerne, når den har en video - så snart videoen er lagt op, dukker den op. Har ingen øvelse i en kategori en video, vises hele kategorien. Trænerne ser altid alle øvelser.</p>
         <p class="small"><b>Sådan bliver de gode:</b> 20-40 sekunder, filmet i højformat, højst 100 MB. På iPhone afspilles videoen på flest telefoner, hvis kameraet står til "Mest kompatibel" (Indstillinger → Kamera → Formater).</p>
         <p class="small"><b>Hvem der er med:</b> Videoerne kan ses af alle, der er logget ind i klubben. Den, der viser øvelsen, skal have sagt ja til det - er det et barn, er det forældrene, der siger ja.</p>
         <div id="guideVideoAdminArea"></div>
@@ -564,7 +565,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.69 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.70 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -1077,7 +1078,7 @@ const FOOTWORK_INTRO = {
 };
 const FOOTWORK_GUIDE = {
   1: "<b>\"Fodteknik\":</b> Daglig fodteknik. Tolv korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen, undtagen jongleringstræning, som er 5 minutter og giver flere point. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning.",
-  2: "<b>\"Fodteknik\":</b> Daglig fodteknik med 20 øvelser i fire niveauer - Starter (2 point), Let (3), Mellem (4) og Svær (5) - og Grundtræning (5 point). En niveauøvelse tager 3 × 30 sekunder, en grundtræningsøvelse 5 minutter. Tryk + hver gang en øvelse er lavet. Samme øvelse 3 gange giver +5 i bonus, og én fra hvert niveau giver +7. Træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning."
+  2: "<b>\"Fodteknik\":</b> Daglig fodteknik med øvelser i fire niveauer - Starter (2 point), Let (3), Mellem (4) og Svær (5) - og Grundtræning (5 point). En niveauøvelse tager 3 × 30 sekunder, en grundtræningsøvelse 5 minutter. Tryk + hver gang en øvelse er lavet. Samme øvelse 3 gange giver +5 i bonus, og én fra hvert niveau giver +7. Træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning."
 };
 function footworkTekster(){
   const v = footworkVersion(iDagISO());
@@ -2114,7 +2115,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.69 · ikke logget ind");
+    setSyncStatus("v15.70 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2140,7 +2141,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.69 · bekræft inden I går i gang");
+    setSyncStatus("v15.70 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2148,7 +2149,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.69 · vælg din egen adgangskode");
+    setSyncStatus("v15.70 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2185,9 +2186,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.69 · live database aktiv");
+    setSyncStatus("v15.70 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.69 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.70 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2329,6 +2330,7 @@ function startListeners(){
   if(unsubGuideVideos) unsubGuideVideos();
   unsubGuideVideos = onSnapshot(doc(db, "clubConfig", "guideVideos"), (snap)=>{
     guideVideos = snap.exists() ? snap.data() : {};
+    guideVideosHentet = true;
     guideVideosAendret();
   }, (e)=>console.error("guideVideos listener", e));
 
@@ -2603,7 +2605,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.69 · sletter...");
+  setSyncStatus("v15.70 · sletter...");
   for(const f of files){
     try{ await deleteObject(f); }
     catch(e){ if(e?.code !== "storage/object-not-found") failed.push("videofil " + f.name); }   // allerede vaek er ikke en fejl
@@ -2620,7 +2622,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.69 · live database aktiv");
+  setSyncStatus("v15.70 · live database aktiv");
 
   besked(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -3135,11 +3137,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.69 · migrering færdig");
+    setSyncStatus("v15.70 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.69 · migrering fejlede");
+    setSyncStatus("v15.70 · migrering fejlede");
   }
 }
 
@@ -3314,7 +3316,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.69 · uploader video...");
+    setSyncStatus("v15.70 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -3357,12 +3359,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.69 · live database aktiv");
+    setSyncStatus("v15.70 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.69 · live database aktiv");
+    setSyncStatus("v15.70 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -4299,7 +4301,7 @@ function renderFootwork(){
   if(exArea && exArea.dataset.filled !== tv){
     exArea.innerHTML = footworkGrupper(iDagISO()).map(g=>`
       ${footworkGruppeHoved(g, tekst.version)}
-      ${g.oevelser.map(ex=>`<div class="ladderrow">
+      ${footworkSynlige(g.oevelser).map(ex=>`<div class="ladderrow">
         <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${footworkUdstyrMaerke(ex)}<span class="medalmark">${footworkBlock(ex)} · ${footworkPointsFor(ex)} point</span>
           <div class="ladderstep">${escapeHtml(ex.tekst)}${ex.fokus ? " <i>Fokus: " + escapeHtml(ex.fokus) + "</i>" : ""}</div>${guideVideoKnap("f_" + ex.kode, ex.navn)}</div>
       </div>`).join("")}`).join("")
@@ -4345,7 +4347,7 @@ function renderFootwork(){
   const dagV = footworkVersion(dato);
   const raekker = footworkGrupper(dato).map(g=>`
     ${footworkGruppeHoved(g, dagV)}
-    ${g.oevelser.map(ex=>{
+    ${footworkSynlige(g.oevelser, pid, dato).map(ex=>{
       const n = footworkCount(pid, dato, ex.kode);
       return `<div class="ladderrow ${n?"done":""}">
         <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${footworkUdstyrMaerke(ex)}${n ? `<span class="medalmark">${n * footworkPointsPaa(ex, dato)} point</span>` : ""}
@@ -4396,6 +4398,18 @@ function renderFootwork(){
     </div>`;
 }
 
+// SKJULTE OEVELSER: en oevelse vises foerst for spilleren, naar den har en instruktionsvideo,
+// og dukker op af sig selv, naar en video laegges op. To undtagelser:
+//  - har barnet registreret oevelsen paa den viste dag, vises den - point maa aldrig gemme sig,
+//    og en fejlregistrering skal kunne rettes;
+//  - har INGEN oevelse i en kategori en video, vises hele kategorien - ellers kunne "én fra
+//    hvert niveau" ikke naas, og en klub uden videoer ville have en tom side.
+// Traeneren og Admin ser altid alle oevelser.
+function footworkHarVideo(ex){ return !!guideVideoFor("f_" + ex.kode); }
+function footworkSynlige(oevelser, pid, dato){
+  if(!guideVideosHentet || !oevelser.some(footworkHarVideo)) return oevelser;
+  return oevelser.filter(ex=>footworkHarVideo(ex) || (pid && dato && footworkCount(pid, dato, ex.kode) > 0));
+}
 // Dagens point delt i "for øvelserne" og "i bonus". En gammel dag vises som foer.
 function footworkDagOpsummering(dato, dagAntal, grundPoint, kombier, version){
   if(version === 1){
@@ -4449,6 +4463,9 @@ function footworkKombiBlok(counts, dagAntal, kombier, version){
 // ligger videoer, og ingen bruger mobildata uden at have bedt om det.
 const GUIDE_VIDEO_MAX_BYTES = 100 * 1024 * 1024;
 let guideVideos = {};
+// Foerst naar listen over videoer er hentet, skjules oevelser uden video. Indtil da - og
+// hvis den ikke kan hentes - vises alle, saa siden aldrig staar tom.
+let guideVideosHentet = false;
 let guideUpload = null;          // {key, pct}, mens en upload koerer
 let guideVideoFokusFoer = null;
 

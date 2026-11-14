@@ -96,7 +96,7 @@ t("indendørs-teksten lover ikke længere 2 × 2 meter til ALLE øvelser", /kegl
 t("introen nævner de fire niveauer og grundtræning", /Starter, Let, Mellem og Svær - og Grundtræning/.test(intro));
 await a.page.click("#tab-guide"); await a.page.waitForTimeout(200);
 const guide = await a.page.evaluate(() => document.getElementById("guideFodteknik")?.innerText || "");
-t("Guides beskriver de nye regler", /20 øvelser i fire niveauer/.test(guide) && /\+5/.test(guide) && /\+7/.test(guide), guide.slice(0, 120));
+t("Guides beskriver de nye regler", /øvelser i fire niveauer/.test(guide) && /\+5/.test(guide) && /\+7/.test(guide), guide.slice(0, 120));
 await a.page.click("#tab-footwork"); await a.page.waitForTimeout(150);
 const side = await tekst(a, "#footwork");
 t("siden bruger ikke ordene 'gennemførelse' eller 'kombi' over for barnet", !/gennemførelse|kombi/i.test(side.replace(/Tilføj en gennemførelse|Fjern en gennemførelse/g, "")),
