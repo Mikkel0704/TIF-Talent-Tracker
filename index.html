@@ -81,6 +81,7 @@
     .phasehead{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--maroon);margin:14px 0 6px}
     .phasehead span{display:block;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);font-size:12.5px;margin-top:2px}
     .medalmark{display:inline-block;font-size:11px;font-weight:700;color:var(--blue);background:#dbe9fa;border-radius:999px;padding:1px 7px;margin-left:6px}
+    .medalmark.udstyr{color:#7a4a00;background:#fdecc8}
     .ladderwrap{display:grid;gap:14px}
     @media(min-width:760px){.ladderwrap{grid-template-columns:1fr 1fr}}
     .daybar{display:flex;gap:6px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch}
@@ -997,15 +998,35 @@ const FOOTWORK = [
   {id:"toetaps",    kode:"t", navn:"Toe-taps",           kategori:"starter", tekst:"Skiftevis tæer let på toppen af bolden.", fokus:"Let på fødderne, højt tempo."},
   {id:"saalerul",   kode:"s", navn:"Sålerul",            kategori:"starter", tekst:"Rul bolden på tværs med sålen, skift fod.", fokus:"Kontrol, bolden tæt."},
   {id:"trommestik", kode:"d", navn:"Trommestikker",      kategori:"starter", tekst:"Spil bolden mellem indersiderne.", fokus:"Små berøringer, bøjede knæ."},
-  {id:"vrul",       kode:"v", navn:"V-rul yderside",     kategori:"mellem",  tekst:"Træk bolden tilbage med sålen, og spil den frem med indersiden af samme fod. Skift fod."},
+  {id:"vrul",       kode:"v", navn:"V-rul yderside",     kategori:"mellem",  tekst:"Træk bolden skråt tilbage med sålen, og skub den skråt frem til den anden side med ydersiden af samme fod. Gentag med det andet ben, så bolden bevæger sig fra side til side og tegner et V."},
   {id:"traekskub",  kode:"p", navn:"Træk-skub",          kategori:"let",     tekst:"Træk bolden tilbage med sålen, og skub den frem igen. Skift fod."},
   {id:"stepover",   kode:"o", navn:"Step-over",          kategori:"starter", tekst:"Før foden rundt om bolden uden at røre den. Skiftevis."},
   {id:"yderstop",   kode:"y", navn:"Yder-yder-stop",     kategori:"let",     tekst:"Skub bolden to gange med ydersiden af foden, og stop den med indersiden. Skift fod."},
-  {id:"jongler",    kode:"j", navn:"Jongleringstræning", kategori:"grund",   varighed:"5 minutter", tekst:"Fri jonglering i 5 minutter. Saml bolden op og fortsæt, hver gang den rammer jorden.", fokus:"Dette er den daglige øvelse - ikke Jongleringsstigen. Her er der ingen trin at nå, og det gør ikke noget, at bolden falder. Det er forsøgene, der tæller."},
+  {id:"jongler",    kode:"j", navn:"Jongleringstræning", kategori:"grund",   varighed:"5 minutter", tekst:"Fri jonglering i 5 minutter. Saml bolden op og fortsæt, hver gang den rammer jorden.", fokus:"Dette er den daglige øvelse – ikke Jongleringsstigen. Her er der ingen trin at nå, og det gør ikke noget, at bolden falder. Det er forsøgene, der tæller."},
   {id:"lrul",       kode:"l", navn:"L-rul",              kategori:"mellem",  tekst:"Træk bolden tilbage med sålen, og spil den bag om standbenet med indersiden."},
-  {id:"vlrul",      kode:"k", navn:"L+V-rul",            kategori:"svaer",   tekst:"Lav et V-rul og lige efter et L-rul i ét flow, uden at sætte foden fra dig imellem. Skift fod."},
+  {id:"vlrul",      kode:"k", navn:"L+V-rul",            kategori:"svaer",   tekst:"Lav et L-rul og lige efter et V-rul (inderside) i ét flow, uden at sætte foden fra dig imellem. Skift fod."},
   {id:"croqueta",   kode:"c", navn:"Croqueta",           kategori:"svaer",   tekst:"Flyt bolden fra inderside til inderside med et lille sideskridt."},
-  {id:"square",     kode:"q", navn:"Square",             kategori:"mellem",  tekst:"Før bolden rundt i et kvadrat med sålen (frem, til siden, tilbage, til siden). Skift fod."}
+  {id:"square",     kode:"q", navn:"Square",             kategori:"mellem",  tekst:"Før bolden rundt i et kvadrat med sålen (frem, til siden, tilbage, til siden). Skift fod."},
+  // Nye i version 2. De staar BAGERST med vilje: de tolv ovenfor beholder deres plads i
+  // listen, saa version 1-beregningen af gamle dage ser praecis ud, som den altid har.
+  // Den raekkefoelge, oevelserne VISES i, staar i FOOTWORK_VISNING nedenfor.
+  // udstyr: vises paa oevelsen, saa barnet kan se, hvad der skal til, foer det gaar i gang.
+  {id:"toetapskryds", kode:"x", navn:"Toe-taps med kryds", kategori:"let",    tekst:"Tap bolden med højre fod. Træd til venstre for bolden, og tap med venstre fod bag om højre ben. Træd tilbage, og tap med venstre fod. Træd til højre for bolden, og tap med højre fod bag om venstre ben. Gentag."},
+  {id:"trommesaal",   kode:"r", navn:"Trommestikker + sålerul", kategori:"let", tekst:"Lav 2 trommestikker, og rul bolden til siden med sålen. Lav 2 trommestikker igen, og rul bolden tilbage med sålen."},
+  {id:"vrulinder",    kode:"i", navn:"V-rul inderside",    kategori:"mellem", tekst:"Træk bolden skråt tilbage med sålen, og skub den skråt frem til den anden side med indersiden af samme fod. Gentag med det andet ben, så bolden bevæger sig fra side til side og tegner et V."},
+  {id:"erul",         kode:"e", navn:"E-rul",              kategori:"svaer",  udstyr:"2 kegler", tekst:"Rul bolden med sålen, så den tegner et E mellem to kegler. Arbejd dig fra side til side mellem keglerne.", fokus:"Bolden tæt ved foden, også når du skifter retning."},
+  {id:"stepovervrul", kode:"w", navn:"Step-over + V-rul",  kategori:"svaer",  tekst:"Lav et step-over, og skub bolden frem med den fod, der lavede step-over. Fortsæt direkte med et V-rul (inderside) med samme fod. Skift fod."},
+  {id:"murafl",       kode:"m", navn:"Aflevering mod mur", kategori:"grund",  udstyr:"mur", tekst:"Spil almindelige indersideafleveringer mod muren, skiftevis med højre og venstre ben. Start med at tæmme bolden mellem hver aflevering. Øv dig derefter i at sætte tempoet op og i at spille direkte."},
+  {id:"murtraek",     kode:"n", navn:"Inderside med træk mod mur", kategori:"grund", udstyr:"mur", tekst:"Spil en indersideaflevering mod muren. Når bolden kommer tilbage, trækker du den til siden med indersiden eller sålen og afleverer mod muren med det andet ben. Gentag til den anden side."},
+  {id:"ottetal",      kode:"g", navn:"8-tal mellem kegler", kategori:"grund", udstyr:"2 kegler", tekst:"Stil to kegler med 3 meters afstand. Dribl hurtigst muligt i et 8-tal mellem keglerne. Skift retning undervejs."}
+];
+// Den raekkefoelge, oevelserne vises i inden for hver kategori (version 2).
+const FOOTWORK_VISNING = [
+  "toetaps","saalerul","trommestik","stepover",
+  "toetapskryds","traekskub","yderstop","trommesaal",
+  "vrulinder","vrul","lrul","square",
+  "erul","vlrul","stepovervrul","croqueta",
+  "jongler","murafl","murtraek","ottetal"
 ];
 const FOOTWORK_RULES = [
   "1 gennemførelse = øvelsen lavet i den tid, der står på den. De elleve gulvøvelser tager 3 × 30 sekunder. Der registreres kun, at den er gennemført - ikke hvor godt.",
@@ -1065,14 +1086,25 @@ function footworkPointsPaa(ex, dato){
 }
 // Point efter de regler, der gaelder i dag - til oversigter, der ikke handler om én bestemt dag.
 function footworkPointsFor(ex, dato){ return footworkPointsPaa(ex, dato || iDagISO()); }
+// Alle oevelser i den raekkefoelge, de vises i. En oevelse, der mangler i FOOTWORK_VISNING,
+// kommer sidst i stedet for at forsvinde.
+function footworkIVisningsorden(){
+  const plads = id => { const i = FOOTWORK_VISNING.indexOf(id); return i < 0 ? 999 : i; };
+  return FOOTWORK.slice().sort((a, b)=>plads(a.id) - plads(b.id));
+}
+// "Kræver 2 kegler" / "Kræver mur" - vises paa oevelsen.
+function footworkUdstyrMaerke(ex){
+  return ex?.udstyr ? `<span class="medalmark udstyr">Kræver ${escapeHtml(ex.udstyr)}</span>` : "";
+}
 // Grupperne paa dagen, i den raekkefoelge de vises: version 1 har tre, version 2 har fem.
 function footworkGrupper(dato){
   if(footworkVersion(dato) === 1){
     return ["let","mellem","svaer"].map(g=>({noegle: g, navn: FOOTWORK_V1.navne[g],
       oevelser: FOOTWORK.filter(ex=>FOOTWORK_V1.grad[ex.kode] === g)}));
   }
+  const ordnet = footworkIVisningsorden();
   return FOOTWORK_KATEGORI_ORDEN.map(k=>({noegle: k, navn: FOOTWORK_KATEGORIER[k].navn,
-    oevelser: FOOTWORK.filter(ex=>ex.kategori === k)})).filter(g=>g.oevelser.length);
+    oevelser: ordnet.filter(ex=>ex.kategori === k)})).filter(g=>g.oevelser.length);
 }
 // NB: hedder ikke det samme som traenerens footworkKort i renderTracking. De to
 // kolliderede, og en lokal const ville skygge for den her funktion inde i den
@@ -2549,14 +2581,14 @@ function renderTracking(){
     ${(()=>{
       const totals = footworkTotals(p.id), split = footworkGradeSplit(p.id);
       if(!split.i_alt) return "";
-      const aldrig = FOOTWORK.filter((ex,i)=>!totals[i].antal);
+      const aldrig = footworkIVisningsorden().filter(ex=>!totals[FOOTWORK.indexOf(ex)].antal);
       return `<div class="tablewrap" style="margin-bottom:12px"><table>
         <tr><th>Øvelse</th><th>I alt</th><th>Sidst</th></tr>
-        ${FOOTWORK.map((ex, i)=>`<tr${totals[i].antal ? "" : ' style="opacity:.55"'}>
+        ${footworkIVisningsorden().map(ex=>{ const i = FOOTWORK.indexOf(ex); return `<tr${totals[i].antal ? "" : ' style="opacity:.55"'}>
           <td>${escapeHtml(ex.navn)} <span class="small">· ${FOOTWORK_KATEGORIER[ex.kategori].navn.toLowerCase()}</span></td>
           <td>${totals[i].antal || "-"}</td>
           <td class="small">${totals[i].sidst ? escapeHtml(datoTekst(totals[i].sidst)) : "aldrig"}</td>
-        </tr>`).join("")}
+        </tr>`; }).join("")}
       </table></div>
       <p class="small">${split.i_alt} gennemførelser i alt · ${FOOTWORK_KATEGORI_ORDEN.map(k=>`${FOOTWORK_KATEGORIER[k].navn.toLowerCase()} ${split.pct[k]}%`).join(" · ")}${
         aldrig.length ? ` · <b>aldrig prøvet:</b> ${aldrig.map(ex=>escapeHtml(ex.navn)).join(", ")}` : " · har prøvet alle øvelserne"}</p>`;
@@ -4115,7 +4147,7 @@ function renderFootwork(){
     exArea.innerHTML = footworkGrupper(iDagISO()).map(g=>`
       <div class="phasehead">${escapeHtml(g.navn)}</div>
       ${g.oevelser.map(ex=>`<div class="ladderrow">
-        <div class="laddermid"><b>${escapeHtml(ex.navn)}</b><span class="medalmark">${footworkBlock(ex)} · ${footworkPointsFor(ex)} point</span>
+        <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${footworkUdstyrMaerke(ex)}<span class="medalmark">${footworkBlock(ex)} · ${footworkPointsFor(ex)} point</span>
           <div class="ladderstep">${escapeHtml(ex.tekst)}${ex.fokus ? " <i>Fokus: " + escapeHtml(ex.fokus) + "</i>" : ""}</div>${guideVideoKnap("f_" + ex.kode, ex.navn)}</div>
       </div>`).join("")}`).join("")
       + `<div class="phasehead">Kombi-bonus<span>Tre gennemførelser fra samme dag</span></div>`
@@ -4162,7 +4194,7 @@ function renderFootwork(){
     ${g.oevelser.map(ex=>{
       const n = footworkCount(pid, dato, ex.kode);
       return `<div class="ladderrow ${n?"done":""}">
-        <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${n ? `<span class="medalmark">${n * footworkPointsPaa(ex, dato)} point</span>` : ""}
+        <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${footworkUdstyrMaerke(ex)}${n ? `<span class="medalmark">${n * footworkPointsPaa(ex, dato)} point</span>` : ""}
           <div class="ladderstep">${footworkBlock(ex)} · ${footworkPointsPaa(ex, dato)} point · ${escapeHtml(ex.tekst)}</div>${guideVideoKnap("f_" + ex.kode, ex.navn)}</div>
         ${joker !== "approved" ? `<div class="counter">
           <button type="button" onclick="registerFootwork('${ex.kode}',-1)" ${n?"":"disabled"} aria-label="Fjern en gennemførelse af ${escapeHtml(ex.navn)}">−</button>
@@ -4237,7 +4269,7 @@ let guideVideoFokusFoer = null;
 
 function guideVideoPladser(){
   return [
-    {gruppe:"Fodteknik",         pladser: FOOTWORK.map(ex=>({key:"f_" + ex.kode, navn: ex.navn}))},
+    {gruppe:"Fodteknik",         pladser: footworkIVisningsorden().map(ex=>({key:"f_" + ex.kode, navn: ex.navn}))},
     {gruppe:"Jongleringstricks", pladser: JUGGLE_TRICKS.map(t=>({key:"t_" + t.id, navn: t.navn}))},
     {gruppe:"Talentmærket",      pladser: exercises.map((ex, i)=>({key:"m_" + i, navn: ex}))}
   ];

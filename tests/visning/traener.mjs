@@ -44,7 +44,7 @@ const r = await page.evaluate(()=>({
 let ok=0,d=0; const t=(n,b)=>{b?(ok++,console.log("  ok   "+n)):(d++,console.log("  FEJL  "+n));};
 console.log("\nTrænerens øvelsesoversigt i browser");
 t("ingen JS-fejl", fejl.length===0); if(fejl.length) console.log("   "+fejl.join("\n   "));
-t("en række pr. øvelse plus overskrift", r.raekker === 13);
+t("en række pr. øvelse plus overskrift (20 øvelser)", r.raekker === 21);
 t("toe-taps er lagt sammen til 7", /Toe-taps[\s\S]{0,40}7/.test(r.tekst));
 t("en øvelse der aldrig er lavet står som 'aldrig'", /aldrig/.test(r.tekst));
 t("fordelingen vises", /let \d+% · mellem \d+% · svær \d+%/.test(r.tekst));

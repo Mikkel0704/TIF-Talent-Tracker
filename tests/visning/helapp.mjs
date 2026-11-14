@@ -98,7 +98,7 @@ const raekkeNavne = grad => a.page.evaluate(g => { const hoved = [...document.qu
 t("Yder-yder-stop står under Mellem", (await raekkeNavne("Mellem")).includes("Yder-yder-stop"));
 t("L+V-rul står under Svær", (await raekkeNavne("Svær")).includes("L+V-rul"));
 t("og begge viser deres takst og tekst", await a.page.evaluate(() => { const r = n => [...document.querySelectorAll("#footworkArea .ladderrow")].find(x => x.querySelector("b").textContent === n)?.textContent || "";
-  return /3 point/.test(r("Yder-yder-stop")) && /ydersiden/.test(r("Yder-yder-stop")) && /4 point/.test(r("L+V-rul")) && /V-rul og lige efter et L-rul/.test(r("L+V-rul")); }));
+  return /3 point/.test(r("Yder-yder-stop")) && /ydersiden/.test(r("Yder-yder-stop")) && /4 point/.test(r("L+V-rul")) && /L-rul og lige efter et V-rul/.test(r("L+V-rul")); }));
 await a.page.evaluate(() => { window.__skrivninger.length = 0; });
 await a.page.click('#footworkArea .counter button[aria-label^="Tilføj en gennemførelse af Yder-yder-stop"]');
 await a.page.waitForTimeout(300);
@@ -426,7 +426,7 @@ const vaelgFil = async (a, navn, fil) => {
 a = await start("u-admin");
 await a.page.evaluate(() => { window.__maerker = { admin: true }; });
 await aabnAdmin(a);
-t("alle 23 pladser står der", (await a.page.evaluate(() => document.querySelectorAll("#guideVideoAdminArea .coachrow").length)) === 23);
+t("alle 31 pladser står der (20 fodteknik, 6 tricks, 5 til Talentmærket)", (await a.page.evaluate(() => document.querySelectorAll("#guideVideoAdminArea .coachrow").length)) === 31);
 t("en tom plads har kun 'Læg op'", JSON.stringify((await raekke(a, "Toe-taps"))?.knapper) === JSON.stringify(["Læg op"]));
 await vaelgFil(a, "Toe-taps", klip.pathname);
 w = await a.skrivninger();

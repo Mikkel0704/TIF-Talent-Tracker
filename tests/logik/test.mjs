@@ -49,7 +49,7 @@ t("3 forskellige mellem", K.footworkBoost(i("vrul"), i("traekskub"), i("stepover
 t("2 mellem + 1 svær", K.footworkBoost(i("vrul"), i("traekskub"), i("lrul")), 5);
 t("1 mellem + 2 svære", K.footworkBoost(i("vrul"), i("lrul"), i("croqueta")), 5);
 t("3 forskellige svære", K.footworkBoost(i("lrul"), i("croqueta"), i("square")), 8);
-t("version 1: point pr. sværhedsgrad - jonglering har sin egen takst", K.FOOTWORK.map(x=>K.footworkPointsPaa(x, V1DAG)), [2,2,2,3,3,3,3,8,4,4,4,4]);
+t("version 1: point pr. sværhedsgrad - jonglering har sin egen takst, og de nye øvelser fandtes ikke", K.FOOTWORK.map(x=>K.footworkPointsPaa(x, V1DAG)), [2,2,2,3,3,3,3,8,4,4,4,4,0,0,0,0,0,0,0,0]);
 
 afsnit("Jongleringstræning har sin egen blok og takst");
 const jong = K.footworkEx("jongler");
@@ -151,9 +151,9 @@ t("allround med begge nye: 3 + 4 + 2 + 5", K.footworkDayPoints(PID, V1DAG), 3 + 
 saet({dage: {[V1DAG]: {[kode("lrul")]: 1, [kode("vlrul")]: 1, [kode("croqueta")]: 1}}});
 t("tre svære, hvoraf den ene er V+L rul: 12 + 8", K.footworkDayPoints(PID, V1DAG), 3*4 + 8);
 t("aktive dage tæller en dag med kun de nye", (saet({dage: {[V1DAG]: {[kode("vlrul")]: 1}}}), K.footworkActiveDays(PID)), [V1DAG]);
-t("totalerne tæller de nye øvelser, og alle tolv er med",
+t("totalerne tæller de nye øvelser, og alle tyve er med",
   (saet({dage: {[V1DAG]: {[kode("yderstop")]: 2}, [d(-1)]: {[kode("yderstop")]: 1, [kode("vlrul")]: 4}}}),
-   (()=>{ const x = K.footworkTotals(PID); return [x.length, x[K.FOOTWORK.findIndex(e=>e.id==="yderstop")].antal, x[K.FOOTWORK.findIndex(e=>e.id==="vlrul")].antal]; })()), [12, 3, 4]);
+   (()=>{ const x = K.footworkTotals(PID); return [x.length, x[K.FOOTWORK.findIndex(e=>e.id==="yderstop")].antal, x[K.FOOTWORK.findIndex(e=>e.id==="vlrul")].antal]; })()), [20, 3, 4]);
 // Den udtømmende søgning er eksponentiel i antallet af øvelser. Med tolv øvelser er den
 // værste dag 12 × 3 = 36 gennemførelser - og den skal stadig svare hurtigt, og ikke give
 // mindre end nødløsningen.
