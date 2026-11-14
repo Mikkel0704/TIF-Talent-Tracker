@@ -80,6 +80,12 @@
     .laddergate{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;margin-bottom:5px;border:1px dashed var(--maroon);background:#fdf3f7}
     .phasehead{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--maroon);margin:14px 0 6px}
     .phasehead span{display:block;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);font-size:12.5px;margin-top:2px}
+    .phasehead.sektion{border-top:2px solid var(--line);padding-top:16px;margin-top:24px}
+    .dagpoint{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+    .dagpoint span{background:var(--soft,#f4f1f2);border-radius:10px;padding:6px 10px;font-size:14px}
+    .dagpoint b{font-size:17px}
+    .kombiliste{margin:10px 0 0;padding:0;list-style:none}
+    .kombiliste li{font-size:13.5px;margin:0 0 4px}
     .medalmark{display:inline-block;font-size:11px;font-weight:700;color:var(--blue);background:#dbe9fa;border-radius:999px;padding:1px 7px;margin-left:6px}
     .medalmark.udstyr{color:#7a4a00;background:#fdecc8}
     .ladderwrap{display:grid;gap:14px}
@@ -295,7 +301,7 @@
 <section id="footwork" class="page hidden">
   <div class="card">
     <h2>Daglig fodteknik</h2>
-    <p class="small">Korte øvelser med bolden - 3 × 30 sekunder ad gangen, bortset fra jongleringstræning, som er 5 minutter. Det kan laves indendørs på ca. 2 × 2 meter. Hver gennemførelse giver point, og tre om dagen kan give bonus oveni. Her er ingen medaljer - der er en daglig vane.</p>
+    <p class="small" id="footworkIntro">Korte øvelser med bolden - 3 × 30 sekunder ad gangen, bortset fra jongleringstræning, som er 5 minutter. Det kan laves indendørs på ca. 2 × 2 meter. Hver gennemførelse giver point, og tre om dagen kan give bonus oveni. Her er ingen medaljer - der er en daglig vane.</p>
     <div id="footworkArea"></div>
     <details class="accordion" style="margin-top:14px">
       <summary><span>Reglerne</span></summary>
@@ -346,7 +352,7 @@
       <p class="small" id="guideIntroOn">Kort fortalt er der tre slags træning i appen: <b>Talentmærket</b>, hvor træneren bedømmer og der er medaljer på spil · <b>Fodteknik</b> og <b>Jonglering</b>, som I selv registrerer hjemmefra og får point for · og <b>Duel</b>, hvor I måler jer mod en holdkammerat.</p>
       <p class="small hidden" id="guideIntroOff">Jeres årgang kører <b>hjemmetræningen</b>: <b>Fodteknik</b> og <b>Jonglering</b>, som I selv registrerer og får point for, og <b>Duel</b>, hvor I måler jer mod en holdkammerat. Talentmærket med medaljer er ikke slået til på jeres årgang endnu.</p>
       <p id="guideTalentIntro"><b>"Talentmærket":</b> Her er medaljerne. I ser øvelserne for jeres niveau, optager en kort video, hvor I udfører øvelsen, og uploader den. Træneren godkender eller afviser, og I kan følge status direkte under øvelsen. Det er den eneste del af appen, der giver bronze, sølv og guld.</p>
-      <p><b>"Fodteknik":</b> Daglig fodteknik. Tolv korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen, undtagen jongleringstræning, som er 5 minutter og giver flere point. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning.</p>
+      <p id="guideFodteknik"><b>"Fodteknik":</b> Daglig fodteknik. Tolv korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen, undtagen jongleringstræning, som er 5 minutter og giver flere point. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning.</p>
       <p><b>"Jonglering":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. I får lige så mange point, som I jonglerer - 40 jongleringer giver 40 point - og med det dårlige ben tæller det dobbelt. Også her er det på tillid, uden video. Stigen giver point, men ingen medaljer.</p>
       <p><b>"Duel":</b> Udfordr en holdkammerat i en fri duel, som "flest jongleringer" eller "fedeste trick" - eller, hvis jeres årgang kører Talentmærket, i en af øvelserne derfra. Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
       <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Point fra alle delene tæller med.</p>
@@ -1028,7 +1034,20 @@ const FOOTWORK_VISNING = [
   "erul","vlrul","stepovervrul","croqueta",
   "jongler","murafl","murtraek","ottetal"
 ];
-const FOOTWORK_RULES = [
+// TEKSTERNE foelger versionen, der gaelder I DAG: indtil skiftedatoen staar de gamle regler
+// i appen, fra skiftedatoen de nye. Version 2 er skrevet til boern omkring 9 aar.
+const FOOTWORK_RULES_V2 = [
+  "Hver gang du har lavet en øvelse færdig, trykker du +.",
+  "Starter, Let, Mellem og Svær: lav øvelsen 3 gange i 30 sekunder.",
+  "Grundtræning: lav øvelsen i 5 minutter.",
+  "Point hver gang: Starter 2 · Let 3 · Mellem 4 · Svær 5 · Grundtræning 5. Tallet står også på øvelsen.",
+  "Du må lave den samme øvelse flere gange, og så mange øvelser du vil.",
+  "Du kan få bonus oveni - se \"Bonus\" under \"Øvelserne - hvad er hvad\".",
+  "En dag tæller med i din streak, hvis du laver mindst én øvelse - eller klarer et trin på Jongleringsstigen.",
+  "Du kan skrive træning ind for op til 14 dage siden. Ældre dage kan kun din træner rette.",
+  "Din træner kan bede dig vise øvelserne til træning."
+];
+const FOOTWORK_RULES_V1 = [
   "1 gennemførelse = øvelsen lavet i den tid, der står på den. De elleve gulvøvelser tager 3 × 30 sekunder. Der registreres kun, at den er gennemført - ikke hvor godt.",
   "Jongleringstræning er den ene undtagelse: den er 5 minutter i træk, fordi bolden falder undervejs, og 30 sekunder mest ville blive til at samle op og stille sig til rette.",
   "Du må lave den samme øvelse flere gange om dagen, og så mange øvelser du vil.",
@@ -1039,16 +1058,44 @@ const FOOTWORK_RULES = [
   "Du kan registrere op til 14 dage tilbage. Ældre dage kan kun rettes af en træner.",
   "Træneren kan tage stikprøver til træning og rette, hvis tallene ikke holder."
 ];
-const FOOTWORK_INDOOR = [
+const FOOTWORK_INDOOR_V2 = [
+  "Brug en lettere bold eller en futsalbold (str. 3-4).",
+  "Træn på bare fødder eller i indendørssko på et gulv, der ikke er glat - ikke i sokker.",
+  "Flyt ting væk, så der er 1 meter fri plads rundt om dig.",
+  "De fleste øvelser kan laves på ca. 2 × 2 meter. Øvelser med kegler eller mur skal bruge mere plads - det står på øvelsen."
+];
+const FOOTWORK_INDOOR_V1 = [
   "Brug en lettere bold eller en futsalbold (str. 3-4).",
   "Træn på bare fødder eller i indendørssko på et skridsikkert gulv - ikke i sokker.",
   "Fjern ting inden for 1 meter.",
   "Der er plads nok: ca. 2 × 2 meter er rigeligt til alle øvelserne."
 ];
+// Introteksterne paa Fodteknik-siden og under Guides.
+const FOOTWORK_INTRO = {
+  1: "Korte øvelser med bolden - 3 × 30 sekunder ad gangen, bortset fra jongleringstræning, som er 5 minutter. Det kan laves indendørs på ca. 2 × 2 meter. Hver gennemførelse giver point, og tre om dagen kan give bonus oveni. Her er ingen medaljer - der er en daglig vane.",
+  2: "Træn med bolden derhjemme. Der er fire niveauer - Starter, Let, Mellem og Svær - og Grundtræning. Lav en øvelse, og tryk + når du er færdig. Hver gang giver point, og nogle øvelser sammen giver bonus. Her er ingen medaljer - det handler om at træne lidt hver dag."
+};
+const FOOTWORK_GUIDE = {
+  1: "<b>\"Fodteknik\":</b> Daglig fodteknik. Tolv korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen, undtagen jongleringstræning, som er 5 minutter og giver flere point. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning.",
+  2: "<b>\"Fodteknik\":</b> Daglig fodteknik med 20 øvelser i fire niveauer - Starter (2 point), Let (3), Mellem (4) og Svær (5) - og Grundtræning (5 point). En niveauøvelse tager 3 × 30 sekunder, en grundtræningsøvelse 5 minutter. Tryk + hver gang en øvelse er lavet. Samme øvelse 3 gange giver +5 i bonus, og én fra hvert niveau giver +7. Træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning."
+};
+function footworkTekster(){
+  const v = footworkVersion(iDagISO());
+  return v === 1
+    ? {version: 1, regler: FOOTWORK_RULES_V1, indendoers: FOOTWORK_INDOOR_V1, kombi: FOOTWORK_COMBO_TEXT_V1, intro: FOOTWORK_INTRO[1], guide: FOOTWORK_GUIDE[1]}
+    : {version: 2, regler: FOOTWORK_RULES_V2, indendoers: FOOTWORK_INDOOR_V2, kombi: FOOTWORK_COMBO_TEXT_V2, intro: FOOTWORK_INTRO[2], guide: FOOTWORK_GUIDE[2]};
+}
 // Kumulativ bonus: hver milepael udloeser sit eget tal. 7 dage giver altsaa 5+5+10.
 // Et brud nulstiller, og bonusserne kan optjenes forfra - det er vanen, der belønnes.
 const FOOTWORK_STREAK = [[3,5],[5,5],[7,10],[10,10],[15,15],[20,15],[25,20],[30,25],[40,30],[50,40],[75,50],[100,75],[125,100]];
-const FOOTWORK_COMBO_TEXT = [
+const FOOTWORK_COMBO_TEXT_V2 = [
+  "Samme øvelse 3 gange: +5. Det gælder alle øvelser - også grundtræning.",
+  "Én øvelse fra hvert niveau - Starter, Let, Mellem og Svær: +7. Grundtræning tæller ikke med her.",
+  "Du kan få mange bonusser på én dag. Men hver gang du har lavet en øvelse, kan den kun bruges i én bonus.",
+  "V-rul inderside og V-rul yderside er to forskellige øvelser.",
+  "Appen finder selv den måde, der giver dig flest point. Du skal ikke regne."
+];
+const FOOTWORK_COMBO_TEXT_V1 = [
   "3 gange den samme øvelse: +2",
   "3 forskellige, mindst én let: +3",
   "Allround - 1 let + 1 mellem + 1 svær: +5",
@@ -1091,6 +1138,15 @@ function footworkPointsFor(ex, dato){ return footworkPointsPaa(ex, dato || iDagI
 function footworkIVisningsorden(){
   const plads = id => { const i = FOOTWORK_VISNING.indexOf(id); return i < 0 ? 999 : i; };
   return FOOTWORK.slice().sort((a, b)=>plads(a.id) - plads(b.id));
+}
+// Overskriften paa en gruppe. I version 2 staar point og tid i overskriften, og
+// Grundtraening faar sin egen sektion - den er ikke et niveau.
+function footworkGruppeHoved(g, version){
+  if(version === 1) return `<div class="phasehead">${escapeHtml(g.navn)}</div>`;
+  const k = FOOTWORK_KATEGORIER[g.noegle];
+  const under = `${k.point} point · ${k.krav} hver gang`;
+  if(!k.niveau) return `<div class="phasehead sektion">${escapeHtml(g.navn)}<span>${escapeHtml(under)}. Længere træning - den tæller ikke som et niveau.</span></div>`;
+  return `<div class="phasehead">${escapeHtml(g.navn)}<span>${escapeHtml(under)}</span></div>`;
 }
 // "Kræver 2 kegler" / "Kræver mur" - vises paa oevelsen.
 function footworkUdstyrMaerke(ex){
@@ -4221,28 +4277,35 @@ function renderFootwork(){
   const area = document.getElementById("footworkArea");
   if(!area) return;
 
+  // Teksterne tegnes kun igen, naar versionen skifter - ogsaa hvis skiftedatoen passeres,
+  // mens appen staar aaben. (Mærket er versionen, ikke bare "udfyldt".)
+  const tekst = footworkTekster(), tv = String(tekst.version);
+  const intro = document.getElementById("footworkIntro");
+  if(intro && intro.dataset.v !== tv){ intro.textContent = tekst.intro; intro.dataset.v = tv; }
+  const guide = document.getElementById("guideFodteknik");
+  if(guide && guide.dataset.v !== tv){ guide.innerHTML = tekst.guide; guide.dataset.v = tv; }   // fast tekst fra koden, intet brugerindhold
   const statisk = [
-    ["footworkRulesArea", FOOTWORK_RULES],
-    ["footworkIndoorArea", FOOTWORK_INDOOR]
+    ["footworkRulesArea", tekst.regler],
+    ["footworkIndoorArea", tekst.indendoers]
   ];
   statisk.forEach(([id, linjer])=>{
     const el = document.getElementById(id);
-    if(el && !el.dataset.filled){
+    if(el && el.dataset.filled !== tv){
       el.innerHTML = linjer.map(t=>`<p class="small" style="margin:0 0 8px">${escapeHtml(t)}</p>`).join("");
-      el.dataset.filled = "1";
+      el.dataset.filled = tv;
     }
   });
   const exArea = document.getElementById("footworkExerciseArea");
-  if(exArea && !exArea.dataset.filled){
+  if(exArea && exArea.dataset.filled !== tv){
     exArea.innerHTML = footworkGrupper(iDagISO()).map(g=>`
-      <div class="phasehead">${escapeHtml(g.navn)}</div>
+      ${footworkGruppeHoved(g, tekst.version)}
       ${g.oevelser.map(ex=>`<div class="ladderrow">
         <div class="laddermid"><b>${escapeHtml(ex.navn)}</b>${footworkUdstyrMaerke(ex)}<span class="medalmark">${footworkBlock(ex)} · ${footworkPointsFor(ex)} point</span>
           <div class="ladderstep">${escapeHtml(ex.tekst)}${ex.fokus ? " <i>Fokus: " + escapeHtml(ex.fokus) + "</i>" : ""}</div>${guideVideoKnap("f_" + ex.kode, ex.navn)}</div>
       </div>`).join("")}`).join("")
-      + `<div class="phasehead">Kombi-bonus<span>Tre gennemførelser fra samme dag</span></div>`
-      + FOOTWORK_COMBO_TEXT.map(t=>`<p class="small" style="margin:0 0 6px">${escapeHtml(t)}</p>`).join("");
-    exArea.dataset.filled = "1";
+      + (tekst.version === 1 ? `<div class="phasehead">Kombi-bonus<span>Tre gennemførelser fra samme dag</span></div>` : `<div class="phasehead sektion">Bonus<span>Ekstra point for dagens øvelser</span></div>`)
+      + tekst.kombi.map(t=>`<p class="small" style="margin:0 0 6px">${escapeHtml(t)}</p>`).join("");
+    exArea.dataset.filled = tv;
   }
 
   if(!isPlayer() || !currentPlayerLink){ area.innerHTML = '<p class="small">Fodteknik er til spillere. Trænere retter registreringerne under Registrering.</p>'; return; }
@@ -4279,8 +4342,9 @@ function renderFootwork(){
 
   // Grupperne foelger dagens version: en dag fra foer skiftet viser de tre gamle grader og
   // kun de oevelser, der fandtes dengang.
+  const dagV = footworkVersion(dato);
   const raekker = footworkGrupper(dato).map(g=>`
-    <div class="phasehead">${escapeHtml(g.navn)}</div>
+    ${footworkGruppeHoved(g, dagV)}
     ${g.oevelser.map(ex=>{
       const n = footworkCount(pid, dato, ex.kode);
       return `<div class="ladderrow ${n?"done":""}">
@@ -4325,12 +4389,43 @@ function renderFootwork(){
 
     <div class="exercise-block">
       <h3 style="margin-top:0">${escapeHtml(datoTekst(dato))}${dato === iDag ? " · i dag" : ""} · ${dagPoint} point</h3>
-      <p class="small">${dagAntal ? `${dagAntal} ${dagAntal === 1 ? "gennemførelse" : "gennemførelser"} · ${grundPoint} point${kombier.boost ? ` + ${kombier.boost} i kombi-bonus` : ""}` : "Ingen gennemførelser endnu. 1 gennemførelse = øvelsen lavet i den tid, der står på den."}</p>
+      ${footworkDagOpsummering(dato, dagAntal, grundPoint, kombier, dagV)}
       ${jokerBlok}
-      ${kombier.kombier.length ? `<p class="small" style="margin:10px 0 0"><b>Dagens kombier</b>${kombier.kombier.map(k=>footworkKombiVisning(k, footworkVersion(dato))).map(k=>`<br>${escapeHtml(k.navn)}${k.navn.startsWith("3 × ") ? "" : ": " + k.oevelser.map(i=>escapeHtml(FOOTWORK[i].navn)).join(" + ")} · +${k.bonus}`).join("")}</p>`
-        : dagAntal >= 3 ? '<p class="small" style="margin:10px 0 0">Dagens gennemførelser kan ikke sættes sammen til en kombi. Prøv tre forskellige øvelser - eller den samme tre gange.</p>' : ""}
+      ${footworkKombiBlok(counts, dagAntal, kombier, dagV)}
       ${raekker}
     </div>`;
+}
+
+// Dagens point delt i "for øvelserne" og "i bonus". En gammel dag vises som foer.
+function footworkDagOpsummering(dato, dagAntal, grundPoint, kombier, version){
+  if(version === 1){
+    return `<p class="small">${dagAntal ? `${dagAntal} ${dagAntal === 1 ? "gennemførelse" : "gennemførelser"} · ${grundPoint} point${kombier.boost ? ` + ${kombier.boost} i kombi-bonus` : ""}` : "Ingen gennemførelser endnu. 1 gennemførelse = øvelsen lavet i den tid, der står på den."}</p>`;
+  }
+  if(!dagAntal) return `<p class="small">Ingen øvelser endnu. Lav en øvelse, og tryk + når du er færdig.</p>`;
+  return `<div class="dagpoint"><span><b>${grundPoint}</b> for øvelserne</span><span>+ <b>${kombier.boost}</b> i bonus</span></div>
+      <p class="small" style="margin:0">${dagAntal} ${dagAntal === 1 ? "øvelse" : "øvelser"} lavet</p>`;
+}
+// Dagens bonusser med flueben - og et tip, naar en "én fra hvert niveau" kun mangler
+// et eller flere niveauer. Tippet lover ikke et bestemt antal point, kun hvad der mangler.
+function footworkKombiBlok(counts, dagAntal, kombier, version){
+  if(version === 1){
+    return kombier.kombier.length ? `<p class="small" style="margin:10px 0 0"><b>Dagens kombier</b>${kombier.kombier.map(k=>footworkKombiVisning(k, 1)).map(k=>`<br>${escapeHtml(k.navn)}: ${k.oevelser.map(i=>escapeHtml(FOOTWORK[i].navn)).join(" + ")} · +${k.bonus}`).join("")}</p>`
+      : dagAntal >= 3 ? '<p class="small" style="margin:10px 0 0">Dagens gennemførelser kan ikke sættes sammen til en kombi. Prøv tre forskellige øvelser - eller den samme tre gange.</p>' : "";
+  }
+  if(!dagAntal) return "";
+  const liste = kombier.kombier.map(k=>footworkKombiVisning(k, 2));
+  const html = liste.length ? `<p class="small" style="margin:10px 0 0"><b>Dagens bonus</b></p><ul class="kombiliste">${liste.map(k=>
+    `<li>✓ ${escapeHtml(k.navn)}${k.navn.startsWith("3 × ") ? "" : ": " + k.oevelser.map(i=>escapeHtml(FOOTWORK[i].navn)).join(" + ")} · <b>+${k.bonus}</b></li>`).join("")}</ul>` : "";
+  const harNiveauKombi = liste.some(k=>!k.navn.startsWith("3 × "));
+  const niveauerIDag = FOOTWORK_NIVEAUER.filter(n=>counts.some((c, i)=>c > 0 && FOOTWORK[i].kategori === n));
+  const mangler = FOOTWORK_NIVEAUER.filter(n=>!niveauerIDag.includes(n)).map(n=>FOOTWORK_KATEGORIER[n].navn);
+  let tip = "";
+  if(!harNiveauKombi && niveauerIDag.length && mangler.length){
+    tip = `Tip: Lav en øvelse fra ${mangler.length === 1 ? mangler[0] : mangler.slice(0, -1).join(", ") + " og " + mangler[mangler.length - 1]} - så har du én fra hvert niveau (+7).`;
+  } else if(!liste.length){
+    tip = "Tip: Lav den samme øvelse 3 gange (+5) - eller én fra hvert niveau (+7).";
+  }
+  return html + (tip ? `<p class="small" style="margin:8px 0 0">${escapeHtml(tip)}</p>` : "");
 }
 
 // ---------------------------------------------------------------------------
@@ -4393,7 +4488,7 @@ function guideVideosAendret(){
   // "Øvelserne - hvad er hvad" under Fodteknik tegnes ogsaa kun én gang; maerket fjernes,
   // saa naeste tegning tager de nye knapper med.
   const ex = document.getElementById("footworkExerciseArea");
-  if(ex) delete ex.dataset.filled;
+  if(ex) delete ex.dataset.filled;   // tegnes igen ved naeste renderFootwork
   renderGuideVideoKnapper();
   // Administratorens egen liste tegnes med det samme. Den har ingen skrivefelter at
   // traede paa, og den skal ikke vente paa, at kvitteringen for en upload bliver lukket -
