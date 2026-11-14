@@ -162,6 +162,45 @@ service cloud.firestore {
     // Klubbens modul-indstillinger. Alle aktive logins skal kunne LAESE dem, fordi
     // brugerfladen retter sig efter dem - der staar kun aargangsnumre og til/fra, intet
     // personligt. Kun admin maa skrive.
+    // Maanedens spiller: én post pr. maaned og aargang, fx "2026-11_2017". Den regnes ud i
+    // en traeners eller admins browser og gemmes én gang - den maa aldrig aendres, saa en
+    // kaaring ligger fast, ogsaa hvis der senere rettes i data.
+    //  - Kun admin eller en traener, der ser HELE aargangen (begge koen), maa oprette den.
+    //    En traener, der kun ser drengene, ville ellers kunne kaare uden at se pigerne.
+    //  - Ikke foer maaneden er afgjort (den 5. i maaneden efter; her fra den 4. kl. 00 UTC,
+    //    fordi dansk midnat er 23 UTC).
+    //  - Alle aktive logins maa laese den: den staar paa ranglisten og profilen.
+    match /maanedensSpiller/{postId} {
+      allow read: if isActive();
+      allow create: if isActive() && !isPlayerRole()
+        && request.resource.data.keys().hasOnly(["maaned", "aargang", "vindere", "beregnet"])
+        && request.resource.data.maaned is string
+        && request.resource.data.maaned.matches('^20[0-9]{2}-(0[1-9]|1[0-2])$')
+        && request.resource.data.aargang is string
+        && postId == request.resource.data.maaned + "_" + request.resource.data.aargang
+        && request.resource.data.vindere is list
+        && request.resource.data.vindere.size() <= 30
+        && heleAargangen(request.resource.data.aargang)
+        && maanedErAfgjort(request.resource.data.maaned);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    function heleAargangen(year) {
+      return isAdmin() || (
+        hasYearAccess(year)
+        && (!("yearGenders" in userDoc().data)
+            || !(year in userDoc().data.yearGenders)
+            || userDoc().data.yearGenders[year] == "begge")
+      );
+    }
+
+    function maanedErAfgjort(maaned) {
+      let aar = int(maaned[0:4]);
+      let md = int(maaned[5:7]);
+      return request.time >= timestamp.date(md == 12 ? aar + 1 : aar, md == 12 ? 1 : md + 1, 4);
+    }
+
     match /clubConfig/{docId} {
       allow read: if isActive();
       allow write: if isAdmin();

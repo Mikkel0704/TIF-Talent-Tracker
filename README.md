@@ -115,6 +115,7 @@ koden - "V-rul" hedder nu "V-rul yderside" (kode `v`), "V+L rul" hedder "L+V-rul
 | `juggleLog` / `footworkLog` | Hvem registrerede hvad; joker-begrundelser | Egen årgang |
 | `clubRanking` | Navn, årgang og medaljepoint til klub-top-10 | Hele klubben |
 | `clubConfig` | Hvilke årgange kører Talentmærket (`modules`); adresserne på instruktionsvideoerne (`guideVideos`) | Hele klubben |
+| `maanedensSpiller` | Månedens spiller pr. måned og årgang: vinder(e) med navn og de tal, der afgjorde det. Oprettes én gang, ændres aldrig | Hele klubben |
 | `deletionRequests` | Anmodninger om sletning | Admin og familien selv |
 
 De samlinger, hele klubben må læse, rummer med vilje hverken navne (bortset fra

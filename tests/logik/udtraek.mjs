@@ -51,6 +51,7 @@ export {
   footworkEx, footworkPointsFor, footworkBlock, FOOTWORK_DEFAULT_BLOCK, dagsISO, isoPlus, isoDage,
   footworkBoost, footworkBoostNavn, footworkDayCombos, footworkComboMemo,
   footworkKombierV2, footworkKombiVisning, FOOTWORK_KOMBI_SAMME, FOOTWORK_KOMBI_NIVEAUER,
+  MAANEDENS_FOERSTE, MAANEDENS_AFGOERES_DAG, maanedPlus, forrigeMaaned, maanedAfgoeres, maanederTilKaaring, maanedStat, maanedensSpillerRangering,
   footworkDays, footworkCount, footworkDayCounts, footworkTotals, footworkGradeSplit, footworkJokerStatus, footworkJokerDays,
   footworkDayPoints, footworkActiveDays, juggleActiveDays,
   footworkRuns, footworkStreakBonus, footworkNextStreakBonus, footworkCurrentStreak,

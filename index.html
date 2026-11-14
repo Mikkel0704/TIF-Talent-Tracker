@@ -1803,6 +1803,69 @@ function footworkDayOpenForPlayer(dato){
 }
 function setFootworkDay(dato){ footworkDaySelected = dato; renderFootwork(); }
 
+// ---------------------------------------------------------------------------
+// MAANEDENS SPILLER - beregningen
+// Hver kalendermaaned kaares én spiller (eller flere ved lighed) pr. aargang - drenge og
+// piger sammen. Kun Daglig fodteknik taeller. Rangering, hvor naeste kriterie kun bruges
+// ved lighed:
+//   1. flest traeningsdage (dag med mindst én gennemfoert oevelse)
+//   2. mest traeningstid (standardtid: 3 × 30 sek. = 1,5 min, 5 minutter = 5 min - det
+//      tidskrav, der gjaldt paa DAGEN, saa jongleringstraening ogsaa taeller 5 min foer
+//      de nye regler)
+//   3. flest gennemfoerte oevelser
+//   4. flest point (dagens fodteknikpoint inkl. kombibonus - IKKE streakbonus)
+//   5. stadig lige: prisen deles.
+// Sidste maaneds vinder(e) springes over. Er der ingen andre, der har traenet, uddeles
+// ingen pris. Dage med en godkendt joker taeller ikke - de giver heller ikke point.
+//
+// Maaneden afgoeres den 5. i den foelgende maaned, saa sen registrering af de sidste dage
+// naar med; hvad der registreres senere, taeller ikke, for kaaringen gemmes og aendres aldrig.
+const MAANEDENS_FOERSTE = "2026-11";
+const MAANEDENS_AFGOERES_DAG = 5;
+const FOOTWORK_KRAV_HALVE_MIN = {"3 × 30 sek.": 3, "5 minutter": 10};   // i halve minutter - saa summen er et helt tal
+function maanedPlus(maaned, n){
+  const [y, m] = String(maaned).split("-").map(Number);
+  const x = new Date(y, m - 1 + n, 1);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`;
+}
+function forrigeMaaned(maaned){ return maanedPlus(maaned, -1); }
+// Den dag, maaneden er afgjort: den 5. i maaneden efter.
+function maanedAfgoeres(maaned){ return maanedPlus(maaned, 1) + "-" + String(MAANEDENS_AFGOERES_DAG).padStart(2, "0"); }
+// De maaneder, der er afgjort paa dagen iDag - fra den foerste og frem, i raekkefoelge.
+function maanederTilKaaring(iDag){
+  const ud = [];
+  for(let m = MAANEDENS_FOERSTE; maanedAfgoeres(m) <= iDag; m = maanedPlus(m, 1)) ud.push(m);
+  return ud;
+}
+// En spillers tal for én maaned.
+function maanedStat(pid, maaned){
+  const st = {dage: 0, halveMin: 0, oevelser: 0, point: 0};
+  footworkDays(pid).filter(d=>d.slice(0, 7) === maaned).forEach(dato=>{
+    if(footworkJokerStatus(pid, dato) === "approved") return;
+    const counts = footworkDayCounts(pid, dato);
+    const antal = counts.reduce((a, b)=>a + b, 0);
+    if(!antal) return;
+    st.dage++;
+    st.oevelser += antal;
+    counts.forEach((c, i)=>{ if(c) st.halveMin += c * (FOOTWORK_KRAV_HALVE_MIN[footworkBlock(FOOTWORK[i], dato)] || 0); });
+    st.point += footworkDayPoints(pid, dato);
+  });
+  return st;
+}
+function maanedSammenlign(a, b){
+  return (b.dage - a.dage) || (b.halveMin - a.halveMin) || (b.oevelser - a.oevelser) || (b.point - a.point);
+}
+// spillere: [{id, name, year}] i ÉN aargang. forrigeVindere: id'er fra sidste maaned.
+// Svar: {vindere:[{id, navn, ...tal}], rangliste:[...], sprunget:[id'er]}
+function maanedensSpillerRangering(spillere, maaned, forrigeVindere){
+  const sidst = new Set(forrigeVindere || []);
+  const alle = spillere.map(p=>({id: p.id, navn: p.name || "", ...maanedStat(p.id, maaned)})).filter(x=>x.dage > 0);
+  alle.sort((a, b)=>maanedSammenlign(a, b) || String(a.id).localeCompare(String(b.id)));
+  const kandidater = alle.filter(x=>!sidst.has(x.id));
+  const vindere = kandidater.length ? kandidater.filter(x=>maanedSammenlign(x, kandidater[0]) === 0) : [];
+  return {vindere, rangliste: alle, sprunget: alle.filter(x=>sidst.has(x.id)).map(x=>x.id)};
+}
+
 const POINT_BASE = {Bronze:10, Sølv:20, Guld:35};
 const CHALLENGE_BONUS = 25;
 function pointsForStep(step){ return step.level*15 + POINT_BASE[step.medal]; }
@@ -1874,6 +1937,9 @@ let clubRanking = [];
 let juggleLadder = [];
 let juggleLog = [];
 let footwork = [];
+// Maanedens spiller: de gemte kaaringer, og om alt, kaaringen bygger paa, er hentet helt.
+let maanedensSpiller = [];
+let maanedensHentet = false, footworkHentet = false, spillereHentet = false;
 let footworkLogs = [];
 let clubModules = {};
 let deletionRequests = [];
@@ -1902,6 +1968,7 @@ let unsubFootwork = null;
 let unsubFootworkLog = null;
 let unsubClubModules = null;
 let unsubGuideVideos = null;
+let unsubMaanedens = null;
 let unsubDeletionRequests = null;
 let unsubPlayerNotes = null;
 
@@ -2175,8 +2242,12 @@ function stopListeners(list){ (list || []).forEach(unsub=>unsub()); }
 function startListeners(){
   stopListeners(unsubPlayers);
   const playersChunks = {};
+  // Hvor mange dele spillerlisten kommer i: én for admin, én pr. aargang for en traener.
+  const forventedeDele = isAdmin() ? 1 : Math.max(1, allowedYears().length);
+  spillereHentet = false;
   unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
     playersChunks[idx] = docs;
+    if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
     players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
     if(isPlayer()){
       currentPlayerLink = players.find(p=>p.id===currentUserDoc.playerId) || null;
@@ -2273,6 +2344,8 @@ function startListeners(){
   unsubFootwork = onSnapshot(collection(db, "footwork"), (snap)=>{
     footwork = snap.docs.map(d=>({id:d.id, ...d.data()}));
     footworkStamp++;
+    footworkHentet = true;
+    planlaegKaaring();
     renderAll();
   }, (e)=>console.error("footwork listener", e));
 
@@ -2325,6 +2398,15 @@ function startListeners(){
     renderAll();
     applyModuleVisibility();
   }, (e)=>console.error("clubConfig listener", e));
+
+  // Maanedens spiller: de gemte kaaringer. Laeses af alle aktive logins.
+  if(unsubMaanedens) unsubMaanedens();
+  unsubMaanedens = onSnapshot(collection(db, "maanedensSpiller"), (snap)=>{
+    maanedensSpiller = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    maanedensHentet = true;
+    planlaegKaaring();
+    renderAll();
+  }, (e)=>console.error("maanedensSpiller listener", e));
 
   // Instruktionsvideoerne: ét dokument med adressen pr. oevelse, laest af alle aktive logins.
   if(unsubGuideVideos) unsubGuideVideos();
@@ -2432,6 +2514,57 @@ async function addPlayer(){
 // ingen historik, ingen videoer. Den skrives af trænere/admin, når point ændrer sig, og
 // må læses af alle aktive logins. Driver den fra hinanden, retter "Genopbyg klub-rangliste"
 // på Admin-siden den op igen.
+// ---------------------------------------------------------------------------
+// MAANEDENS SPILLER - kaaringen gemmes
+// Appen har ingen server. Kaaringen regnes derfor ud af den foerste admin eller traener,
+// der aabner appen den 5. eller senere, og gemmes i maanedensSpiller/{maaned}_{aargang}.
+// Reglerne paa serveren tillader kun at OPRETTE posten - aldrig at aendre den - og kun for
+// den, der ser HELE aargangen (begge koen): en traener, der kun ser drengene, kunne ellers
+// overse en pige. Der regnes foerst, naar spillere, fodteknik og tidligere kaaringer er
+// hentet helt, saa en halvt indlaest liste aldrig bliver gemt for evigt.
+let kaaringIGang = false, kaaringTimer = null;
+const kaaringForsoegt = new Set();
+function kanKaareAargang(y){ return isAdmin() || (canAccessYear(y) && !genderRestrictionFor(y)); }
+function planlaegKaaring(){
+  clearTimeout(kaaringTimer);
+  kaaringTimer = setTimeout(()=>{ kaarMaanedensSpiller().catch(e=>console.error("kaaring", e)); }, 1200);
+}
+async function kaarMaanedensSpiller(){
+  if(kaaringIGang || !currentUser || isPlayer() || isDemoUser()) return;
+  if(!(maanedensHentet && footworkHentet && spillereHentet)) return;
+  const maaneder = maanederTilKaaring(iDagISO());
+  if(!maaneder.length) return;
+  // Kun aargange med spillere. En aargang med spillere, hvor ingen har traenet, faar stadig
+  // en gemt "ingen vinder" - naeste maaned skal kunne se, hvem der vandt sidst.
+  const medSpillere = new Set(players.map(p=>normalizeYearValue(p.year)));
+  const aargange = [...new Set((isAdmin() ? allKnownYears() : allowedYears()).map(normalizeYearValue))].filter(y=>medSpillere.has(y) && kanKaareAargang(y));
+  kaaringIGang = true;
+  try{
+    for(const y of aargange){
+      for(const m of maaneder){                       // i raekkefoelge: forrige maaned skal vaere kaaret
+        const id = m + "_" + y;
+        if(maanedensSpiller.some(k=>k.id === id) || kaaringForsoegt.has(id)) continue;
+        const forrige = maanedensSpiller.find(k=>k.id === forrigeMaaned(m) + "_" + y);
+        if(m > MAANEDENS_FOERSTE && !forrige) break;  // uden forrige maaneds vinder kan reglen om to i traek ikke holdes
+        kaaringForsoegt.add(id);
+        const res = maanedensSpillerRangering(players.filter(p=>normalizeYearValue(p.year) === y), m, (forrige?.vindere || []).map(v=>v.id));
+        const post = {maaned: m, aargang: y,
+          vindere: res.vindere.map(v=>({id: v.id, navn: v.navn, dage: v.dage, minutter: v.halveMin / 2, oevelser: v.oevelser, point: v.point})),
+          beregnet: serverTimestamp()};
+        try{
+          await setDoc(doc(db, "maanedensSpiller", id), post);
+          maanedensSpiller.push({id, ...post});         // saa naeste maaned ser den med det samme
+        }catch(e){
+          // Typisk: en anden traener naaede det foerst - posten maa ikke aendres. Lytteren
+          // henter den. Stop denne aargang, saa naeste maaned ikke regnes uden den.
+          console.warn("kaaring " + id + " blev ikke gemt", e?.code || e);
+          break;
+        }
+      }
+    }
+  }finally{ kaaringIGang = false; }
+}
+
 async function syncClubRanking(id, name, year, points){
   if(isPlayer()) return;
   try{
