@@ -95,8 +95,34 @@ service cloud.firestore {
     // .get() og ikke .year: mangler feltet, skal udtrykket ikke fejle - en manglende
     // aargang betyder saa kun admin.
     function traenerTilNyt() {
-      return isActive() && !isPlayerRole()
-        && hasFullAccess(request.resource.data.get("year", null), request.resource.data.get("gender", null));
+      return traenerAdgang(request.resource.data.get("year", null), request.resource.data.get("gender", null));
+    }
+
+    // Det samme som "isActive() && !isPlayerRole() && hasFullAccess(aargang, koen)", men
+    // regnet med ÉT opslag af brugeren i stedet for ti. Hver regel maa hoejst regne 1000
+    // udtryk pr. forespoergsel; overskrides det, afvises forespoergslen - ogsaa en, der
+    // skulle vaere tilladt. Skrevet med de lange hjaelpere ramte en afvist rettelse af
+    // footwork graensen i emulatoren, og saa er der for lidt luft til de tilladte.
+    // traenerAdgangAktiv kaldes KUN efter isActive(): den laeser users-dokumentet, og det
+    // fejler for et login uden dokument.
+    function traenerAdgang(aargang, koen) {
+      return isActive() && traenerAdgangAktiv(aargang, koen);
+    }
+    function traenerAdgangAktiv(aargang, koen) {
+      let d = userDoc().data;
+      return d.role != "player" && (
+        d.role == "admin"
+        || (
+          aargang in d.years
+          && (
+            !("yearGenders" in d)
+            || !(aargang in d.yearGenders)
+            || d.yearGenders[aargang] == "begge"
+            || koen == null
+            || d.yearGenders[aargang] == koen
+          )
+        )
+      );
     }
 
     // Traener/admin med adgang til det dokument, der ALLEREDE ligger der. Uden det kunne
@@ -105,8 +131,7 @@ service cloud.firestore {
     // er resource null, og saa fejler resource.data - samme faelde som med diff().
     // Gamle dokumenter kan mangle gender (og maaske year), derfor .get().
     function traenerTilEksisterende() {
-      return isActive() && !isPlayerRole()
-        && hasFullAccess(resource.data.get("year", null), resource.data.get("gender", null));
+      return traenerAdgang(resource.data.get("year", null), resource.data.get("gender", null));
     }
 
     // Sletning. Findes dokumentet ikke, er sletningen en no-op, og saa er der intet at

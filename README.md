@@ -58,6 +58,23 @@ Spillerne får en "Se video"-knap på øvelsen under Fodteknik, Jonglering og Gu
 - **Forældreløse filer.** Slår sletningen af en udskiftet fil fejl, bliver filen liggende
   i `guides/` uden at blive vist nogen steder. Appen siger det, når det sker.
 
+## Adgangsreglerne i korte træk
+
+- **Et login uden for klubben kan ingenting.** Alle kan oprette en Auth-konto i projektet,
+  fordi logins oprettes fra browseren. Derfor kræver hver regel et aktivt `users`-dokument;
+  `signedIn()` alene giver aldrig adgang. `!isPlayerRole()` betyder "ikke en aktiv spiller"
+  og er også sand for fremmede og deaktiverede - brug det aldrig uden `isActive()`.
+- **En træner rører kun det, der allerede ligger i trænerens egne årgange.** En rettelse
+  kræver adgang til både det eksisterende dokument og det nye indhold; ellers kunne en
+  træner flette sin egen årgang ind på et andet barns dokument og dermed overtage det.
+- **Spillere læser kun deres egne logge** (`footworkLog`, `juggleLog`), hvor joker-
+  begrundelser og bruger-id'er står.
+- **Kendt svaghed:** tallene i `footwork`, `juggleLadder` og `clubRanking` læses af hele
+  klubben, fordi point regnes ud i browseren. Det står i databehandlingsteksten og kræver
+  en server at ændre.
+- Reglerne må højst regne 1000 udtryk pr. forespørgsel. `traenerAdgang()` slår derfor
+  brugeren op én gang; regeltestene må ikke give advarslen "maximum of 1000 expressions".
+
 ## Service-nøgler
 
 En service-nøgle går uden om alle regler og kan læse og slette alt om alle børn.
