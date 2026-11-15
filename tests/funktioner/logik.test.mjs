@@ -4,7 +4,11 @@
 //
 // Testene koeres med en ANDEN tidszone end dansk (se package.json), saa de beviser, at
 // serverkoden selv saetter Europe/Copenhagen.
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, existsSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { beregnLinje, linjerEns, klubTop, topEns, POINTREGLER, CLUB_TOP_N } from "../../functions/rangliste.js";
 
 let ok = 0, fejlet = 0;
@@ -159,6 +163,31 @@ t("hver plads har kun id, name, year og total", top.every(r => JSON.stringify(Ob
 t("toppen er uafhaengig af den orden, linjerne kommer i", JSON.stringify(klubTop([...linjer].reverse())) === JSON.stringify(top));
 t("topEns ser forskel paa én plads", topEns({ top, regler: "x" }, { top, regler: "x" }) && !topEns({ top, regler: "x" }, { top: [...top].reverse(), regler: "x" }));
 t("faerre end 10 boern giver en kortere liste", klubTop(linjer.slice(0, 3)).length === 3 && klubTop([]).length === 0);
+
+console.log("\nbyg.mjs fejler hoejlydt");
+const mappe = mkdtempSync(join(tmpdir(), "byg-"));
+const BYG = fileURLToPath(new URL("../../functions/byg.mjs", import.meta.url));
+const byg = (navn, aendret) => {
+  const kilde = join(mappe, navn + ".html"), maal = join(mappe, navn + ".mjs");
+  writeFileSync(kilde, aendret);
+  const r = spawnSync(process.execPath, [BYG, kilde, maal], { encoding: "utf8" });
+  return { kode: r.status, tekst: r.stdout + r.stderr, skrevet: existsSync(maal) };
+};
+let b = byg("uaendret", html);
+t("en uaendret kopi af index.html bygger", b.kode === 0 && b.skrevet, b.tekst.slice(0, 300));
+b = byg("mangler", html.replace("function ladderPointsInWindow(", "function ladderPointsIVindue("));
+t("mangler en funktion, stopper den med navnet", b.kode !== 0 && /mangler function ladderPointsInWindow/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+b = byg("dobbelt", html.replace("function startOfMonth(", "function startOfWeek(d){ return d; }\nfunction startOfMonth("));
+t("er en funktion defineret to gange, stopper den", b.kode !== 0 && /startOfWeek er defineret 2 gange/.test(b.tekst), b.tekst.slice(0, 300));
+b = byg("regler", html.replace(/const POINTREGLER = "[^"]+";/, "const POINTREGLER = undefined;"));
+t("staar POINTREGLER ikke som en tekst, stopper den", b.kode !== 0 && /POINTREGLER/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+b = byg("blok", html.replace("// DAGLIG FODTEKNIK", "// FODTEKNIK"));
+t("er fodteknik-blokken flyttet, stopper den", b.kode !== 0 && /DAGLIG FODTEKNIK/.test(b.tekst), b.tekst.slice(0, 300));
+b = byg("flyttet", html.replace("function iDagISO(", "function iDagISO2(") .replace("\nconst CHALLENGE_BONUS", "\nfunction iDagISO(){ return dagsISO(new Date()); }\nconst CHALLENGE_BONUS"));
+t("ligger iDagISO ikke i blokken laengere, stopper den", b.kode !== 0 && /iDagISO ligger ikke i fodteknik-blokken/.test(b.tekst), b.tekst.slice(0, 300));
+b = byg("kaster", html.replace("function totalPoints(p){", "function totalPoints(p){ return udefineretNavn;"));
+t("kan den byggede kode ikke regne, stopper den ogsaa - og der ligger ingen halv fil", b.kode !== 0 && /udefineretNavn/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+rmSync(mappe, { recursive: true, force: true });
 
 console.log(`\n${ok} ok, ${fejlet} fejl`);
 process.exit(fejlet ? 1 : 0);

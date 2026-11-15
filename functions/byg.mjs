@@ -7,10 +7,12 @@
 // Fejler hoejlydt, hvis noget, serveren skal bruge, ikke kan findes i index.html - eller
 // hvis den genererede fil ikke kan indlaeses og regne et barn ud bagefter.
 // Den genererede fil er git-ignoreret: den laves forfra hver gang.
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, renameSync, rmSync } from "node:fs";
 
-const KILDE = new URL("../index.html", import.meta.url);
-const MAAL = new URL("./genereret/pointkode.js", import.meta.url);
+import { pathToFileURL } from "node:url";
+// Kun testene giver andre stier med (en aendret kopi af index.html), for at se byg.mjs fejle.
+const KILDE = process.argv[2] ? pathToFileURL(process.argv[2]) : new URL("../index.html", import.meta.url);
+const MAAL = process.argv[3] ? pathToFileURL(process.argv[3]) : new URL("./genereret/pointkode.js", import.meta.url);
 
 const html = readFileSync(KILDE, "utf8");
 const fejl = msg => { throw new Error("byg.mjs: " + msg + " - index.html passer ikke til byg.mjs. Ret byg.mjs, foer der rulles ud."); };
@@ -172,18 +174,26 @@ export {
   pointsInWindow, startOfWeek, startOfMonth, FOOTWORK_V2_FRA
 };
 `;
-mkdirSync(new URL("./genereret/", import.meta.url), { recursive: true });
-writeFileSync(MAAL, forspil + "\n" + udskaaret + "\n\n" + blok + "\n" + efterspil);
+// Skrives foerst ved siden af og proeves; foerst naar den kan regne, erstatter den den gamle.
+const NY = new URL(MAAL.href.replace(/(\.m?js)$/, ".ny$1"));
+mkdirSync(new URL(".", MAAL), { recursive: true });
+writeFileSync(NY, forspil + "\n" + udskaaret + "\n\n" + blok + "\n" + efterspil);
 
 // Kan filen indlaeses og regne? En syntaksfejl eller et navn, der mangler, skal stoppe en
 // udrulning HER - ikke dukke op som en fejl i hver eneste trigger.
-const m = await import(MAAL.href + "?t=" + Date.now());
-m.saetBarn({ spiller: { id: "x", name: "x", year: "U9", points: 5 },
-  stige: { id: "x", mainStep: 2, tricks: ["oploft"], days: ["2026-01-05"] },
-  fodteknik: { id: "x", days: { "2026-01-05": { t: 3 } } } });
-const total = m.totalPoints({ id: "x", points: 5 });
-if(!Number.isFinite(total) || total <= 5) fejl("proeveberegningen gav " + total);
-if(m.normalizeYearValue("U9") !== "2017") fejl("normalizeYearValue virker ikke som ventet");
-m.footworkPointsInWindow("x", m.startOfWeek(new Date()));
-m.pointsInWindow("x", m.startOfMonth(new Date()));
-console.log(`byg.mjs: genereret/pointkode.js skrevet (${KONSTANTER.length} konstanter, ${FUNKTIONER.length} funktioner, fodteknik-blok paa ${blok.length} tegn, POINTREGLER ${regler[1]})`);
+try{
+  const m = await import(NY.href + "?t=" + Date.now());
+  m.saetBarn({ spiller: { id: "x", name: "x", year: "U9", points: 5 },
+    stige: { id: "x", mainStep: 2, tricks: ["oploft"], days: ["2026-01-05"] },
+    fodteknik: { id: "x", days: { "2026-01-05": { t: 3 } } } });
+  const total = m.totalPoints({ id: "x", points: 5 });
+  if(!Number.isFinite(total) || total <= 5) fejl("proeveberegningen gav " + total);
+  if(m.normalizeYearValue("U9") !== "2017") fejl("normalizeYearValue virker ikke som ventet");
+  m.footworkPointsInWindow("x", m.startOfWeek(new Date()));
+  m.pointsInWindow("x", m.startOfMonth(new Date()));
+}catch(e){
+  rmSync(NY, { force: true });
+  throw e;
+}
+renameSync(NY, MAAL);
+console.log(`byg.mjs: ${MAAL.pathname.split("/").slice(-2).join("/")} skrevet (${KONSTANTER.length} konstanter, ${FUNKTIONER.length} funktioner, fodteknik-blok paa ${blok.length} tegn, POINTREGLER ${regler[1]})`);

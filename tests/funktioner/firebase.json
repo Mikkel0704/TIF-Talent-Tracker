@@ -1,0 +1,15 @@
+{
+  "functions": [
+    { "source": "../../functions", "codebase": "default", "runtime": "nodejs22" }
+  ],
+  "emulators": {
+    "singleProjectMode": true,
+    "firestore": { "port": 8990, "websocketPort": 9160 },
+    "functions": { "port": 8995 },
+    "hub": { "port": 4410 },
+    "logging": { "port": 4510 },
+    "eventarc": { "port": 9310 },
+    "tasks": { "port": 9410 },
+    "ui": { "enabled": false }
+  }
+}
