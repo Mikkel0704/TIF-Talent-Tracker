@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.73</title>
+  <title>TIF Talent Tracker v15.74</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -166,7 +166,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.73 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.74 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -509,7 +509,7 @@
     <div class="accordion" open style="background:#e7eef5;border-color:#c9d8e8">
       <div class="accordion-body">
         <p style="margin-top:0"><b>Den korte version</b></p>
-        <p>Der gemmes dit barns navn, årgang, point, hvilke øvelser der er bestået, og hvilke dage der er trænet hjemme. Træningsvideoer ses kun af træneren - og ved udfordringer af den ene holdkammerat, dit barn selv har valgt - og de slettes automatisk, senest efter 7 dage. Databasen og videoerne ligger på servere i EU. Der er ingen reklamer, ingen sporing af jeres adfærd og ingen deling med andre. Det er frivilligt at uploade video.</p>
+        <p>Der gemmes dit barns navn, årgang, point, hvilke øvelser der er bestået, og hvilke dage der er trænet hjemme. Træningsvideoer ses kun af træneren - og ved udfordringer af den ene holdkammerat, dit barn selv har valgt - og de slettes automatisk, senest efter 7 dage. Databasen og videoerne ligger på servere i EU; selve login'et (e-mail og adgangskode) håndteres af Google i USA. Der er ingen reklamer, ingen sporing af jeres adfærd og ingen deling med andre. Det er frivilligt at uploade video.</p>
       </div>
     </div>
 
@@ -553,8 +553,8 @@
     <p class="small"><b>Backup:</b> trænere og administratorer kan hente en kopi af oplysningerne om deres egne årgange til deres egen computer - navne, point, noter og registreringer, men ikke videolinks. Kopien er trænerens ansvar og slettes ikke af systemet.</p>
 
     <h3>Hvilke tjenester bruges</h3>
-    <p><b>Google Firebase</b> står for login, database og opbevaring af videoer. Google behandler data på vegne af den dataansvarlige og bruger dem ikke til egne formål.</p><p><b>Databasen</b> - navne, point, niveauer, medaljer og historik - ligger i Googles <b>europæiske datacentre (eur3)</b> og forlader ikke EU.</p><p><b>Videoerne</b> ligger på en server i <b>Belgien (europe-west1)</b>. Login - e-mail og adgangskode - håndteres af Googles login-tjeneste, Firebase Authentication.</p>
-    <p><b>Google reCAPTCHA Enterprise</b> bruges til at afvise henvendelser, der ikke kommer fra denne side. Det er den, der forhindrer fremmede i at hente videoer ud af systemet.</p><p>Den sætter <b>én teknisk cookie fra google.com</b>, som bruges til at skelne et rigtigt besøg fra et automatiseret. Den følger jer ikke rundt på andre hjemmesider og bruges ikke til markedsføring eller profilering. Den sættes, så snart siden åbnes - også før man logger ind - fordi den netop skal beskytte login'et.</p>
+    <p><b>Google Firebase</b> står for login, database og opbevaring af videoer. Google behandler data på vegne af den dataansvarlige og bruger dem ikke til egne formål.</p><p><b>Databasen</b> - navne, point, niveauer, medaljer og historik - ligger i Googles <b>europæiske datacentre (eur3)</b> og forlader ikke EU.</p><p><b>Videoerne</b> ligger på en server i <b>Belgien (europe-west1)</b>.</p><p><b>Login</b> håndteres af Googles login-tjeneste, Firebase Authentication, som <b>kun kører fra datacentre i USA</b>. Dér ligger den e-mailadresse, I logger ind med, adgangskoden i krypteret form, tidspunkter for login og - i nogle uger - den IP-adresse, der blev logget ind fra. Barnets navn, point, træningsdage og videoer ligger ikke dér. Overførslen til USA sker efter Googles databehandlervilkår og aftalen mellem EU og USA om databeskyttelse (EU-U.S. Data Privacy Framework).</p>
+    <p><b>Google reCAPTCHA Enterprise</b> bruges til at afvise henvendelser, der ikke kommer fra denne side. Det er den, der forhindrer fremmede i at hente videoer ud af systemet. Tjenesten ser jeres IP-adresse og oplysninger om browseren og kører på Googles globale net, så den behandling kan ske uden for EU.</p><p>Den sætter <b>én teknisk cookie fra google.com</b>, som bruges til at skelne et rigtigt besøg fra et automatiseret. Den følger jer ikke rundt på andre hjemmesider og bruges ikke til markedsføring eller profilering. Den sættes, så snart siden åbnes - også før man logger ind - fordi den netop skal beskytte login'et.</p>
     <p><b>GitHub Pages</b> leverer selve hjemmesiden - altså den kode, din browser henter. Der ligger ingen persondata dér. GitHub og deres leverandør Fastly ser din IP-adresse, når siden hentes, præcis som enhver anden hjemmeside.</p>
     <p><b>Og så er der ikke mere.</b> Ingen Google Analytics, ingen Facebook-pixel, ingen annoncenetværk, ingen cookies til markedsføring eller til at følge jeres adfærd, og ingen videregivelse af data til nogen tredjepart. Den sikkerhedscookie, der er nævnt ovenfor, er den eneste cookie på siden.</p>
 
@@ -579,7 +579,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.73 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.74 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -2196,7 +2196,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.73 · ikke logget ind");
+    setSyncStatus("v15.74 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2222,7 +2222,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.73 · bekræft inden I går i gang");
+    setSyncStatus("v15.74 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2230,7 +2230,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.73 · vælg din egen adgangskode");
+    setSyncStatus("v15.74 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2271,9 +2271,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.73 · live database aktiv");
+    setSyncStatus("v15.74 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.73 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.74 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2772,7 +2772,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.73 · sletter...");
+  setSyncStatus("v15.74 · sletter...");
   for(const f of files){
     try{ await deleteObject(f); }
     catch(e){ if(e?.code !== "storage/object-not-found") failed.push("videofil " + f.name); }   // allerede vaek er ikke en fejl
@@ -2793,7 +2793,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.73 · live database aktiv");
+  setSyncStatus("v15.74 · live database aktiv");
 
   besked(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -3308,11 +3308,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.73 · migrering færdig");
+    setSyncStatus("v15.74 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.73 · migrering fejlede");
+    setSyncStatus("v15.74 · migrering fejlede");
   }
 }
 
@@ -3487,7 +3487,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.73 · uploader video...");
+    setSyncStatus("v15.74 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -3531,12 +3531,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.73 · live database aktiv");
+    setSyncStatus("v15.74 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.73 · live database aktiv");
+    setSyncStatus("v15.74 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
