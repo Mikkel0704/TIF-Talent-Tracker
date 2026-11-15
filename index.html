@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.74</title>
+  <title>TIF Talent Tracker v15.75</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -166,7 +166,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.74 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.75 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -402,6 +402,14 @@
       </div>
     </details>
 
+    <details class="accordion" id="adminRangliste">
+      <summary><span>Ranglisten på serveren<span id="ranglisteBadge" class="navbadge hidden">!</span></span></summary>
+      <div class="accordion-body">
+        <p class="small">Spillerne ser ikke længere hinandens registreringer. Deres rangliste og klubbens top 10 regnes i stedet ud på serveren, én linje pr. barn. Her sammenlignes serverens tal med det, appen selv regner ud af de samme data. Lige efter en registrering kan et tal afvige et øjeblik, til serveren har regnet færdig.</p>
+        <div id="ranglisteStatusArea"></div>
+      </div>
+    </details>
+
     <details class="accordion">
       <summary><span>Opret spillerlogin</span></summary>
       <div class="accordion-body">
@@ -523,7 +531,7 @@
     <p><b>Om Jongleringsstigen:</b> hvor langt barnet er nået på de to stiger, hvilke tricks der er klaret, hvilke <b>datoer</b> der er registreret på, og en log over hver registrering med tidspunkt og hvilket login der registrerede den. Registreringen sker på tillid hjemmefra - der er ingen video og ingen godkendelse - og træneren kan rette et trin efter en stikprøve til træning. Rettelser logges med trænerens navn. Point udregnes af tallene og gemmes ikke.</p>
     <p><b>Om Daglig fodteknik:</b> hvilke dage barnet har trænet, hvilke øvelser og hvor mange gange hver øvelse er lavet på hver dag. Også her sker registreringen på tillid hjemmefra uden video, og træneren kan rette eller nulstille en dag efter en stikprøve. Rettelser logges med trænerens navn. Point, kombi-bonus og streak udregnes af tallene og gemmes ikke.</p>
     <p><b>Om Månedens spiller:</b> hver måned kåres én spiller i hver årgang ud fra tallene i Daglig fodteknik. Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (træningsdage, minutter, antal øvelser og point). Kåringen kan ses af alle, der er logget ind i klubben, ligesom ranglisten. Den ændres ikke bagefter - bortset fra, at et barn fjernes fra kåringen, hvis I beder om at få barnet slettet.</p>
-    <p><b>Om jokere i Daglig fodteknik:</b> hvis I søger en joker for en dag, gemmes datoen, om træneren har godkendt eller afvist den, og <b>den korte begrundelse, I selv skriver</b>. Begrundelsen er fritekst og kan kun ses af jer selv og af trænerne i barnets årgang. <b>Den slettes automatisk 3 døgn efter, træneren har afgjort jokeren</b> - datoen og svaret bliver, fordi de skal bruges til at regne streaken ud. Vi beder udtrykkeligt om <b>ikke</b> at skrive helbredsdetaljer; "syg" er nok.</p><p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På klub-ranglisten:</b> navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
+    <p><b>Om jokere i Daglig fodteknik:</b> hvis I søger en joker for en dag, gemmes datoen, om træneren har godkendt eller afvist den, og <b>den korte begrundelse, I selv skriver</b>. Begrundelsen er fritekst og kan kun ses af jer selv og af trænerne i barnets årgang. <b>Den slettes automatisk 3 døgn efter, træneren har afgjort jokeren</b> - datoen og svaret bliver, fordi de skal bruges til at regne streaken ud. Vi beder udtrykkeligt om <b>ikke</b> at skrive helbredsdetaljer; "syg" er nok.</p><p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På ranglisten:</b> for hvert barn én linje med navn, årgang, køn, point (i alt, denne uge og denne måned) og om barnet kan udfordres til en duel. Linjen regnes ud og skrives af serveren - ingen i appen kan skrive i den. <b>På klub-ranglisten</b> står klubbens top 10 med navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
     <p><b>På din egen telefon:</b> et tidsstempel for, hvornår du sidst åbnede "Duel". Det bruges kun til at vise det lille tal på fanen, og det forlader aldrig enheden.</p>
 
     <h3>Videoer - det vigtigste afsnit</h3>
@@ -543,17 +551,17 @@
     <h3>Hvem kan se hvad</h3>
     <table>
       <tr><th>Rolle</th><th>Kan se</th></tr>
-      <tr><td>Spiller</td><td><b>Om sig selv:</b> alt på sin egen profil.<br><b>Om de andre i sin egen årgang:</b> navn, point, hvilke øvelser der er bestået, medaljer og loggen over, hvad der er godkendt (med trænerens e-mail), samt hvem der har sendt en video ind eller udfordret hvem - men ikke selve videoerne, ikke trænerens noter og ikke joker-begrundelser.<br><b>Om alle spillere i klubben:</b> navn, årgang og point på klub-ranglisten, hvilke dage der er trænet fodteknik og hvor mange gange hver øvelse er lavet, datoer for jokere, hvor langt man er på Jongleringsstigen, og hvem der er Månedens spiller.<br>Dertil en udfordringsvideo fra den ene modpart.</td></tr>
-      <tr><td>Træner</td><td>Alt om spillerne i de årgange, træneren har fået adgang til - inklusive noter, historik, joker-begrundelser og videoer til godkendelse. For andre årgange ser en træner det samme som en spiller ser om hele klubben - ikke noter, logge eller joker-begrundelser.</td></tr>
+      <tr><td>Spiller</td><td><b>Om sig selv:</b> alt på sin egen profil.<br><b>Om de andre i sin egen årgang:</b> kun ranglisten - navn, årgang, køn, point i alt, denne uge og denne måned, og om barnet kan udfordres til en duel.<br><b>Om hele klubben:</b> klubbens top 10 med navn, årgang og point, og hvem der er Månedens spiller med de tal, der afgjorde det.<br><b>I en duel, barnet selv er med i:</b> modpartens navn, hvad duellen gælder, modpartens indsendelse (hvornår den er sendt, og hvad træneren afgjorde) og - når træneren har afgjort duellen - modpartens video.<br>Ikke andre børns træningsdage, øvelser, fremdrift i Talentmærket eller på Jongleringsstigen, medaljer, logge, trænerens noter eller joker-begrundelser.</td></tr>
+      <tr><td>Træner</td><td>Alt om spillerne i de årgange, træneren har fået adgang til - inklusive noter, historik, joker-begrundelser og videoer til godkendelse. Om andre årgange ser en træner kun klubbens top 10 og Månedens spiller - ingen registreringer, noter, logge eller joker-begrundelser.</td></tr>
       <tr><td>Administrator</td><td>Alle årgange, samt hvem der har login til systemet.</td></tr>
       <tr><td>Alle andre</td><td>Ingenting. Man skal have et login oprettet af klubben for at se noget som helst.</td></tr>
     </table>
     <p class="small">Det er ikke kun menuerne, der er skjult - serveren afviser selve forespørgslen, hvis man ikke har adgang. Det gælder også, hvis man prøver udenom appen.</p>
-    <p class="small"><b>Skærmen viser mindre, end der hentes.</b> Klub-ranglisten viser kun top 10, og appen viser ikke andre børns træningsdage - men oplysningerne ovenfor hentes ned i appen, fordi point og ranglister regnes ud dér, og en teknisk kyndig person med et login kan derfor se dem. Det er en kendt svaghed, og det er noteret som noget, der skal strammes, så man kun kan hente navn og point for andre.</p>
+    <p class="small"><b>Der hentes ikke mere, end skærmen viser.</b> Tidligere blev de andre børns registreringer hentet ned i appen, fordi pointene blev regnet ud dér. Nu regnes pointene ud på serveren, og et spillerlogin kan kun hente det, der står ovenfor - også hvis en teknisk kyndig person prøver uden om appen.</p>
     <p class="small"><b>Backup:</b> trænere og administratorer kan hente en kopi af oplysningerne om deres egne årgange til deres egen computer - navne, point, noter og registreringer, men ikke videolinks. Kopien er trænerens ansvar og slettes ikke af systemet.</p>
 
     <h3>Hvilke tjenester bruges</h3>
-    <p><b>Google Firebase</b> står for login, database og opbevaring af videoer. Google behandler data på vegne af den dataansvarlige og bruger dem ikke til egne formål.</p><p><b>Databasen</b> - navne, point, niveauer, medaljer og historik - ligger i Googles <b>europæiske datacentre (eur3)</b> og forlader ikke EU.</p><p><b>Videoerne</b> ligger på en server i <b>Belgien (europe-west1)</b>.</p><p><b>Login</b> håndteres af Googles login-tjeneste, Firebase Authentication, som <b>kun kører fra datacentre i USA</b>. Dér ligger den e-mailadresse, I logger ind med, adgangskoden i krypteret form, tidspunkter for login og - i nogle uger - den IP-adresse, der blev logget ind fra. Barnets navn, point, træningsdage og videoer ligger ikke dér. Overførslen til USA sker efter Googles databehandlervilkår og aftalen mellem EU og USA om databeskyttelse (EU-U.S. Data Privacy Framework).</p>
+    <p><b>Google Firebase</b> står for login, database og opbevaring af videoer. Google behandler data på vegne af den dataansvarlige og bruger dem ikke til egne formål.</p><p><b>Databasen</b> - navne, point, niveauer, medaljer og historik - ligger i Googles <b>europæiske datacentre (eur3)</b> og forlader ikke EU.</p><p><b>Videoerne</b> ligger på en server i <b>Belgien (europe-west1)</b>.</p><p><b>Pointene til ranglisten</b> regnes ud af en lille serverfunktion hos Google (Cloud Functions), som også kører i <b>Belgien (europe-west1)</b>. Den læser de oplysninger, der allerede ligger i databasen, og skriver kun ranglistens linjer og klubbens top 10 tilbage.</p><p><b>Login</b> håndteres af Googles login-tjeneste, Firebase Authentication, som <b>kun kører fra datacentre i USA</b>. Dér ligger den e-mailadresse, I logger ind med, adgangskoden i krypteret form, tidspunkter for login og - i nogle uger - den IP-adresse, der blev logget ind fra. Barnets navn, point, træningsdage og videoer ligger ikke dér. Overførslen til USA sker efter Googles databehandlervilkår og aftalen mellem EU og USA om databeskyttelse (EU-U.S. Data Privacy Framework).</p>
     <p><b>Google reCAPTCHA Enterprise</b> bruges til at afvise henvendelser, der ikke kommer fra denne side. Det er den, der forhindrer fremmede i at hente videoer ud af systemet. Tjenesten ser jeres IP-adresse og oplysninger om browseren og kører på Googles globale net, så den behandling kan ske uden for EU.</p><p>Den sætter <b>én teknisk cookie fra google.com</b>, som bruges til at skelne et rigtigt besøg fra et automatiseret. Den følger jer ikke rundt på andre hjemmesider og bruges ikke til markedsføring eller profilering. Den sættes, så snart siden åbnes - også før man logger ind - fordi den netop skal beskytte login'et.</p>
     <p><b>GitHub Pages</b> leverer selve hjemmesiden - altså den kode, din browser henter. Der ligger ingen persondata dér. GitHub og deres leverandør Fastly ser din IP-adresse, når siden hentes, præcis som enhver anden hjemmeside.</p>
     <p><b>Og så er der ikke mere.</b> Ingen Google Analytics, ingen Facebook-pixel, ingen annoncenetværk, ingen cookies til markedsføring eller til at følge jeres adfærd, og ingen videregivelse af data til nogen tredjepart. Den sikkerhedscookie, der er nævnt ovenfor, er den eneste cookie på siden.</p>
@@ -579,7 +587,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.74 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.75 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -1956,6 +1964,14 @@ let clubRanking = [];
 let juggleLadder = [];
 let juggleLog = [];
 let footwork = [];
+// Ranglisten, som serveren regner ud (se POINTREGLER): én linje pr. barn med navn, aargang
+// og point, og klubbens top 10 i ét dokument. En spiller bygger sin aargangsliste og
+// duel-modstanderne af linjerne og henter ikke andre boerns registreringer.
+let rangliste = [];
+let klubTop = null;
+let ranglisteHentet = false, klubTopHentet = false;
+// Om admins raa data er hentet helt - foer det kan statuskortet ikke sammenligne.
+let indsendelserHentet = false, stigeHentet = false, stigeLogHentet = false;
 // Maanedens spiller: de gemte kaaringer, og om alt, kaaringen bygger paa, er hentet helt.
 let maanedensSpiller = [];
 let maanedensHentet = false, footworkHentet = false, spillereHentet = false;
@@ -1990,6 +2006,8 @@ let unsubGuideVideos = null;
 let unsubMaanedens = null;
 let unsubDeletionRequests = null;
 let unsubPlayerNotes = null;
+let unsubRangliste = null;
+let unsubKlubTop = null;
 
 function setSyncStatus(text){
   const el = document.getElementById("syncStatus");
@@ -2201,7 +2219,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.74 · ikke logget ind");
+    setSyncStatus("v15.75 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2227,7 +2245,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.74 · bekræft inden I går i gang");
+    setSyncStatus("v15.75 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2235,7 +2253,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.74 · vælg din egen adgangskode");
+    setSyncStatus("v15.75 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2261,24 +2279,78 @@ function stopListeners(list){ (list || []).forEach(unsub=>unsub()); }
 function startListeners(){
   stopListeners(unsubPlayers);
   const playersChunks = {};
-  // Hvor mange dele spillerlisten kommer i: én for admin, én pr. aargang for en traener.
+  // Hvor mange dele en aargangsopdelt liste kommer i: én for admin, én pr. aargang for en traener.
   const forventedeDele = isAdmin() ? 1 : Math.max(1, allowedYears().length);
-  spillereHentet = false;
-  unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
-    playersChunks[idx] = docs;
-    if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
-    players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
+  // Ranglistens linjer. En spiller lytter paa sin egen aargang - navn, aargang, point og
+  // om barnet kan udfordres, intet andet. Admin henter alle linjer til statuskortet. En
+  // traener regner sin aargangsliste ud af de raa data som foer og henter dem ikke.
+  stopListeners(unsubRangliste);
+  unsubRangliste = [];
+  rangliste = []; ranglisteHentet = false;
+  let ranglisteAar = null;
+  const ranglisteFejl = e=>console.error("rangliste listener", e);
+  function lytRangliste(aar){
+    stopListeners(unsubRangliste);
+    ranglisteAar = aar;
+    unsubRangliste = [onSnapshot(query(collection(db, "rangliste"), where("year","==",aar)), (snap)=>{
+      rangliste = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      ranglisteHentet = true;
+      renderAll();
+    }, ranglisteFejl)];
+  }
+  if(isAdmin()){
+    unsubRangliste = [onSnapshot(collection(db, "rangliste"), (snap)=>{
+      rangliste = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      ranglisteHentet = true;
+      renderAll();
+    }, ranglisteFejl)];
+  }
+
+  // En spiller henter kun sine EGNE dokumenter (spiller, stige, fodteknik, logge) som
+  // enkeltdokumenter - om de andre boern i aargangen kun ranglistens linjer, se ovenfor.
+  const egenId = isPlayer() && currentUserDoc?.playerId ? currentUserDoc.playerId : null;
+  const spillerFaaet = ()=>{
     if(isPlayer()){
       currentPlayerLink = players.find(p=>p.id===currentUserDoc.playerId) || null;
       if(currentPlayerLink){
         selectedProfilePlayerId = currentPlayerLink.id;
         const tab = document.getElementById("tab-profile");
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
+        // Kender loginnet ikke sin aargang, bruges den fra spillerens eget dokument.
+        if(!ranglisteAar) lytRangliste(normalizeYearValue(currentPlayerLink.year));
       }
     }
-    setSyncStatus("v15.74 · live database aktiv");
+    setSyncStatus("v15.75 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.74 · databasefejl: " + e.code));
+  };
+  spillereHentet = false;
+  if(isPlayer()){
+    unsubPlayers = egenId ? [onSnapshot(doc(db, "players", egenId), (snap)=>{
+      players = snap.exists() ? [migratePlayer({id: snap.id, ...snap.data()})] : [];
+      spillereHentet = true;
+      spillerFaaet();
+    }, (e)=>setSyncStatus("v15.75 · databasefejl: " + e.code))] : [];
+    if(!egenId){ players = []; spillereHentet = true; spillerFaaet(); }
+  } else {
+    unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
+      playersChunks[idx] = docs;
+      if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
+      players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
+      spillerFaaet();
+    }, (e)=>setSyncStatus("v15.75 · databasefejl: " + e.code));
+  }
+  // Spillerens egen aargang kendes fra loginnet (som allowedYears); mangler den dér,
+  // startes lytteren, naar spillerens eget dokument er kommet (se spillerFaaet).
+  if(isPlayer() && !ranglisteAar && allowedYears()[0]) lytRangliste(allowedYears()[0]);
+
+  // Klubbens top 10: ét dokument, som serveren skriver, og som alle aktive logins laeser.
+  stopListeners(unsubKlubTop);
+  klubTop = null; klubTopHentet = false;
+  unsubKlubTop = [onSnapshot(doc(db, "klubRangliste", "top"), (snap)=>{
+    klubTop = snap.exists() ? snap.data() : null;
+    klubTopHentet = true;
+    renderAll();
+  }, (e)=>console.error("klubRangliste listener", e))];
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2290,13 +2362,36 @@ function startListeners(){
     });
   }
 
+  // Indsendelser. En traener faar aargangens; en spiller sine egne og dem i de dueller,
+  // barnet selv er med i - tre forespoergsler, flettet efter id som videolinkene nedenfor.
   stopListeners(unsubSubmissions);
   const submissionsChunks = {};
-  unsubSubmissions = subscribeYearScoped("submissions", (idx, docs)=>{
-    submissionsChunks[idx] = docs;
-    submissions = Object.values(submissionsChunks).flat();
+  indsendelserHentet = false;
+  const samlIndsendelser = ()=>{
+    const efterId = new Map();
+    Object.values(submissionsChunks).flat().forEach(d=>efterId.set(d.id, d));
+    submissions = [...efterId.values()];
     renderAll();
-  }, (e)=>console.error("submissions listener", e));
+  };
+  const indsendelseFejl = e=>console.error("submissions listener", e);
+  if(!isPlayer()){
+    unsubSubmissions = subscribeYearScoped("submissions", (idx, docs)=>{
+      submissionsChunks[idx] = docs;
+      if(Object.keys(submissionsChunks).length >= forventedeDele) indsendelserHentet = true;
+      samlIndsendelser();
+    }, indsendelseFejl);
+  } else if(egenId){
+    const col = collection(db, "submissions");
+    const lyt = (navn, q)=>onSnapshot(q, snap=>{ submissionsChunks[navn] = snap.docs.map(d=>({id:d.id, ...d.data()})); samlIndsendelser(); }, indsendelseFejl);
+    unsubSubmissions = [
+      lyt("egne",      query(col, where("playerId","==",egenId))),
+      lyt("udfordrer", query(col, where("challengerId","==",egenId))),
+      lyt("udfordret", query(col, where("opponentId","==",egenId)))
+    ];
+  } else {
+    submissions = [];
+    unsubSubmissions = [];
+  }
 
   // Videolinkene. En traener faar aargangens; en spiller faar kun sine egne og de
   // dueller, traeneren har afgjort. Spillerens tre forespoergsler er formet praecis, som
@@ -2325,25 +2420,54 @@ function startListeners(){
     unsubSubmissionVideos = [];
   }
 
+  // Dueller. En spiller henter kun sine egne - som udfordrer og som udfordret.
   stopListeners(unsubChallenges);
   const challengesChunks = {};
-  unsubChallenges = subscribeYearScoped("challenges", (idx, docs)=>{
-    challengesChunks[idx] = docs;
-    challenges = Object.values(challengesChunks).flat();
+  const samlDueller = ()=>{
+    const efterId = new Map();
+    Object.values(challengesChunks).flat().forEach(d=>efterId.set(d.id, d));
+    challenges = [...efterId.values()];
     renderAll();
-  }, (e)=>console.error("challenges listener", e));
+  };
+  const duelFejl = e=>console.error("challenges listener", e);
+  if(!isPlayer()){
+    unsubChallenges = subscribeYearScoped("challenges", (idx, docs)=>{ challengesChunks[idx] = docs; samlDueller(); }, duelFejl);
+  } else if(egenId){
+    const col = collection(db, "challenges");
+    const lyt = (navn, q)=>onSnapshot(q, snap=>{ challengesChunks[navn] = snap.docs.map(d=>({id:d.id, ...d.data()})); samlDueller(); }, duelFejl);
+    unsubChallenges = [
+      lyt("udfordrer", query(col, where("challengerId","==",egenId))),
+      lyt("udfordret", query(col, where("opponentId","==",egenId)))
+    ];
+  } else {
+    challenges = [];
+    unsubChallenges = [];
+  }
 
-  // Klub-ranglisten er den ene samling, alle må læse på tværs af årgange - den rummer
-  // kun navn, årgang og point, så der er ingen årgangsbegrænsning at bygge query'en på.
-  // Fremdriften paa stigen laeses af ALLE aktive logins: klub-top-10 gaar paa tvaers af
-  // aargange, og uden den ville to ranglister vise to forskellige totaler for samme barn.
-  // Dokumentet rummer derfor kun tal - intet navn, intet bruger-id.
-  if(unsubJuggleLadder) unsubJuggleLadder();
-  unsubJuggleLadder = onSnapshot(collection(db, "juggleLadder"), (snap)=>{
-    juggleLadder = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    footworkStamp++;   // stigens datoer taeller som aktive dage i streaken
-    renderAll();
-  }, (e)=>console.error("juggleLadder listener", e));
+  // Fremdriften paa stigen. Klubbens top 10 kommer nu fra serveren, saa ingen behoever
+  // laengere andre aarganges stige: en spiller henter sit eget dokument, en traener sine
+  // aargange, admin det hele.
+  stopListeners(unsubJuggleLadder);
+  const stigeChunks = {};
+  stigeHentet = false;
+  const stigeFejl = e=>console.error("juggleLadder listener", e);
+  if(isPlayer()){
+    unsubJuggleLadder = egenId ? [onSnapshot(doc(db, "juggleLadder", egenId), (snap)=>{
+      juggleLadder = snap.exists() ? [{id: snap.id, ...snap.data()}] : [];
+      stigeHentet = true;
+      footworkStamp++;   // stigens datoer taeller som aktive dage i streaken
+      renderAll();
+    }, stigeFejl)] : [];
+    if(!egenId) juggleLadder = [];
+  } else {
+    unsubJuggleLadder = subscribeYearScoped("juggleLadder", (idx, docs)=>{
+      stigeChunks[idx] = docs;
+      if(Object.keys(stigeChunks).length >= forventedeDele) stigeHentet = true;
+      juggleLadder = Object.values(stigeChunks).flat();
+      footworkStamp++;
+      renderAll();
+    }, stigeFejl);
+  }
 
   // Loggen - hvem registrerede hvad hvornaar - er aargangsbegraenset som alt andet.
   // Den bruges til uge/maaned-ranglisten og til trænerens stikprøve.
@@ -2352,31 +2476,46 @@ function startListeners(){
   // En spiller henter kun sin EGEN log - reglerne tillader ikke andet. I loggen staar
   // bruger-id'er og, for fodteknik, joker-begrundelser; dem skal andre familier i
   // aargangen ikke have ned i browseren. Traenere henter aargangens.
-  const egenLog = isPlayer() && currentUserDoc?.playerId ? currentUserDoc.playerId : null;
+  const egenLog = egenId;
+  stigeLogHentet = false;
   unsubJuggleLog = egenLog
     ? [onSnapshot(doc(db, "juggleLog", egenLog), (snap)=>{
         juggleLog = snap.exists() ? [{id: snap.id, ...snap.data()}] : [];
+        stigeLogHentet = true;
         footworkStamp++;
         renderAll();
       }, (e)=>console.error("juggleLog listener", e))]
     : subscribeYearScoped("juggleLog", (idx, docs)=>{
         logChunks[idx] = docs;
+        if(Object.keys(logChunks).length >= forventedeDele) stigeLogHentet = true;
         juggleLog = Object.values(logChunks).flat();
         footworkStamp++;
         renderAll();
       }, (e)=>console.error("juggleLog listener", e));
 
-  // Daglig fodteknik: samme todeling som stigen. Tallene laeses klub-bredt, fordi
-  // klub-top-10 skal vise samme total som aargangslisten; teksten og uid'erne er
-  // aargangsbegraenset.
-  if(unsubFootwork) unsubFootwork();
-  unsubFootwork = onSnapshot(collection(db, "footwork"), (snap)=>{
-    footwork = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    footworkStamp++;
-    footworkHentet = true;
-    planlaegKaaring();
-    renderAll();
-  }, (e)=>console.error("footwork listener", e));
+  // Daglig fodteknik: samme todeling som stigen. En spiller henter sit eget dokument, en
+  // traener sine aargange, admin det hele.
+  stopListeners(unsubFootwork);
+  const footworkChunks = {};
+  footworkHentet = false;
+  const footworkFejl = e=>console.error("footwork listener", e);
+  if(isPlayer()){
+    unsubFootwork = egenId ? [onSnapshot(doc(db, "footwork", egenId), (snap)=>{
+      footwork = snap.exists() ? [{id: snap.id, ...snap.data()}] : [];
+      footworkStamp++;
+      footworkHentet = true;
+      renderAll();
+    }, footworkFejl)] : [];
+    if(!egenId) footwork = [];
+  } else {
+    unsubFootwork = subscribeYearScoped("footwork", (idx, docs)=>{
+      footworkChunks[idx] = docs;
+      footwork = Object.values(footworkChunks).flat();
+      footworkStamp++;
+      if(Object.keys(footworkChunks).length >= forventedeDele){ footworkHentet = true; planlaegKaaring(); }
+      renderAll();
+    }, footworkFejl);
+  }
 
   if(unsubFootworkLog) stopListeners(unsubFootworkLog);
   const footworkLogChunks = {};
@@ -2450,11 +2589,18 @@ function startListeners(){
     guideVideosAendret();
   }, (e)=>console.error("guideVideos listener", e));
 
+  // Den gamle spejl-tabel clubRanking. Klubbens top 10 kommer nu fra serveren
+  // (klubRangliste/top); kun admin henter stadig tabellen - til backup og til
+  // vedligeholdelsesknappen "Genopbyg klub-rangliste".
   if(unsubClubRanking) unsubClubRanking();
-  unsubClubRanking = onSnapshot(collection(db, "clubRanking"), (snap)=>{
-    clubRanking = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    renderAll();
-  }, (e)=>console.error("clubRanking listener", e));
+  unsubClubRanking = null;
+  clubRanking = [];
+  if(isAdmin()){
+    unsubClubRanking = onSnapshot(collection(db, "clubRanking"), (snap)=>{
+      clubRanking = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      renderAll();
+    }, (e)=>console.error("clubRanking listener", e));
+  }
 }
 
 // Databehandlingssiden skal kunne læses UDEN login - forældre skal kunne se den, før de
@@ -2777,7 +2923,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.74 · sletter...");
+  setSyncStatus("v15.75 · sletter...");
   for(const f of files){
     try{ await deleteObject(f); }
     catch(e){ if(e?.code !== "storage/object-not-found") failed.push("videofil " + f.name); }   // allerede vaek er ikke en fejl
@@ -2798,7 +2944,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.74 · live database aktiv");
+  setSyncStatus("v15.75 · live database aktiv");
 
   besked(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -3151,8 +3297,68 @@ async function setPlayerGender(id, gender){
   await setDoc(doc(db,"players",id), {gender, updatedAt:serverTimestamp()}, {merge:true});
 }
 
+// Statuskortet "Ranglisten paa serveren": sammenligner hver linje med det, appen selv
+// regner ud for samme barn. Uge og maaned sammenlignes med det, spilleren faktisk faar vist
+// (ranglistePeriodePoint) - en forkert uge-start paa linjen taeller altsaa ogsaa som afvigelse,
+// hvis appen har point i den nye uge. Der regnes foerst, naar alle raa data er hentet.
+function ranglisteStatus(){
+  if(!(spillereHentet && indsendelserHentet && stigeHentet && stigeLogHentet && footworkHentet && ranglisteHentet && klubTopHentet)) return null;
+  const nu = new Date();
+  const ugeStart = startOfWeek(nu), maanedStart = startOfMonth(nu);
+  const spillerEfterId = new Map(players.map(p=>[p.id, p]));
+  const linjeEfterId = new Map(rangliste.map(r=>[r.id, r]));
+  const afviger = [], udenSpiller = [];
+  rangliste.forEach(r=>{
+    const p = spillerEfterId.get(r.id);
+    if(!p){ udenSpiller.push(r); return; }
+    const app = {
+      total: totalPoints(p),
+      week: pointsInWindow(p.id, ugeStart) + ladderPointsInWindow(p.id, ugeStart) + footworkPointsInWindow(p.id, ugeStart),
+      month: pointsInWindow(p.id, maanedStart) + ladderPointsInWindow(p.id, maanedStart) + footworkPointsInWindow(p.id, maanedStart)
+    };
+    const forskelle = [["total","i alt"],["week","denne uge"],["month","denne måned"]]
+      .map(([k, navn])=>({navn, server: ranglistePeriodePoint(r, k === "total" ? "all" : k, nu), app: app[k]}))
+      .filter(x=>x.server !== x.app);
+    if(forskelle.length) afviger.push({navn: p.name, forskelle});
+  });
+  const udenLinje = players.filter(p=>!linjeEfterId.has(p.id));
+  const forkerteRegler = rangliste.filter(r=>r.regler !== POINTREGLER).length + (klubTop && klubTop.regler !== POINTREGLER ? 1 : 0);
+  // Klubbens top 10: samme raekkefoelge af point som appens egen udregning, og hvert barns
+  // tal skal passe med appens.
+  const lokalTop = players.map(p=>({id: p.id, total: totalPoints(p)})).sort((a,b)=>b.total-a.total).slice(0, CLUB_TOP_N);
+  const serverTop = Array.isArray(klubTop?.top) ? klubTop.top : [];
+  const topOk = !!klubTop && serverTop.length === lokalTop.length
+    && serverTop.every((r,i)=>Number(r.total) === lokalTop[i].total && spillerEfterId.has(r.id) && totalPoints(spillerEfterId.get(r.id)) === Number(r.total));
+  return {linjer: rangliste.length, afviger, udenLinje, udenSpiller, forkerteRegler, topOk, harTop: !!klubTop};
+}
+function renderRanglisteStatus(){
+  const area = document.getElementById("ranglisteStatusArea");
+  const badge = document.getElementById("ranglisteBadge");
+  if(!area || !isAdmin()) return;
+  const st = ranglisteStatus();
+  if(!st){ area.innerHTML = '<p class="small">Henter data …</p>'; badge?.classList.add("hidden"); return; }
+  const fejl = st.afviger.length || st.udenLinje.length || st.udenSpiller.length || st.forkerteRegler || !st.topOk;
+  badge?.classList.toggle("hidden", !fejl);
+  const raekke = (tekst, godt)=>`<div class="historyitem" style="border-top:0;padding:4px 0"><b>${godt ? "✓" : "⚠️"}</b> ${tekst}</div>`;
+  const navne = (liste, max)=>liste.slice(0, max).map(x=>escapeHtml(x)).join(", ") + (liste.length > max ? ` og ${liste.length - max} mere` : "");
+  area.innerHTML = `
+    ${st.forkerteRegler ? `<p class="small" style="color:#b42318"><b>Serveren regner med andre pointregler end appen – rul funktionerne ud og genberegn.</b> (${st.forkerteRegler} ${st.forkerteRegler === 1 ? "linje" : "linjer"} har ikke pointreglerne fra ${escapeHtml(POINTREGLER)}.)</p>` : ""}
+    ${raekke(`${st.linjer} ${st.linjer === 1 ? "linje" : "linjer"} på serveren for ${players.length} ${players.length === 1 ? "spiller" : "spillere"}.`, true)}
+    ${raekke(st.afviger.length
+      ? `${st.afviger.length} ${st.afviger.length === 1 ? "linje afviger" : "linjer afviger"} fra appens egen udregning.`
+      : "Alle linjer stemmer med appens egen udregning.", !st.afviger.length)}
+    ${st.afviger.slice(0, 10).map(a=>`<div class="small" style="margin-left:22px">${escapeHtml(a.navn)}: ${a.forskelle.map(f=>`${f.navn} ${f.server} på serveren, ${f.app} i appen`).join(" · ")}</div>`).join("")}
+    ${st.afviger.length > 10 ? `<div class="small" style="margin-left:22px">… og ${st.afviger.length - 10} mere.</div>` : ""}
+    ${raekke(st.udenLinje.length
+      ? `${st.udenLinje.length} ${st.udenLinje.length === 1 ? "barn mangler" : "børn mangler"} en linje: ${navne(st.udenLinje.map(p=>p.name), 10)}.`
+      : "Alle børn har en linje.", !st.udenLinje.length)}
+    ${st.udenSpiller.length ? raekke(`${st.udenSpiller.length} ${st.udenSpiller.length === 1 ? "linje hører" : "linjer hører"} til et barn, der ikke findes længere.`, false) : ""}
+    ${raekke(!st.harTop ? "Klubbens top 10 findes ikke på serveren endnu." : st.topOk ? "Klubbens top 10 stemmer med appens egen udregning." : "Klubbens top 10 afviger fra appens egen udregning.", st.topOk)}
+  `;
+}
 function renderAdmin(){
   renderYearControl();
+  renderRanglisteStatus();
   renderGuideVideoAdmin();
   renderGenderMigration();
   const newYears=document.getElementById("newCoachYears");
@@ -3313,11 +3519,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.74 · migrering færdig");
+    setSyncStatus("v15.75 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.74 · migrering fejlede");
+    setSyncStatus("v15.75 · migrering fejlede");
   }
 }
 
@@ -3492,7 +3698,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.74 · uploader video...");
+    setSyncStatus("v15.75 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -3536,12 +3742,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.74 · live database aktiv");
+    setSyncStatus("v15.75 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.74 · live database aktiv");
+    setSyncStatus("v15.75 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -3606,10 +3812,13 @@ function renderTraining(){
   `;
 }
 
+// Modstanderne findes paa ranglistens linjer for aargangen - spilleren henter ikke de
+// andres spillerdokumenter. kanUdfordres er serverens kopi af players.hasActiveLogin.
 function opponentsForCurrentPlayer(){
   const p = currentPlayerLink;
   if(!p) return [];
-  return players.filter(x=>x.id!==p.id && x.hasActiveLogin===true && normalizeYearValue(x.year)===normalizeYearValue(p.year) && (!p.gender || !x.gender || x.gender===p.gender));
+  return rangliste.filter(x=>x.id!==p.id && x.kanUdfordres===true && normalizeYearValue(x.year)===normalizeYearValue(p.year) && (!p.gender || !x.gender || x.gender===p.gender))
+    .sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""), "da"));
 }
 
 function challengeCard(c, p, showActions){
@@ -3681,7 +3890,7 @@ function renderChallenges(){
     </div>
     <div class="card">
       <h3>Udfordr en holdkammerat</h3>
-      ${opponents.length===0 ? '<p class="small">Ingen andre spillere i din årgang endnu.</p>' : `
+      ${opponents.length===0 ? (ranglisteHentet ? '<p class="small">Ingen andre spillere i din årgang kan udfordres endnu.</p>' : '<p class="small">Henter holdkammeraterne i din årgang …</p>') : `
       ${kunFri ? '<p class="small">Jeres årgang kører ikke Talentmærket, så I dyster i en fri udfordring - fx flest jongleringer eller fedeste trick.</p>' : `
       <div class="stepbar" style="grid-template-columns:1fr 1fr">
         <button type="button" class="step ${challengeCreateType==="exercise"?"current":""}" onclick="setChallengeCreateType('exercise')">Øvelse</button>
@@ -3723,7 +3932,7 @@ async function createChallenge(playerId){
   if(demoBlocked("Udfordringen bliver ikke sendt til nogen herfra.")) return;
   const p = currentPlayerLink;
   const opponentId = document.getElementById("challengeOpponent").value;
-  const opponent = players.find(x=>x.id===opponentId);
+  const opponent = opponentsForCurrentPlayer().find(x=>x.id===opponentId);
   if(!opponent) return besked("Vælg en modstander.");
 
   if(challengeCreateType === "freestyle"){
@@ -4138,6 +4347,14 @@ function maanedensKort(){
     </div>`;
 }
 
+// Point i uge- eller maanedsvinduet paa en linje fra serveren. Linjen bliver kun skrevet,
+// naar noget aendrer sig; er vinduet rullet videre siden, staar der den forrige uges
+// (maaneds) start i "fra", og saa er der ingen point i det nye vindue endnu.
+function ranglistePeriodePoint(r, periode, nu){
+  if(periode === "week") return r?.uge?.fra === dagsISO(startOfWeek(nu)) ? (Number(r.uge.point) || 0) : 0;
+  if(periode === "month") return r?.maaned?.fra === dagsISO(startOfMonth(nu)) ? (Number(r.maaned.point) || 0) : 0;
+  return Number(r?.total) || 0;
+}
 function renderLeaderboard(){
   const maanedensEl = document.getElementById("maanedensArea");
   if(maanedensEl){
@@ -4160,27 +4377,25 @@ function renderLeaderboard(){
     </div>`;
   }
 
-  // Klub-ranglisten bygger på spejl-tabellen clubRanking, som kun har samlede point -
-  // uge/måned kræver point-historik, og den ligger på spillerdokumenterne, som spillere
-  // ikke må læse på tværs af årgange. Derfor er klubvisningen altid all-time.
+  // Klubbens top 10 regnes ud paa serveren og ligger i ét dokument, klubRangliste/top,
+  // med navn, aargang og samlede point. Uge/maaned findes ikke paa tvaers af aargange,
+  // saa klubvisningen er altid all-time.
   if(leaderboardScope === "club"){
     if(periodArea) periodArea.innerHTML = '<p class="small">Samlede point for hele klubben på tværs af årgange.</p>';
     if(filterArea) filterArea.innerHTML = "";
-    // clubRanking skrives kun af traenere, saa stigens og fodteknikkens point findes
-    // ikke i den. De laegges til her ud fra juggleLadder og footwork, som alle aktive
-    // logins maa laese - ellers ville klublisten og aargangslisten vise to forskellige
-    // totaler for samme barn.
-    const top = [...clubRanking].map(r=>({...r, total:(r.points||0) + ladderPoints(r.id) + footworkPoints(r.id)}))
-      .sort((a,b)=>b.total-a.total).slice(0, CLUB_TOP_N);
+    const top = (Array.isArray(klubTop?.top) ? klubTop.top : []).slice(0, CLUB_TOP_N);
     area.innerHTML = top.map((r,i)=>{
-      const tier = tierForPoints(r.total);
+      const total = Number(r.total) || 0;
+      const tier = tierForPoints(total);
       const medalIcon = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`;
       const me = currentPlayerLink && r.id===currentPlayerLink.id;
       return `<div class="player" style="${me?'background:#ecfdf5;border-radius:12px;padding:6px 10px':''}">
         <div><b>${medalIcon} ${escapeHtml(r.name||"Ukendt")}${erSenesteVinder(r.id) ? " " + maanedensEmblem(senesteAfgjorteMaaned(), "lille") : ""}</b><div class="small">${tier.icon} ${tier.name} · ${escapeHtml(yearLabel(r.year))}</div></div>
-        <div class="pill guld">${r.total} point</div>
+        <div class="pill guld">${total} point</div>
       </div>`;
-    }).join("") || '<p class="small">Klub-ranglisten er tom endnu. En admin kan bygge den under Admin → "Genopbyg klub-rangliste".</p>';
+    }).join("") || (klubTopHentet
+      ? '<p class="small">Klubbens top 10 er ikke klar endnu. Den regnes ud automatisk, så snart der er registreret point.</p>'
+      : '<p class="small">Henter klubbens top 10 …</p>');
     return;
   }
 
@@ -4191,15 +4406,33 @@ function renderLeaderboard(){
     ).join("")}</div>`;
   }
 
+  // En spiller faar aargangens liste fra serverens linjer: navn og point, intet andet.
+  if(isPlayer()){
+    if(filterArea) filterArea.innerHTML = "";
+    const nu = new Date();
+    const linjer = rangliste.map(r=>({...r, total: Number(r.total) || 0, periode: ranglistePeriodePoint(r, leaderboardPeriod, nu)}))
+      .sort((a,b)=>b.periode-a.periode);
+    area.innerHTML = linjer.map((r,i)=>{
+      const tier = tierForPoints(r.total); // rang-tier er altid baseret på all-time point
+      const medalIcon = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`;
+      const me = currentPlayerLink && r.id===currentPlayerLink.id;
+      return `<div class="player" style="${me?'background:#ecfdf5;border-radius:12px;padding:6px 10px':''}">
+        <div><b>${medalIcon} ${escapeHtml(r.name||"Ukendt")}${erSenesteVinder(r.id) ? " " + maanedensEmblem(senesteAfgjorteMaaned(), "lille") : ""}</b><div class="small">${tier.icon} ${tier.name}</div></div>
+        <div class="pill guld">${r.periode} point</div>
+      </div>`;
+    }).join("") || (ranglisteHentet
+      ? '<p class="small">Ranglisten for din årgang er ikke klar endnu. Den regnes ud automatisk og dukker op her, så snart den er klar.</p>'
+      : '<p class="small">Henter ranglisten …</p>');
+    return;
+  }
+
   let list = players;
-  if(!isPlayer() && filterArea){
+  if(filterArea){
     const years = allowedYears();
     const prev = document.getElementById("leaderboardYear")?.value || "all";
     filterArea.innerHTML = `<label>Årgang</label><select id="leaderboardYear" onchange="renderLeaderboard()"><option value="all">Alle mine årgange</option>${years.map(y=>`<option value="${normalizeYearValue(y)}">${yearLabel(y)}</option>`).join("")}</select>`;
     document.getElementById("leaderboardYear").value = prev;
     if(prev !== "all") list = players.filter(p=>normalizeYearValue(p.year)===normalizeYearValue(prev));
-  } else if(filterArea){
-    filterArea.innerHTML = "";
   }
 
   const now = new Date();

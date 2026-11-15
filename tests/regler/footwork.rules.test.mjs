@@ -92,8 +92,13 @@ await proev('en spiller kan IKKE slette dokumentet','DENY',
   ()=>setDoc(doc(db('spiller'),'footwork','p1'), {}, {merge:false}));
 
 // ---------- læsning ----------
-await proev('enhver aktiv bruger må læse tallene (klub-top-10)','ALLOW',()=>getDoc(doc(db('fremmed'),'footwork','p1')));
-await proev('en spiller må liste hele samlingen','ALLOW',()=>getDocs(collection(db('spiller'),'footwork')));
+// Foer kunne alle aktive logins laese og liste tallene (klub-top-10 blev regnet i hver
+// browser). Nu regner serveren ranglisten, og tallene laeses kun af barnet selv og
+// aargangens traener.
+await proev('en træner fra en anden årgang kan IKKE læse tallene','DENY',()=>getDoc(doc(db('fremmed'),'footwork','p1')));
+await proev('årgangens træner må læse tallene','ALLOW',()=>getDoc(doc(db('traener'),'footwork','p1')));
+await proev('spilleren må læse sit eget dokument','ALLOW',()=>getDoc(doc(db('spiller'),'footwork','p1')));
+await proev('en spiller kan IKKE liste hele samlingen','DENY',()=>getDocs(collection(db('spiller'),'footwork')));
 
 // ---------- loggen og joker-begrundelsen ----------
 await proev('spilleren må skrive sin egen log og begrundelse','ALLOW',
@@ -115,7 +120,8 @@ await proev('stigen: mere end 400 datoer afvises','DENY',
   ()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, days:Array.from({length:401},(_,i)=>'d'+i)}, {merge:true}));
 await proev('stigen: et point-felt kan stadig ikke smugles med','DENY',
   ()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, points:1}, {merge:true}));
-await proev('stigen: fremdriften må stadig læses klub-bredt','ALLOW',()=>getDoc(doc(db('fremmed'),'juggleLadder','p1')));
+await proev('stigen: fremdriften kan IKKE længere læses af en anden årgangs træner','DENY',()=>getDoc(doc(db('fremmed'),'juggleLadder','p1')));
+await proev('stigen: spilleren læser sin egen fremdrift','ALLOW',()=>getDoc(doc(db('spiller'),'juggleLadder','p1')));
 
 // ---------- medaljeforløbet skal være urørt ----------
 await proev('spilleren kan STADIG ikke skrive på sit spillerdokument','DENY',

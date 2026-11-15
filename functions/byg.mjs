@@ -1,0 +1,189 @@
+// Bygger genereret/pointkode.js: pointreglerne skaaret UD AF ../index.html, saa serveren
+// regner med PRAECIS den kode, appen regner med. Der findes ingen kopi at holde i takt.
+//
+//   node functions/byg.mjs     (koeres ogsaa som predeploy i ../firebase.json og foer
+//                               testene i tests/funktioner)
+//
+// Fejler hoejlydt, hvis noget, serveren skal bruge, ikke kan findes i index.html - eller
+// hvis den genererede fil ikke kan indlaeses og regne et barn ud bagefter.
+// Den genererede fil er git-ignoreret: den laves forfra hver gang.
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+
+const KILDE = new URL("../index.html", import.meta.url);
+const MAAL = new URL("./genereret/pointkode.js", import.meta.url);
+
+const html = readFileSync(KILDE, "utf8");
+const fejl = msg => { throw new Error("byg.mjs: " + msg + " - index.html passer ikke til byg.mjs. Ret byg.mjs, foer der rulles ud."); };
+
+// --- en lille skanner, der springer strenge, skabeloner, kommentarer og regex over ---
+// Den finder slutningen paa en funktion eller en const ved at taelle klammer uden at
+// blive narret af en klamme inde i en tekst.
+//   "luk":       stop, naar klammen, der blev aabnet ved start, lukkes igen
+//   "semikolon": stop ved det foerste ";" uden for alle klammer
+function skan(kilde, start, stopVed){
+  let i = start, dybde = 0, forrige = "";
+  const skabeloner = [];   // dybden, hvor et ${ ... } i en skabelon blev aabnet
+  const kanVaereRegex = () => {
+    if(!forrige || /[(,=:[!&|?{};+\-*%<>~^]/.test(forrige)) return true;
+    return /\b(return|typeof|case|in|of)$/.test(kilde.slice(Math.max(0, i - 8), i).trimEnd());
+  };
+  const skabelonFra = j => {        // j staar lige efter ` eller }; laes til ` eller ${
+    for(;;){
+      if(j >= kilde.length) fejl("uafsluttet skabelon ved tegn " + i);
+      if(kilde[j] === "\\"){ j += 2; continue; }
+      if(kilde[j] === "`") return j + 1;
+      if(kilde[j] === "$" && kilde[j+1] === "{"){ skabeloner.push(dybde); return j + 2; }
+      j++;
+    }
+  };
+  while(i < kilde.length){
+    const c = kilde[i], n = kilde[i+1];
+    if(c === "/" && n === "/"){ const j = kilde.indexOf("\n", i); i = j < 0 ? kilde.length : j; continue; }
+    if(c === "/" && n === "*"){ const j = kilde.indexOf("*/", i + 2); if(j < 0) fejl("uafsluttet kommentar"); i = j + 2; continue; }
+    if(c === '"' || c === "'"){
+      let j = i + 1;
+      while(kilde[j] !== c){
+        if(j >= kilde.length || kilde[j] === "\n") fejl("uafsluttet streng ved tegn " + i);
+        if(kilde[j] === "\\") j++;
+        j++;
+      }
+      i = j + 1; forrige = c; continue;
+    }
+    if(c === "`"){ i = skabelonFra(i + 1); forrige = "`"; continue; }
+    if(c === "}" && skabeloner.length && skabeloner[skabeloner.length-1] === dybde){
+      skabeloner.pop(); i = skabelonFra(i + 1); forrige = "`"; continue;
+    }
+    if(c === "/" && kanVaereRegex()){
+      let j = i + 1, klasse = false;
+      for(;;){
+        const x = kilde[j];
+        if(x === undefined || x === "\n") fejl("uafsluttet regex ved tegn " + i);
+        if(x === "\\"){ j += 2; continue; }
+        if(x === "[") klasse = true;
+        else if(x === "]") klasse = false;
+        else if(x === "/" && !klasse) break;
+        j++;
+      }
+      j++; while(/[a-z]/.test(kilde[j] || "")) j++;
+      i = j; forrige = "/"; continue;
+    }
+    if(c === "{" || c === "(" || c === "[") dybde++;
+    else if(c === "}" || c === ")" || c === "]"){
+      dybde--;
+      if(dybde < 0) fejl("ubalancerede klammer ved tegn " + i);
+      if(stopVed === "luk" && dybde === 0) return i + 1;
+    }
+    else if(c === ";" && stopVed === "semikolon" && dybde === 0) return i + 1;
+    if(!/\s/.test(c)) forrige = c;
+    i++;
+  }
+  fejl("fandt ikke slutningen (startede ved tegn " + start + ")");
+}
+
+// Netop ÉN definition i starten af en linje. Ingen eller to = fejl.
+function find(moenster, navn){
+  const alle = [...html.matchAll(moenster)];
+  if(alle.length === 0) fejl("mangler " + navn);
+  if(alle.length > 1) fejl(navn + " er defineret " + alle.length + " gange");
+  return alle[0].index + alle[0][1].length;
+}
+function funktion(navn){
+  const i = find(new RegExp("(^|\\n)function " + navn + "\\(", "g"), "function " + navn);
+  const efterParametre = skan(html, html.indexOf("(", i), "luk");
+  const krop = html.indexOf("{", efterParametre);
+  if(html.slice(efterParametre, krop).trim()) fejl("uventet tekst mellem parametre og krop i " + navn);
+  return html.slice(i, skan(html, krop, "luk"));
+}
+function konstant(navn){
+  const i = find(new RegExp("(^|\\n)const " + navn + " *=", "g"), "const " + navn);
+  return html.slice(i, skan(html, i, "semikolon"));
+}
+
+// --- det, der skaeres ud -------------------------------------------------------------
+// 1) Hele fodteknik-blokken, praecis som tests/logik/udtraek.mjs tager den. Den rummer
+//    ogsaa dagsISO/iDagISO, juggleActiveDays, footworkStamp/footworkHusk og pointene.
+const blokStart = html.indexOf("\n// DAGLIG FODTEKNIK");
+const blokSlut = html.indexOf("\nconst POINT_BASE =");
+if(blokStart < 0 || blokSlut < 0 || blokSlut < blokStart) fejl("kunne ikke finde blokken fra // DAGLIG FODTEKNIK til const POINT_BASE");
+const blok = html.slice(blokStart + 1, blokSlut);
+
+// 2) Jongleringsstigen og resten, enkeltvis efter navn.
+const KONSTANTER = ["POINTREGLER", "CLUB_TOP_N", "JUGGLE_MAIN", "JUGGLE_WEAK", "JUGGLE_WEAK_FACTOR", "JUGGLE_GATE_AFTER", "JUGGLE_TRICKS"];
+const FUNKTIONER = [
+  "normalizeYearValue",
+  "juggleMainPoints", "juggleWeakPoints", "juggleTrick",
+  "juggleFor", "juggleLogFor", "juggleMainStep", "juggleWeakStep", "juggleTricks",
+  "ladderPoints", "totalPoints", "ladderPointsInWindow",
+  "startOfWeek", "startOfMonth", "pointsInWindow"
+];
+// Det, blokken SKAL indeholde (ellers er den flyttet, og serveren ville regne forkert).
+const I_BLOKKEN = ["dagsISO", "iDagISO", "juggleActiveDays", "footworkHusk", "footworkPoints", "footworkPointsInWindow"];
+for(const navn of I_BLOKKEN){
+  if(!new RegExp("(^|\\n)function " + navn + "\\(").test(blok)) fejl(navn + " ligger ikke i fodteknik-blokken");
+}
+if(!/(^|\n)let footworkStamp = 0;/.test(blok)) fejl("let footworkStamp = 0; ligger ikke i fodteknik-blokken");
+for(const navn of [...KONSTANTER, ...FUNKTIONER]){
+  if(new RegExp("(^|\\n)(function|const|let) " + navn + "\\b").test(blok)) fejl(navn + " ligger nu i fodteknik-blokken - fjern det fra listen i byg.mjs");
+}
+const udskaaret = [
+  ...KONSTANTER.map(konstant),
+  ...FUNKTIONER.map(funktion)
+].join("\n");
+const regler = /^const POINTREGLER = "([^"]+)";$/.exec(konstant("POINTREGLER"));
+if(!regler) fejl("POINTREGLER skal staa som const POINTREGLER = \"...\";");
+
+// --- den genererede fil --------------------------------------------------------------
+const forspil = `// GENERERET af functions/byg.mjs ud fra ../index.html - RET IKKE HER, ret index.html.
+// Pointreglerne ${regler[1]}.
+//
+// Appens kode laeser modul-globale lister (footwork, juggleLadder, ...). Serveren saetter
+// dem til et enkelt barns data og regner synkront bagefter (se saetBarn). Der er intet await
+// imellem, saa to kald i samme instans kan ikke flette sig ind i hinanden.
+process.env.TZ = "Europe/Copenhagen";   // appen regner i lokal tid - det er dansk tid
+let players = [], submissions = [], footwork = [], footworkLogs = [], juggleLadder = [], juggleLog = [];
+// Stubbe for det, fodteknik-blokken naevner, men som pointene aldrig kalder.
+const db = null, currentUser = null, currentPlayerLink = null, currentUserDoc = null;
+const ikkePaaServeren = navn => () => { throw new Error(navn + " findes ikke paa serveren"); };
+const setDoc = ikkePaaServeren("setDoc"), doc = ikkePaaServeren("doc"), besked = ikkePaaServeren("besked"),
+  indtast = ikkePaaServeren("indtast"), spoerg = ikkePaaServeren("spoerg"), renderFootwork = ikkePaaServeren("renderFootwork");
+function serverTimestamp(){ return null; }
+function deleteField(){ return null; }
+function isPlayer(){ return false; }
+function isDemoUser(){ return false; }
+function demoBlocked(){ return false; }
+function canAccessPlayer(){ return true; }
+function escapeHtml(s){ return String(s); }
+`;
+const efterspil = `
+// Saet et enkelt barns data. footworkStamp haeves, saa appens huskeliste (footworkHusk) aldrig
+// giver et svar, der blev regnet ud for et andet barn eller andre data.
+export function saetBarn({ spiller = null, stige = null, stigelog = null, fodteknik = null, indsendelser = [] } = {}){
+  players = spiller ? [spiller] : [];
+  juggleLadder = stige ? [stige] : [];
+  juggleLog = stigelog ? [stigelog] : [];
+  footwork = fodteknik ? [fodteknik] : [];
+  footworkLogs = [];
+  submissions = Array.isArray(indsendelser) ? indsendelser : [];
+  footworkStamp++;
+}
+export {
+  POINTREGLER, CLUB_TOP_N, normalizeYearValue, dagsISO, iDagISO,
+  totalPoints, ladderPoints, ladderPointsInWindow, footworkPoints, footworkPointsInWindow,
+  pointsInWindow, startOfWeek, startOfMonth, FOOTWORK_V2_FRA
+};
+`;
+mkdirSync(new URL("./genereret/", import.meta.url), { recursive: true });
+writeFileSync(MAAL, forspil + "\n" + udskaaret + "\n\n" + blok + "\n" + efterspil);
+
+// Kan filen indlaeses og regne? En syntaksfejl eller et navn, der mangler, skal stoppe en
+// udrulning HER - ikke dukke op som en fejl i hver eneste trigger.
+const m = await import(MAAL.href + "?t=" + Date.now());
+m.saetBarn({ spiller: { id: "x", name: "x", year: "U9", points: 5 },
+  stige: { id: "x", mainStep: 2, tricks: ["oploft"], days: ["2026-01-05"] },
+  fodteknik: { id: "x", days: { "2026-01-05": { t: 3 } } } });
+const total = m.totalPoints({ id: "x", points: 5 });
+if(!Number.isFinite(total) || total <= 5) fejl("proeveberegningen gav " + total);
+if(m.normalizeYearValue("U9") !== "2017") fejl("normalizeYearValue virker ikke som ventet");
+m.footworkPointsInWindow("x", m.startOfWeek(new Date()));
+m.pointsInWindow("x", m.startOfMonth(new Date()));
+console.log(`byg.mjs: genereret/pointkode.js skrevet (${KONSTANTER.length} konstanter, ${FUNKTIONER.length} funktioner, fodteknik-blok paa ${blok.length} tegn, POINTREGLER ${regler[1]})`);

@@ -143,6 +143,88 @@ service cloud.firestore {
         && (resource == null || traenerTilEksisterende());
     }
 
+    // LAESNING OM ANDRE BOERN. En spiller maa kun hente det om de andre, som ranglisten
+    // viser: navn, aargang og point (rangliste/ og klubRangliste/, skrevet af serveren).
+    // Alt andet - spillerdokumenter, fodteknik, stigen, indsendelser og dueller - laeser en
+    // spiller kun for sig selv, og for indsendelser/dueller ogsaa dem i sine egne dueller.
+    //
+    // Hjaelperne herunder slaar brugeren op ÉN gang (let d) og kaldes KUN efter
+    // isActive(), ligesom traenerAdgangAktiv: uden users-dokument fejler opslaget.
+
+    // Spillerens eget id - eller null, hvis loginnet ikke er et spillerlogin med et id.
+    // .get(): et traener-/admindokument har intet playerId-felt, og et manglende felt
+    // ville vaelte hele udtrykket.
+    function egenSpillerId(d) {
+      return d.role == "player" && d.get("playerId", null) is string ? d.playerId : null;
+    }
+
+    // footwork og juggleLadder: spilleren (ogsaa demo) laeser KUN sit eget dokument, og
+    // spillerens gren roerer IKKE resource - appen lytter paa dokumentet, foer barnet har
+    // registreret noget, og saa er resource null (samme loesning som logLaeser).
+    // Admin roerer heller ikke resource. En traener laeser sin aargang/sit koen (som
+    // logLaeser). year med .get(): et dokument uden aargang er kun for admin. gender
+    // med vilje UDEN .get(): i en forespoergsel uden koens-klausul giver .get() sin
+    // standardvaerdi null, og "koen == null" ville saa lade en drengetraener lytte paa
+    // hele aargangen - pigerne med. Det fangede rangliste.rules.test.mjs i emulatoren.
+    function egetEllerTraener(playerId) {
+      return isActive() && egetEllerTraenerAktiv(playerId);
+    }
+    function egetEllerTraenerAktiv(playerId) {
+      let d = userDoc().data;
+      return d.role == "player"
+        ? playerId == egenSpillerId(d)
+        : (d.role == "admin"
+          || (resource != null && traenerAdgangAktiv(resource.data.get("year", null), resource.data.gender)));
+    }
+
+    // players/: spilleren (ogsaa demo) laeser KUN sit eget spillerdokument, slaaet op paa
+    // id - uden at roere resource. Traener/admin: som foer (aargang og koen).
+    function spillerLaeser(playerId) {
+      return isActive() && spillerLaeserAktiv(playerId);
+    }
+    function spillerLaeserAktiv(playerId) {
+      let d = userDoc().data;
+      return d.role == "player"
+        ? playerId == egenSpillerId(d)
+        : traenerAdgangAktiv(resource.data.year, resource.data.gender);
+    }
+
+    // Indsendelser og dueller: spilleren laeser dem, hvor den selv staar i et af
+    // part-felterne. Appen spoerger med ÉN where-klausul pr. felt (playerId, challengerId,
+    // opponentId), og reglen kan bevise hver af dem for sig. .get(): en almindelig
+    // indsendelse kan mangle duel-felterne, og et manglende felt vaelter udtrykket.
+    // egenSpillerId er null for et spillerlogin uden playerId - og null == null maa
+    // aldrig give adgang til alle indsendelser uden duel, derfor "!= null" foerst.
+    // Traener/admin: som foer (aargang og koen).
+    function partLaeser() {
+      return isActive() && partLaeserAktiv();
+    }
+    function partLaeserAktiv() {
+      let d = userDoc().data;
+      let mig = egenSpillerId(d);
+      return d.role == "player"
+        ? mig != null && (
+            resource.data.get("playerId", null) == mig
+            || resource.data.get("challengerId", null) == mig
+            || resource.data.get("opponentId", null) == mig
+          )
+        : traenerAdgangAktiv(resource.data.year, resource.data.gender);
+    }
+
+    // rangliste/: én linje pr. barn med navn, aargang og point. Admin alt; alle andre
+    // (spiller, demo og traener) linjerne i de aargange, der staar paa deres login.
+    // Bevidst UDEN koen: linjen rummer kun det, ranglisten viser, og spillerens
+    // forespoergsel er where("year","==",egenAargang) alene - en koensbetingelse kunne
+    // den ikke bevise. Saa er det samme for en koensbegraenset traener.
+    // .get("years", []): et login uden years-felt faar intet i stedet for en fejl.
+    function ranglisteLaeser() {
+      return isActive() && ranglisteLaeserAktiv();
+    }
+    function ranglisteLaeserAktiv() {
+      let d = userDoc().data;
+      return d.role == "admin" || resource.data.year in d.get("years", []);
+    }
+
     // Talentmaerket kan slaas fra pr. aargang, saa appen kan rulles ud til en aargang,
     // hvor ingen traener koerer medaljeforloebet. Hjemmetraeningen virker uanset hvad.
     //
@@ -193,7 +275,9 @@ service cloud.firestore {
 
     // Ny struktur: én spiller pr. dokument
     match /players/{playerId} {
-      allow read: if isActive() && hasFullAccess(resource.data.year, resource.data.gender);
+      // Spilleren: kun sit eget dokument (se spillerLaeser). Foer laeste ethvert
+      // spillerlogin hele aargangens spillerdokumenter - med medaljer, historik og flueben.
+      allow read: if spillerLaeser(playerId);
 
       // Players (role "player") never write player docs directly - passed[]
       // and points are only ever granted by a coach/admin approving a video
@@ -284,7 +368,9 @@ service cloud.firestore {
     // gender er denormaliseret fra spilleren ved oprettelse, så reglen kan tjekke den
     // uden et ekstra opslag (og så listen kan begrænses korrekt af klienten, se index.html).
     match /submissions/{submissionId} {
-      allow read: if isActive() && hasFullAccess(resource.data.year, resource.data.gender);
+      // Spilleren: egne indsendelser og dem i egne dueller (se partLaeser). Foer laeste
+      // ethvert spillerlogin hele aargangens indsendelser.
+      allow read: if partLaeser();
 
       allow create: if isPlayerRole()
         && !isDemo()
@@ -389,8 +475,8 @@ service cloud.firestore {
       allow delete: if isActive() && !isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender);
     }
 
-    // Traenerens note om en spiller. Ligger SEPARAT fra spilleren med vilje: spillere skal
-    // kunne laese deres aargangs spillere (navne og point til ranglisten), og regler kan
+    // Traenerens note om en spiller. Ligger SEPARAT fra spilleren med vilje: spillere kunne
+    // engang laese deres aargangs spillere (nu kun deres eget dokument), og regler kan
     // ikke skjule enkelte felter i et dokument. Laa noten paa spilleren, kunne ethvert
     // spillerlogin laese den. Her har spillere ingen adgang overhovedet.
     // aar og koen er denormaliseret fra spilleren, saa aargangs- og koensadgangen kan
@@ -435,16 +521,17 @@ service cloud.firestore {
     }
 
     // JONGLERINGSSTIGEN
-    // Fremdrift: KUN tal - hvor langt paa hver stige, og hvilke tricks. Ingen navne,
-    // ingen bruger-id'er. Derfor maa alle aktive logins laese den: klub-top-10 gaar paa
-    // tvaers af aargange og skal kunne laegge stigens point til.
+    // Fremdrift: KUN tal - hvor langt paa hver stige, og hvilke tricks. Foer kunne hele
+    // klubben laese den, fordi klub-top-10 blev regnet i hver browser. Nu regner serveren
+    // ranglisten (rangliste/ og klubRangliste/), og en spiller laeser kun sit eget
+    // dokument; en traener sin aargang (se egetEllerTraener).
     //
     // Der gemmes ALDRIG point. De regnes ud af tallene her (se index.html), saa en
     // spiller kan ikke skrive sig til point - kun paastaa trin, hvilket er hele
     // tillidsmodellen og det traeneren tager stikproeve paa. Graenserne nedenfor
     // bestemmer det absolutte loft: 15 trin + 10 trin + 6 tricks.
     match /juggleLadder/{playerId} {
-      allow read: if isActive();
+      allow read: if egetEllerTraener(playerId);
 
       // Spilleren selv: se stigeSpiller() lige under denne blok.
       allow create: if isActive() && (stigeSpiller(playerId) || traenerTilNyt());
@@ -521,9 +608,9 @@ service cloud.firestore {
         && hasFullAccess(request.resource.data.year, request.resource.data.gender);
     }
 
-    // Daglig fodteknik. Samme todeling som stigen: tallene her laeses klub-bredt, fordi
-    // klub-top-10 gaar paa tvaers af aargange og skal vise SAMME total som aargangs-
-    // listen. Dokumentet rummer kun datoer, antal og joker-status - intet navn, intet uid.
+    // Daglig fodteknik. Samme todeling som stigen: en spiller laeser kun sit eget dokument,
+    // en traener sin aargang (se egetEllerTraener). Dagene viser, hvornaar et barn har
+    // traenet - det er ikke noget, de andre boern skal kunne hente.
     //
     // Det vigtige her er opdelingen af joker-felterne. Reglerne kan ikke se ned i et kort
     // og tjekke, at jokers["2026-11-05"] ikke er sat til "approved" - men de kan se,
@@ -531,7 +618,7 @@ service cloud.firestore {
     // traeneren afgoer i "jokers": et spillerlogin kan altsaa ikke godkende sin egen joker
     // og dermed holde en streak kunstigt i live.
     match /footwork/{playerId} {
-      allow read: if isActive();
+      allow read: if egetEllerTraener(playerId);
 
       // Oprettelse og rettelse staar hver for sig med vilje. Paa en OPRETTELSE findes
       // resource ikke, saa diff(resource.data) ville fejle og afvise hver spillers
@@ -584,17 +671,18 @@ service cloud.firestore {
       allow delete: if traenerSletter();
     }
 
-    // Klub-rangliste: en spejl-tabel med KUN navn, aargang og point, saa spillerne kan se
-    // en top-10 paa tvaers af hele klubben. players/ kan ikke bruges til det, fordi en
-    // spiller kun maa laese sin egen aargang - og den begraensning skal blive staaende,
-    // fordi players/ ogsaa rummer noter og historik. Her staar der intet foelsomt.
+    // Klub-rangliste (gammel spejl-tabel): KUN navn, aargang og point. Spillerne laeser
+    // nu top-10 fra klubRangliste/top, som serveren skriver, saa her maa kun admin og en
+    // traener i dokumentets aargang laese (samme aargangsgraense som skrivningen).
     // Skrives kun af traenere/admin (se syncClubRanking i index.html); en spiller kan
     // altsaa ikke skrive sig selv oeverst.
     // Der er intet koen paa dokumentet, saa det er aargangen, der afgoer. Foer kunne
     // enhver aktiv traener skrive et vilkaarligt barns point (fx 9999) i en anden aargang.
     // .get(): et dokument uden year kan kun admin roere.
     match /clubRanking/{playerId} {
-      allow read: if isActive();
+      allow read: if isAdmin()
+        || (isActive() && !isPlayerRole() && resource != null
+            && hasYearAccess(resource.data.get("year", null)));
       allow create: if isActive() && !isPlayerRole()
         && hasYearAccess(request.resource.data.get("year", null));
       allow update: if isActive() && !isPlayerRole()
@@ -605,10 +693,26 @@ service cloud.firestore {
         && (resource == null || hasYearAccess(resource.data.get("year", null)));
     }
 
+    // Serverens rangliste (Cloud Function med Admin SDK, som gaar uden om reglerne).
+    // Ingen klient maa skrive - heller ikke admin - ellers kunne et barn faa point, der
+    // ikke kan regnes ud af data. Laesning: se ranglisteLaeser.
+    match /rangliste/{playerId} {
+      allow read: if ranglisteLaeser();
+      allow write: if false;
+    }
+
+    // Klubbens top-10 paa tvaers af aargange (klubRangliste/top), ogsaa skrevet af
+    // serveren. Kun navn, aargang og total - alle aktive logins maa laese den.
+    match /klubRangliste/{docId} {
+      allow read: if isActive();
+      allow write: if false;
+    }
+
     // Spiller-mod-spiller udfordringer. gender er den udfordrende spillers køn,
     // denormaliseret ligesom på submissions.
     match /challenges/{challengeId} {
-      allow read: if isActive() && hasFullAccess(resource.data.year, resource.data.gender);
+      // Spilleren: kun dueller, den selv er part i (se partLaeser).
+      allow read: if partLaeser();
 
       allow create: if isPlayerRole()
         && !isDemo()

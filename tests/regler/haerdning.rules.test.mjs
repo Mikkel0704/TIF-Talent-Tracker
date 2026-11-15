@@ -254,11 +254,15 @@ await proev('demo: læser sin egen (manglende) fodteknik-log', 'ALLOW', ()=>getD
 await proev('demo: læser sin egen (manglende) stige-log', 'ALLOW', ()=>getDoc(doc(db('demo'), 'juggleLog', 'p9')));
 await proev('demo: kan IKKE læse et andet barns fodteknik-log', 'DENY', ()=>getDoc(doc(db('demo'), 'footworkLog', 'p1')));
 await proev('demo: kan IKKE lytte på årgangens stige-logge', 'DENY', ()=>getDocs(query(collection(db('demo'), 'juggleLog'), where('year','==','2017'), where('gender','==','dreng'))));
-// Det, der IKKE skulle aendres: fremdrift laeses stadig klub-bredt, spillere i aargangen.
-await proev('spiller: læser stadig hele samlingen af fodteknik-tal', 'ALLOW', ()=>getDocs(collection(db('spiller'), 'footwork')));
-await proev('spiller: læser stadig hele stigesamlingen', 'ALLOW', ()=>getDocs(collection(db('spiller'), 'juggleLadder')));
-await proev('spiller: læser stadig årgangens spillere', 'ALLOW', ()=>getDocs(query(collection(db('spiller'), 'players'), where('year','==','2017'), where('gender','==','dreng'))));
-await proev('spiller: læser stadig klub-ranglisten', 'ALLOW', ()=>getDocs(collection(db('spiller'), 'clubRanking')));
+// Foer laeste en spiller hele klubbens fremdrift, aargangens spillere og den gamle
+// klub-rangliste. Nu regner serveren ranglisten (rangliste/ og klubRangliste/ - se
+// rangliste.rules.test.mjs), og spilleren laeser kun sine egne dokumenter.
+await proev('spiller: kan IKKE længere liste hele samlingen af fodteknik-tal', 'DENY', ()=>getDocs(collection(db('spiller'), 'footwork')));
+await proev('spiller: kan IKKE længere liste hele stigesamlingen', 'DENY', ()=>getDocs(collection(db('spiller'), 'juggleLadder')));
+await proev('spiller: kan IKKE længere lytte på årgangens spillere', 'DENY', ()=>getDocs(query(collection(db('spiller'), 'players'), where('year','==','2017'), where('gender','==','dreng'))));
+await proev('spiller: læser sit eget spillerdokument', 'ALLOW', ()=>getDoc(doc(db('spiller'), 'players', 'p1')));
+await proev('spiller: kan IKKE længere læse den gamle klub-rangliste', 'DENY', ()=>getDocs(collection(db('spiller'), 'clubRanking')));
+await proev('træner: læser den gamle klub-rangliste for sin årgang', 'ALLOW', ()=>getDocs(query(collection(db('traener'), 'clubRanking'), where('year','==','2017'))));
 
 console.log('\n--- D. Spilleren skriver stadig sine egne logge, som klienten gør ---');
 const SP = {year:'2017', gender:'dreng'};

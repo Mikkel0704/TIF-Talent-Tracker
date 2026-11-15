@@ -1,0 +1,11 @@
+# Cloud Functions: afhaengigheder og den genererede pointkode (laves af functions/byg.mjs
+# ud fra index.html foer hver test og hver udrulning - den maa aldrig blive en kopi i repoet)
+functions/node_modules/
+functions/genereret/
+# Logfiler fra firebase-vaerktoejerne
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+# En service-noegle maa ALDRIG ende i repoet
+service-account.json
+*adminsdk*.json

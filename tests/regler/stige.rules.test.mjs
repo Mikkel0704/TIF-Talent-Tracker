@@ -52,8 +52,13 @@ await proev('et point-felt kan IKKE smugles med','DENY',()=>setDoc(doc(db('spill
 await proev('trin som tekst i stedet for tal afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, mainStep:'15'}, {merge:true}));
 
 // ---------- læsning ----------
-await proev('enhver aktiv bruger må læse fremdriften (klub-top-10)','ALLOW',()=>getDoc(doc(db('fremmed'),'juggleLadder','p1')));
-await proev('en spiller må liste hele fremdriftssamlingen','ALLOW',()=>getDocs(collection(db('spiller'),'juggleLadder')));
+// Foer kunne alle aktive logins laese og liste fremdriften (klub-top-10 blev regnet i
+// hver browser). Nu regner serveren ranglisten: kun barnet selv og aargangens traener.
+await proev('en træner fra en anden årgang kan IKKE læse fremdriften','DENY',()=>getDoc(doc(db('fremmed'),'juggleLadder','p1')));
+await proev('årgangens træner må læse fremdriften','ALLOW',()=>getDoc(doc(db('traener'),'juggleLadder','p1')));
+await proev('spilleren må læse sin egen fremdrift','ALLOW',()=>getDoc(doc(db('spiller'),'juggleLadder','p1')));
+await proev('en spiller kan IKKE liste hele fremdriftssamlingen','DENY',()=>getDocs(collection(db('spiller'),'juggleLadder')));
+await proev('en spiller kan IKKE læse en holdkammerats fremdrift','DENY',()=>getDoc(doc(db('spiller'),'juggleLadder','p3')));
 
 // ---------- loggen ----------
 await proev('spilleren må skrive sin egen log','ALLOW',()=>setDoc(doc(db('spiller'),'juggleLog','p1'), {year:'2017', gender:'dreng', entries:[]}));
