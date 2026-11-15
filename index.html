@@ -919,6 +919,11 @@ function juggleWeakStep(pid){ return Math.max(0, Math.min(juggleFor(pid)?.weakSt
 // Dubletter fjernes: listen kommer fra et spillerlogin, og uden det ville det samme
 // trick kunne staa seks gange og give point seks gange. Ukendte id'er ryger ogsaa ud.
 function juggleTricks(pid){ const t = juggleFor(pid)?.tricks; return Array.isArray(t) ? [...new Set(t)].filter(juggleTrick) : []; }
+// Pointreglernes udgave. Serveren regner ranglisten ud med den SAMME kode som appen
+// (functions/byg.mjs haeler den ud af denne fil) og skriver udgaven paa hver linje.
+// Haev den, hver gang en pointregel aendres - saa kan admin-siden se, om serveren
+// stadig regner med de gamle regler, og funktionerne skal rulles ud igen.
+const POINTREGLER = "2026-11-15";
 // Point som ren funktion af fremdrift. Intet gemt tal, intet at forfalske.
 function ladderPoints(pid){
   let sum = 0;
