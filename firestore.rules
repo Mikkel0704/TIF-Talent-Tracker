@@ -83,6 +83,41 @@ service cloud.firestore {
       return hasYearAccess(year) && genderAllowed(year, gender);
     }
 
+    // HAERDNING: et login uden users-dokument ("fremmed" - alle kan oprette en Auth-konto
+    // i projektet) og et deaktiveret login maa INTET, bortset fra at laese sit eget
+    // users-dokument. signedIn() alene er derfor aldrig nok til at give adgang; alle
+    // regler nedenfor kraever isActive(), enten direkte eller gennem hasFullAccess(),
+    // isAdmin() eller isPlayerRole(), som alle kraever et aktivt users-dokument.
+    // OBS: !isPlayerRole() er SAND for et deaktiveret login og for en fremmed - det
+    // betyder "ikke en aktiv spiller", ikke "traener". Brug det aldrig uden isActive().
+
+    // Traener/admin, der maa skrive det NYE indhold (aargang/koen i skrivningen).
+    // .get() og ikke .year: mangler feltet, skal udtrykket ikke fejle - en manglende
+    // aargang betyder saa kun admin.
+    function traenerTilNyt() {
+      return isActive() && !isPlayerRole()
+        && hasFullAccess(request.resource.data.get("year", null), request.resource.data.get("gender", null));
+    }
+
+    // Traener/admin med adgang til det dokument, der ALLEREDE ligger der. Uden det kunne
+    // en traener fra en anden aargang flette sin egen aargang ind paa et barns dokument
+    // ({merge:true}) og dermed overtage det. Kun til update og delete: ved en oprettelse
+    // er resource null, og saa fejler resource.data - samme faelde som med diff().
+    // Gamle dokumenter kan mangle gender (og maaske year), derfor .get().
+    function traenerTilEksisterende() {
+      return isActive() && !isPlayerRole()
+        && hasFullAccess(resource.data.get("year", null), resource.data.get("gender", null));
+    }
+
+    // Sletning. Findes dokumentet ikke, er sletningen en no-op, og saa er der intet at
+    // beskytte - admins "Slet alt" sletter blindt alle et barns dokumenter, ogsaa dem,
+    // der aldrig blev oprettet, og det skal ikke melde fejl. resource == null tjekkes
+    // FOER resource.data, ellers fejler udtrykket.
+    function traenerSletter() {
+      return isActive() && !isPlayerRole()
+        && (resource == null || traenerTilEksisterende());
+    }
+
     // Talentmaerket kan slaas fra pr. aargang, saa appen kan rulles ud til en aargang,
     // hvor ingen traener koerer medaljeforloebet. Hjemmetraeningen virker uanset hvad.
     //
@@ -133,17 +168,17 @@ service cloud.firestore {
 
     // Ny struktur: én spiller pr. dokument
     match /players/{playerId} {
-      allow read: if signedIn() && hasFullAccess(resource.data.year, resource.data.gender);
+      allow read: if isActive() && hasFullAccess(resource.data.year, resource.data.gender);
 
       // Players (role "player") never write player docs directly - passed[]
       // and points are only ever granted by a coach/admin approving a video
       // submission (see submissions/{submissionId} below). This is what
       // stops a player from awarding themselves points via the SDK/console.
-      allow create: if signedIn()
+      allow create: if isActive()
         && !isPlayerRole()
         && hasFullAccess(request.resource.data.year, request.resource.data.gender);
 
-      allow update: if signedIn()
+      allow update: if isActive()
         && !isPlayerRole()
         && hasFullAccess(resource.data.year, resource.data.gender)
         && hasFullAccess(request.resource.data.year, request.resource.data.gender)
@@ -164,7 +199,8 @@ service cloud.firestore {
     // personligt. Kun admin maa skrive.
     // Maanedens spiller: én post pr. maaned og aargang, fx "2026-11_2017". Den regnes ud i
     // en traeners eller admins browser og gemmes én gang - den maa aldrig aendres, saa en
-    // kaaring ligger fast, ogsaa hvis der senere rettes i data.
+    // kaaring ligger fast, ogsaa hvis der senere rettes i data. Eneste undtagelse: admin
+    // maa fjerne en vinder, naar en familie beder om at faa barnet slettet (se update).
     //  - Kun admin eller en traener, der ser HELE aargangen (begge koen), maa oprette den.
     //    En traener, der kun ser drengene, ville ellers kunne kaare uden at se pigerne.
     //  - Ikke foer maaneden er afgjort (den 5. i maaneden efter; her fra den 4. kl. 00 UTC,
@@ -182,7 +218,14 @@ service cloud.firestore {
         && request.resource.data.vindere.size() <= 30
         && heleAargangen(request.resource.data.aargang)
         && maanedErAfgjort(request.resource.data.maaned);
-      allow update: if false;
+      // Den eneste rettelse: admin maa FJERNE vindere - naar en familie beder om at faa
+      // et barn slettet. Listen skal blive kortere, og intet andet end vindere og
+      // tidsstemplet "rettet" maa roeres. Maaned, aargang og beregnet ligger fast.
+      // Klienten sender setDoc(ref, {vindere: <kortere liste>, rettet: serverTimestamp()}, {merge:true}).
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["vindere", "rettet"])
+        && request.resource.data.vindere is list
+        && request.resource.data.vindere.size() < resource.data.vindere.size();
       allow delete: if isAdmin();
     }
 
@@ -216,7 +259,7 @@ service cloud.firestore {
     // gender er denormaliseret fra spilleren ved oprettelse, så reglen kan tjekke den
     // uden et ekstra opslag (og så listen kan begrænses korrekt af klienten, se index.html).
     match /submissions/{submissionId} {
-      allow read: if signedIn() && hasFullAccess(resource.data.year, resource.data.gender);
+      allow read: if isActive() && hasFullAccess(resource.data.year, resource.data.gender);
 
       allow create: if isPlayerRole()
         && !isDemo()
@@ -227,14 +270,20 @@ service cloud.firestore {
         // FRI duel. Den kendes paa, at der ikke hoerer et medaljetrin til: stepIndex er
         // null. En medaljevideo og en oevelsesduel har begge et trin og er dermed
         // spaerret - se option C i aftalen om, hvad der overlever, naar forloebet er fra.
-        && (talentmaerkeOn(request.resource.data.year) || request.resource.data.stepIndex == null);
+        && (talentmaerkeOn(request.resource.data.year) || request.resource.data.stepIndex == null)
+        // Praecis de felter, uploadSubmission() i index.html sender - intet andet. Uden
+        // det kunne en spiller laegge vilkaarlige felter paa (fx et selvvalgt videoURL),
+        // og hele aargangen kan laese indsendelsen. submittedBy staar med vilje IKKE paa
+        // listen: den rummede en foraelders mail.
+        // keys() og ikke diff(): paa en oprettelse findes resource ikke.
+        && request.resource.data.keys().hasOnly(["playerId", "playerName", "year", "gender", "exercise", "stepIndex", "level", "medal", "status", "challengeId", "challengerId", "opponentId", "submittedAt", "createdAt"]);
 
       // Only a coach/admin may approve/reject an existing submission. A player may
       // additionally update JUST the view/expiry fields on a challenge submission
       // that belongs to their opponent (not their own), once it has been reviewed -
       // this lets them watch their opponent's video and have it delete itself
       // afterwards (see markSubmissionViewed/deleteViewedSubmissionVideo in index.html).
-      allow update: if signedIn() && (
+      allow update: if isActive() && (
         (!isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender))
         || (
           isPlayerRole()
@@ -322,15 +371,18 @@ service cloud.firestore {
     // aar og koen er denormaliseret fra spilleren, saa aargangs- og koensadgangen kan
     // tjekkes uden et ekstra opslag - samme moenster som submissions.
     match /playerNotes/{playerId} {
-      allow read: if signedIn()
+      allow read: if isActive()
         && !isPlayerRole()
         && hasFullAccess(resource.data.year, resource.data.gender);
 
-      allow create, update: if signedIn()
-        && !isPlayerRole()
-        && hasFullAccess(request.resource.data.year, request.resource.data.gender);
+      // Oprettelse og rettelse staar hver for sig: ved en rettelse skal traeneren ogsaa
+      // have adgang til den note, der ligger der i forvejen (se traenerTilEksisterende).
+      allow create: if traenerTilNyt();
+      allow update: if traenerTilNyt() && traenerTilEksisterende();
 
-      allow delete: if signedIn() && !isPlayerRole();
+      // Foer: signedIn() && !isPlayerRole() - det lod en fremmed og et deaktiveret login
+      // slette enhver note.
+      allow delete: if traenerSletter();
     }
 
     // Anmodninger om sletning. Dokument-id ER spillerens id, saa der kun kan ligge én
@@ -369,11 +421,19 @@ service cloud.firestore {
     match /juggleLadder/{playerId} {
       allow read: if isActive();
 
-      // Spilleren selv: kun sit eget dokument, kun fremdriftsfelterne, og kun inden
-      // for stigernes laengde. En demo-bruger maa ingenting.
-      allow create, update: if isActive() && (
-        (
-          isPlayerRole()
+      // Spilleren selv: se stigeSpiller() lige under denne blok.
+      allow create: if isActive() && (stigeSpiller(playerId) || traenerTilNyt());
+      // Traenere og admin retter frit inden for deres aargang - men kun et dokument, der
+      // ALLEREDE ligger i deres aargang/koen, og kun til en aargang/koen, de selv ser.
+      allow update: if isActive() && (stigeSpiller(playerId) || (traenerTilNyt() && traenerTilEksisterende()));
+
+      allow delete: if traenerSletter();
+    }
+
+    // Spilleren selv paa juggleLadder: kun sit eget dokument, kun fremdriftsfelterne, og
+    // kun inden for stigernes laengde. En demo-bruger maa ingenting.
+    function stigeSpiller(playerId) {
+      return isPlayerRole()
           && !isDemo()
           && playerId == myPlayerId()
           // keys() og ikke diff(resource.data): paa en OPRETTELSE findes resource ikke,
@@ -399,26 +459,41 @@ service cloud.firestore {
           && (!("days" in request.resource.data) || (request.resource.data.days is list && request.resource.data.days.size() <= 400))
           // Spilleren skal skrive SIN egen aargang - samme krav som i juggleLog. Uden det
           // kunne et barn parkere sin stige i en aargang, det ikke hoerer til.
-          && hasFullAccess(request.resource.data.year, request.resource.data.gender)
-        )
-        // Traenere og admin retter frit inden for deres aargang.
-        || (!isPlayerRole() && hasFullAccess(request.resource.data.year, request.resource.data.gender))
-      );
-
-      allow delete: if isActive() && !isPlayerRole();
+          && hasFullAccess(request.resource.data.year, request.resource.data.gender);
     }
 
     // Loggen - hvem registrerede hvad hvornaar. Her staar der bruger-id'er, saa den er
     // aargangsbegraenset som alt andet og laeses IKKE paa tvaers af klubben.
     match /juggleLog/{playerId} {
-      allow read: if isActive() && hasFullAccess(resource.data.year, resource.data.gender);
+      allow read: if logLaeser(playerId);
 
-      allow create, update: if isActive() && (
-        (isPlayerRole() && !isDemo() && playerId == myPlayerId())
-        || !isPlayerRole()
-      ) && hasFullAccess(request.resource.data.year, request.resource.data.gender);
+      allow create: if isActive() && (logSpiller(playerId) || traenerTilNyt());
+      allow update: if isActive() && (logSpiller(playerId) || (traenerTilNyt() && traenerTilEksisterende()));
 
-      allow delete: if isActive() && !isPlayerRole();
+      allow delete: if traenerSletter();
+    }
+
+    // Hvem maa laese en log (juggleLog og footworkLog). Der staar bruger-id'er, traenermails
+    // og - i footworkLog - familiens fritekst-begrundelse for en joker. Derfor:
+    //  - traener/admin: som foer, hele aargangen/koennet.
+    //  - spiller (ogsaa demo): KUN sit eget dokument. Foer kunne ethvert spillerlogin i
+    //    aargangen laese de andre boerns begrundelser.
+    // Spillerens gren roerer IKKE resource: klienten lytter paa sit eget dokument, og det
+    // findes ikke, foer barnet har registreret noget. Saa er resource null, og et opslag i
+    // resource.data ville fejle og vaelte lytteren. Stien (playerId) er nok.
+    // En spiller kan dermed heller ikke liste samlingen: en forespoergsel paa year kan
+    // ikke bevise, at hvert dokument er barnets eget.
+    function logLaeser(playerId) {
+      return isActive() && (
+        (isPlayerRole() && playerId == myPlayerId())
+        || (!isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender))
+      );
+    }
+
+    // Spilleren skriver sin egen log (ikke demo), i sin egen aargang. Uaendret fra foer.
+    function logSpiller(playerId) {
+      return isPlayerRole() && !isDemo() && playerId == myPlayerId()
+        && hasFullAccess(request.resource.data.year, request.resource.data.gender);
     }
 
     // Daglig fodteknik. Samme todeling som stigen: tallene her laeses klub-bredt, fordi
@@ -451,9 +526,11 @@ service cloud.firestore {
           // ikke kan rette det.
           && hasFullAccess(request.resource.data.year, request.resource.data.gender)
         )
-        || (!isPlayerRole() && hasFullAccess(request.resource.data.year, request.resource.data.gender))
+        || traenerTilNyt()
       );
 
+      // Traeneren: baade det eksisterende dokument og det nye skal ligge i traenerens
+      // aargang/koen - ellers kunne en anden aargangs traener flette sin aargang ind.
       allow update: if isActive() && (
         (
           isPlayerRole()
@@ -464,23 +541,22 @@ service cloud.firestore {
           && (!("jokerRequests" in request.resource.data) || (request.resource.data.jokerRequests is map && request.resource.data.jokerRequests.size() <= 1500))
           && hasFullAccess(request.resource.data.year, request.resource.data.gender)
         )
-        || (!isPlayerRole() && hasFullAccess(request.resource.data.year, request.resource.data.gender))
+        || (traenerTilNyt() && traenerTilEksisterende())
       );
 
-      allow delete: if isActive() && !isPlayerRole();
+      allow delete: if traenerSletter();
     }
 
     // Loggen og joker-begrundelserne. Her staar fritekst og bruger-id'er, saa den er
-    // aargangsbegraenset og laeses IKKE paa tvaers af klubben.
+    // aargangsbegraenset og laeses IKKE paa tvaers af klubben - og en spiller laeser kun
+    // sin egen (se logLaeser under juggleLog).
     match /footworkLog/{playerId} {
-      allow read: if isActive() && hasFullAccess(resource.data.year, resource.data.gender);
+      allow read: if logLaeser(playerId);
 
-      allow create, update: if isActive() && (
-        (isPlayerRole() && !isDemo() && playerId == myPlayerId())
-        || !isPlayerRole()
-      ) && hasFullAccess(request.resource.data.year, request.resource.data.gender);
+      allow create: if isActive() && (logSpiller(playerId) || traenerTilNyt());
+      allow update: if isActive() && (logSpiller(playerId) || (traenerTilNyt() && traenerTilEksisterende()));
 
-      allow delete: if isActive() && !isPlayerRole();
+      allow delete: if traenerSletter();
     }
 
     // Klub-rangliste: en spejl-tabel med KUN navn, aargang og point, saa spillerne kan se
@@ -489,15 +565,25 @@ service cloud.firestore {
     // fordi players/ ogsaa rummer noter og historik. Her staar der intet foelsomt.
     // Skrives kun af traenere/admin (se syncClubRanking i index.html); en spiller kan
     // altsaa ikke skrive sig selv oeverst.
+    // Der er intet koen paa dokumentet, saa det er aargangen, der afgoer. Foer kunne
+    // enhver aktiv traener skrive et vilkaarligt barns point (fx 9999) i en anden aargang.
+    // .get(): et dokument uden year kan kun admin roere.
     match /clubRanking/{playerId} {
       allow read: if isActive();
-      allow write: if isActive() && !isPlayerRole();
+      allow create: if isActive() && !isPlayerRole()
+        && hasYearAccess(request.resource.data.get("year", null));
+      allow update: if isActive() && !isPlayerRole()
+        && hasYearAccess(resource.data.get("year", null))
+        && hasYearAccess(request.resource.data.get("year", null));
+      // Findes dokumentet ikke, er sletningen en no-op (admins "Slet alt" sletter blindt).
+      allow delete: if isActive() && !isPlayerRole()
+        && (resource == null || hasYearAccess(resource.data.get("year", null)));
     }
 
     // Spiller-mod-spiller udfordringer. gender er den udfordrende spillers køn,
     // denormaliseret ligesom på submissions.
     match /challenges/{challengeId} {
-      allow read: if signedIn() && hasFullAccess(resource.data.year, resource.data.gender);
+      allow read: if isActive() && hasFullAccess(resource.data.year, resource.data.gender);
 
       allow create: if isPlayerRole()
         && !isDemo()
@@ -509,7 +595,7 @@ service cloud.firestore {
         // det sikre svar, hvis dokumentet ser anderledes ud end forventet.
         && (talentmaerkeOn(request.resource.data.year) || request.resource.data.type == "freestyle");
 
-      allow update: if signedIn() && (
+      allow update: if isActive() && (
         (!isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender))
         || (
           isPlayerRole()

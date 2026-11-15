@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.72</title>
+  <title>TIF Talent Tracker v15.73</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -166,7 +166,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.72 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.73 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -503,13 +503,13 @@
 <section id="privacy" class="page hidden">
   <div class="card">
     <h2 style="margin-top:0">Sådan behandler vi jeres data</h2>
-    <p class="small">TIF Talent Tracker · dataansvarlig: Mikkel Brogaard Pedersen · udgave 2026-11-14</p>
-    <p class="small">Denne udgave tilføjer "Månedens spiller" - se afsnittet om Daglig fodteknik. Den forrige strammede beskyttelsen af de indsendte videoer og tilføjede klubbens egne instruktionsvideoer. Der kommer ikke noget nyt til at ske med de data, I allerede har sagt ja til, så I bliver ikke bedt om at bekræfte igen. Er I alligevel i tvivl, så skriv til adressen nedenfor.</p>
+    <p class="small">TIF Talent Tracker · dataansvarlig: Mikkel Brogaard Pedersen · udgave 2026-11-15</p>
+    <p class="small">Denne udgave beskriver mere præcist, hvad andre familier og trænere kan se - se afsnittet "Hvem kan se hvad" - og adgangen er samtidig strammet. Den forrige tilføjede "Månedens spiller". Der kommer ikke noget nyt til at ske med de data, I allerede har sagt ja til, så I bliver ikke bedt om at bekræfte igen. Er I alligevel i tvivl, så skriv til adressen nedenfor.</p>
 
     <div class="accordion" open style="background:#e7eef5;border-color:#c9d8e8">
       <div class="accordion-body">
         <p style="margin-top:0"><b>Den korte version</b></p>
-        <p>Der gemmes dit barns navn, årgang, point, hvilke øvelser der er bestået, og hvilke dage der er trænet hjemme. Træningsvideoer ses kun af træneren - og ved udfordringer af den ene holdkammerat, dit barn selv har valgt - og de slettes automatisk, senest efter 7 dage. Alt ligger på servere i EU. Der er ingen reklamer, ingen sporing af jeres adfærd og ingen deling med andre. Det er frivilligt at uploade video.</p>
+        <p>Der gemmes dit barns navn, årgang, point, hvilke øvelser der er bestået, og hvilke dage der er trænet hjemme. Træningsvideoer ses kun af træneren - og ved udfordringer af den ene holdkammerat, dit barn selv har valgt - og de slettes automatisk, senest efter 7 dage. Databasen og videoerne ligger på servere i EU. Der er ingen reklamer, ingen sporing af jeres adfærd og ingen deling med andre. Det er frivilligt at uploade video.</p>
       </div>
     </div>
 
@@ -517,12 +517,12 @@
     <p>Appen er lavet og drives af <b>Mikkel Brogaard Pedersen</b>, som også er den, der er ansvarlig for de data, der ligger i den. Den bruges af Tjørring IF, men det er altså ikke klubben, der står for driften.</p><p>Har du spørgsmål, vil se hvad der er registreret om dit barn, have noget rettet eller slettet, så skriv til <b>mikkel0704@hotmail.com</b>. Du får svar, og sletning sker hurtigst muligt.</p>
 
     <h3>Hvad der gemmes</h3>
-    <p><b>Om spilleren:</b> navn, årgang, køn, point, hvilke øvelser der er bestået, hvilke medaljer der er optjent og overrakt, samt en log over hvad der er sket - fx "Jonglering N1 Bronze godkendt, +25 point" med dato og hvilken træner der gjorde det. </p><p><b>Trænerens note:</b> træneren kan skrive en kort note om spilleren, fx „venstrebenet“. Den gemmes adskilt fra resten og <b>kan kun ses af trænere</b> - ikke af spilleren selv og ikke af andre familier. Vil I vide, hvad der står om jeres barn, så skriv til adressen ovenfor; I har ret til at få det at vide.</p>
+    <p><b>Om spilleren:</b> navn, årgang, køn, point, hvilke øvelser der er bestået, hvilke medaljer der er optjent og overrakt, samt en log over hvad der er sket - fx "Jonglering N1 Bronze godkendt, +25 point" med dato og hvilken træner der gjorde det (trænerens e-mail). </p><p><b>Trænerens note:</b> træneren kan skrive en kort note om spilleren, fx „venstrebenet“. Den gemmes adskilt fra resten og <b>kan kun ses af trænere</b> - ikke af spilleren selv og ikke af andre familier. Vil I vide, hvad der står om jeres barn, så skriv til adressen ovenfor; I har ret til at få det at vide.</p>
     <p><b>Om login:</b> den email, der er brugt til at oprette adgangen, hvilken rolle kontoen har (spiller, træner eller admin), hvilke årgange den giver adgang til, og om den er aktiv. <b>Adgangskoden gemmer vi ikke.</b> Den håndteres af Google Firebase og kan ikke ses af trænere eller af os - heller ikke i databasen. Derfor kan en glemt kode kun nulstilles, ikke slås op.</p>
     <p><b>Om videoer:</b> selve videofilen, plus hvilken øvelse og hvilket niveau den hører til, hvornår den blev sendt, hvem der behandlede den, og hvor mange point den gav.</p>
     <p><b>Om Jongleringsstigen:</b> hvor langt barnet er nået på de to stiger, hvilke tricks der er klaret, hvilke <b>datoer</b> der er registreret på, og en log over hver registrering med tidspunkt og hvilket login der registrerede den. Registreringen sker på tillid hjemmefra - der er ingen video og ingen godkendelse - og træneren kan rette et trin efter en stikprøve til træning. Rettelser logges med trænerens navn. Point udregnes af tallene og gemmes ikke.</p>
     <p><b>Om Daglig fodteknik:</b> hvilke dage barnet har trænet, hvilke øvelser og hvor mange gange hver øvelse er lavet på hver dag. Også her sker registreringen på tillid hjemmefra uden video, og træneren kan rette eller nulstille en dag efter en stikprøve. Rettelser logges med trænerens navn. Point, kombi-bonus og streak udregnes af tallene og gemmes ikke.</p>
-    <p><b>Om Månedens spiller:</b> hver måned kåres én spiller i hver årgang ud fra tallene i Daglig fodteknik. Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (træningsdage, minutter, antal øvelser og point). Kåringen kan ses af alle, der er logget ind i klubben, ligesom ranglisten, og den ændres ikke bagefter.</p>
+    <p><b>Om Månedens spiller:</b> hver måned kåres én spiller i hver årgang ud fra tallene i Daglig fodteknik. Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (træningsdage, minutter, antal øvelser og point). Kåringen kan ses af alle, der er logget ind i klubben, ligesom ranglisten. Den ændres ikke bagefter - bortset fra, at et barn fjernes fra kåringen, hvis I beder om at få barnet slettet.</p>
     <p><b>Om jokere i Daglig fodteknik:</b> hvis I søger en joker for en dag, gemmes datoen, om træneren har godkendt eller afvist den, og <b>den korte begrundelse, I selv skriver</b>. Begrundelsen er fritekst og kan kun ses af jer selv og af trænerne i barnets årgang. <b>Den slettes automatisk 3 døgn efter, træneren har afgjort jokeren</b> - datoen og svaret bliver, fordi de skal bruges til at regne streaken ud. Vi beder udtrykkeligt om <b>ikke</b> at skrive helbredsdetaljer; "syg" er nok.</p><p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På klub-ranglisten:</b> navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
     <p><b>På din egen telefon:</b> et tidsstempel for, hvornår du sidst åbnede "Duel". Det bruges kun til at vise det lille tal på fanen, og det forlader aldrig enheden.</p>
 
@@ -543,15 +543,17 @@
     <h3>Hvem kan se hvad</h3>
     <table>
       <tr><th>Rolle</th><th>Kan se</th></tr>
-      <tr><td>Spiller</td><td>Sin egen profil og sin egen årgang. Klub-ranglistens top 10 med navn, årgang og point. En udfordringsvideo fra den ene modpart.</td></tr>
-      <tr><td>Træner</td><td>Alt om spillerne i de årgange, træneren har fået adgang til - inklusive noter, historik og videoer til godkendelse.</td></tr>
+      <tr><td>Spiller</td><td><b>Om sig selv:</b> alt på sin egen profil.<br><b>Om de andre i sin egen årgang:</b> navn, point, hvilke øvelser der er bestået, medaljer og loggen over, hvad der er godkendt (med trænerens e-mail), samt hvem der har sendt en video ind eller udfordret hvem - men ikke selve videoerne, ikke trænerens noter og ikke joker-begrundelser.<br><b>Om alle spillere i klubben:</b> navn, årgang og point på klub-ranglisten, hvilke dage der er trænet fodteknik og hvor mange gange hver øvelse er lavet, datoer for jokere, hvor langt man er på Jongleringsstigen, og hvem der er Månedens spiller.<br>Dertil en udfordringsvideo fra den ene modpart.</td></tr>
+      <tr><td>Træner</td><td>Alt om spillerne i de årgange, træneren har fået adgang til - inklusive noter, historik, joker-begrundelser og videoer til godkendelse. For andre årgange ser en træner det samme som en spiller ser om hele klubben - ikke noter, logge eller joker-begrundelser.</td></tr>
       <tr><td>Administrator</td><td>Alle årgange, samt hvem der har login til systemet.</td></tr>
       <tr><td>Alle andre</td><td>Ingenting. Man skal have et login oprettet af klubben for at se noget som helst.</td></tr>
     </table>
     <p class="small">Det er ikke kun menuerne, der er skjult - serveren afviser selve forespørgslen, hvis man ikke har adgang. Det gælder også, hvis man prøver udenom appen.</p>
+    <p class="small"><b>Skærmen viser mindre, end der hentes.</b> Klub-ranglisten viser kun top 10, og appen viser ikke andre børns træningsdage - men oplysningerne ovenfor hentes ned i appen, fordi point og ranglister regnes ud dér, og en teknisk kyndig person med et login kan derfor se dem. Det er en kendt svaghed, og det er noteret som noget, der skal strammes, så man kun kan hente navn og point for andre.</p>
+    <p class="small"><b>Backup:</b> trænere og administratorer kan hente en kopi af oplysningerne om deres egne årgange til deres egen computer - navne, point, noter og registreringer, men ikke videolinks. Kopien er trænerens ansvar og slettes ikke af systemet.</p>
 
     <h3>Hvilke tjenester bruges</h3>
-    <p><b>Google Firebase</b> står for login, database og opbevaring af videoer. Google behandler data på vegne af den dataansvarlige og bruger dem ikke til egne formål.</p><p><b>Databasen</b> - navne, point, niveauer, medaljer og historik - ligger i Googles <b>europæiske datacentre (eur3)</b> og forlader ikke EU.</p><p><b>Videoerne</b> ligger på en server i <b>Belgien (europe-west1)</b>. Hverken videoer eller øvrige data forlader altså EU.</p>
+    <p><b>Google Firebase</b> står for login, database og opbevaring af videoer. Google behandler data på vegne af den dataansvarlige og bruger dem ikke til egne formål.</p><p><b>Databasen</b> - navne, point, niveauer, medaljer og historik - ligger i Googles <b>europæiske datacentre (eur3)</b> og forlader ikke EU.</p><p><b>Videoerne</b> ligger på en server i <b>Belgien (europe-west1)</b>. Login - e-mail og adgangskode - håndteres af Googles login-tjeneste, Firebase Authentication.</p>
     <p><b>Google reCAPTCHA Enterprise</b> bruges til at afvise henvendelser, der ikke kommer fra denne side. Det er den, der forhindrer fremmede i at hente videoer ud af systemet.</p><p>Den sætter <b>én teknisk cookie fra google.com</b>, som bruges til at skelne et rigtigt besøg fra et automatiseret. Den følger jer ikke rundt på andre hjemmesider og bruges ikke til markedsføring eller profilering. Den sættes, så snart siden åbnes - også før man logger ind - fordi den netop skal beskytte login'et.</p>
     <p><b>GitHub Pages</b> leverer selve hjemmesiden - altså den kode, din browser henter. Der ligger ingen persondata dér. GitHub og deres leverandør Fastly ser din IP-adresse, når siden hentes, præcis som enhver anden hjemmeside.</p>
     <p><b>Og så er der ikke mere.</b> Ingen Google Analytics, ingen Facebook-pixel, ingen annoncenetværk, ingen cookies til markedsføring eller til at følge jeres adfærd, og ingen videregivelse af data til nogen tredjepart. Den sikkerhedscookie, der er nævnt ovenfor, er den eneste cookie på siden.</p>
@@ -559,7 +561,7 @@
     <h3>Hvor længe det gemmes</h3>
     <p><b>Videoer: højst 7 dage</b>, ofte kun timer.</p>
     <p><b>Begrundelsen på en joker i Daglig fodteknik: 3 døgn</b> efter træneren har afgjort den. Derefter står der kun datoen og svaret.</p>
-    <p>Det er de to eneste faste frister, systemet selv håndhæver.</p><p><b>Point, niveauer, medaljer, noter og historik har i dag ingen fast slettefrist.</b> De gemmes, så længe barnet bruger appen, og slettes når I beder om det. Der er ikke sat en automatisk oprydning op, som af sig selv fjerner data for børn, der er stoppet i klubben - nogen skal sætte det i gang. Det er en kendt mangel, og det er noteret som noget, der skal forbedres.</p>
+    <p>Det er de to eneste faste frister, systemet selv håndhæver.</p><p><b>Point, niveauer, medaljer, noter, historik og kåringer som Månedens spiller har i dag ingen fast slettefrist.</b> De gemmes, så længe barnet bruger appen, og slettes når I beder om det. Der er ikke sat en automatisk oprydning op, som af sig selv fjerner data for børn, der er stoppet i klubben - nogen skal sætte det i gang. Det er en kendt mangel, og det er noteret som noget, der skal forbedres.</p>
 
     <h3>Login og adgangskoder</h3>
     <p>Adgangen oprettes af klubben og sendes til jer med en midlertidig kode. <b>Første gang I logger ind, skal I vælge jeres egen</b> - man kommer ikke videre i appen før. Glemmer I den, kan I vælge en ny via "Glemt adgangskode?" på login-siden. Ingen - heller ikke træneren - kan se jeres kode.</p>
@@ -567,7 +569,7 @@
 
     <h3>Jeres bekræftelse</h3>
     <p>Første gang I logger ind, bliver I bedt om at bekræfte, at I har læst det her. <b>Bekræftelsen gemmes</b> med dato på jeres brugerkonto, så det kan dokumenteres, hvem der har sagt ja og hvornår. Ændres teksten væsentligt, bliver I spurgt igen.</p>
-    <p><b>I appen:</b> under "Min profil" er der en knap, der hedder "Anmod om at blive slettet". Den sender anmodningen til jeres træner, som godkender den. I kan fortryde, indtil den er behandlet.</p><p>I kan også bare skrive til adressen ovenfor. Så lukkes adgangen, og alt om jeres barn bliver slettet: profil, point, niveauer, medaljer, historik, trænerens note, Jongleringsstigen og Daglig fodteknik med alle registreringer, logge og joker-begrundelser, alle indsendte videoer, alle videofiler, alle udfordringer og pladsen på ranglisten.</p><p>Det sker i <b>én samlet handling</b> i systemet, så intet bliver glemt undervejs. Men det <b>starter ikke af sig selv</b> - en person skal sætte det i gang, når I henvender jer. I får besked, når det er gjort, og det sker senest 30 dage efter jeres henvendelse.</p><p>Selve login'et lukkes samtidig. Selve brugerkontoen hos Google fjernes i et separat trin bagefter; indtil da giver den ingen adgang til noget som helst.</p>
+    <p><b>I appen:</b> under "Min profil" er der en knap, der hedder "Anmod om at blive slettet". Den sender anmodningen til jeres træner, som godkender den. I kan fortryde, indtil den er behandlet.</p><p>I kan også bare skrive til adressen ovenfor. Så lukkes adgangen, og alt om jeres barn bliver slettet: profil, point, niveauer, medaljer, historik, trænerens note, Jongleringsstigen og Daglig fodteknik med alle registreringer, logge og joker-begrundelser, alle indsendte videoer, alle videofiler, alle udfordringer, pladsen på ranglisten og barnets kåringer som Månedens spiller.</p><p>Det sker i <b>én samlet handling</b> i systemet, så intet bliver glemt undervejs. Men det <b>starter ikke af sig selv</b> - en person skal sætte det i gang, når I henvender jer. I får besked, når det er gjort, og det sker senest 30 dage efter jeres henvendelse.</p><p>Selve login'et lukkes samtidig. Selve brugerkontoen hos Google fjernes i et separat trin bagefter; indtil da giver den ingen adgang til noget som helst.</p>
 
     <h3>Jeres rettigheder</h3>
     <p>I har ret til at få at vide, hvad der er registreret, få rettet noget forkert, få det hele slettet, og at trække et samtykke tilbage - også efter at have sagt ja. Det koster ingenting og kræver ingen begrundelse. Er I utilfredse med måden, det håndteres på, kan I klage til Datatilsynet.</p>
@@ -577,7 +579,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.72 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.73 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -2194,7 +2196,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.72 · ikke logget ind");
+    setSyncStatus("v15.73 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2220,7 +2222,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.72 · bekræft inden I går i gang");
+    setSyncStatus("v15.73 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2228,7 +2230,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.72 · vælg din egen adgangskode");
+    setSyncStatus("v15.73 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2269,9 +2271,9 @@ function startListeners(){
         if(tab){ tab.classList.remove("hidden"); tab.textContent = "Min profil"; }
       }
     }
-    setSyncStatus("v15.72 · live database aktiv");
+    setSyncStatus("v15.73 · live database aktiv");
     renderAll();
-  }, (e)=>setSyncStatus("v15.72 · databasefejl: " + e.code));
+  }, (e)=>setSyncStatus("v15.73 · databasefejl: " + e.code));
 
   if(isAdmin()){
     if(unsubUsers) unsubUsers();
@@ -2342,12 +2344,22 @@ function startListeners(){
   // Den bruges til uge/maaned-ranglisten og til trænerens stikprøve.
   if(unsubJuggleLog) stopListeners(unsubJuggleLog);
   const logChunks = {};
-  unsubJuggleLog = subscribeYearScoped("juggleLog", (idx, docs)=>{
-    logChunks[idx] = docs;
-    juggleLog = Object.values(logChunks).flat();
-    footworkStamp++;
-    renderAll();
-  }, (e)=>console.error("juggleLog listener", e));
+  // En spiller henter kun sin EGEN log - reglerne tillader ikke andet. I loggen staar
+  // bruger-id'er og, for fodteknik, joker-begrundelser; dem skal andre familier i
+  // aargangen ikke have ned i browseren. Traenere henter aargangens.
+  const egenLog = isPlayer() && currentUserDoc?.playerId ? currentUserDoc.playerId : null;
+  unsubJuggleLog = egenLog
+    ? [onSnapshot(doc(db, "juggleLog", egenLog), (snap)=>{
+        juggleLog = snap.exists() ? [{id: snap.id, ...snap.data()}] : [];
+        footworkStamp++;
+        renderAll();
+      }, (e)=>console.error("juggleLog listener", e))]
+    : subscribeYearScoped("juggleLog", (idx, docs)=>{
+        logChunks[idx] = docs;
+        juggleLog = Object.values(logChunks).flat();
+        footworkStamp++;
+        renderAll();
+      }, (e)=>console.error("juggleLog listener", e));
 
   // Daglig fodteknik: samme todeling som stigen. Tallene laeses klub-bredt, fordi
   // klub-top-10 skal vise samme total som aargangslisten; teksten og uid'erne er
@@ -2363,11 +2375,16 @@ function startListeners(){
 
   if(unsubFootworkLog) stopListeners(unsubFootworkLog);
   const footworkLogChunks = {};
-  unsubFootworkLog = subscribeYearScoped("footworkLog", (idx, docs)=>{
-    footworkLogChunks[idx] = docs;
-    footworkLogs = Object.values(footworkLogChunks).flat();
-    renderAll();
-  }, (e)=>console.error("footworkLog listener", e));
+  unsubFootworkLog = egenLog
+    ? [onSnapshot(doc(db, "footworkLog", egenLog), (snap)=>{
+        footworkLogs = snap.exists() ? [{id: snap.id, ...snap.data()}] : [];
+        renderAll();
+      }, (e)=>console.error("footworkLog listener", e))]
+    : subscribeYearScoped("footworkLog", (idx, docs)=>{
+        footworkLogChunks[idx] = docs;
+        footworkLogs = Object.values(footworkLogChunks).flat();
+        renderAll();
+      }, (e)=>console.error("footworkLog listener", e));
 
   // Noterne hentes kun af traenere og admin - en spiller har ingen laeseadgang, og en
   // lytter ville bare fejle stoejende i konsollen.
@@ -2732,6 +2749,10 @@ async function deletePlayer(id){
   ].filter(Boolean));
   files = [...stier].map(sti=>storageRef(storage, sti));
 
+  // Kaaringer som Maanedens spiller: barnet fjernes fra vinderlisten. Selve posten bliver
+  // staaende (evt. som "ingen vinder"), saa naeste maaned stadig ved, hvem der vandt sidst.
+  const kaaringer = maanedensSpiller.filter(k=>Array.isArray(k.vindere) && k.vindere.some(v=>v.id === id));
+
   const logins = userDocs.map(d=>d.data().email).filter(Boolean);
   if(!await spoerg(
     `Slet ALT om ${p.name} (${yearLabel(p.year)})?\n\n`
@@ -2742,6 +2763,7 @@ async function deletePlayer(id){
     + `· ${chs.length} ${chs.length===1?"udfordring":"udfordringer"} med ${p.name}\n`
     + `· ${files.length} ${files.length===1?"videofil":"videofiler"} i skyen\n`
     + `· Pladsen på klub-ranglisten\n`
+    + (kaaringer.length ? `· ${kaaringer.length} ${kaaringer.length===1?"kåring":"kåringer"} som Månedens spiller\n` : "")
     + (logins.length ? `· Adgangen for ${logins.join(", ")}\n` : "· Ingen login knyttet til spilleren\n")
     + `\nDet kan ikke fortrydes.`, {ja: "Fortsæt", farlig: true})) return;
 
@@ -2750,7 +2772,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.72 · sletter...");
+  setSyncStatus("v15.73 · sletter...");
   for(const f of files){
     try{ await deleteObject(f); }
     catch(e){ if(e?.code !== "storage/object-not-found") failed.push("videofil " + f.name); }   // allerede vaek er ikke en fejl
@@ -2759,6 +2781,10 @@ async function deletePlayer(id){
   for(const d of subs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("indsendelse " + d.id); } }
   for(const d of chs){  try{ await deleteDoc(d.ref); }catch(e){ failed.push("udfordring " + d.id); } }
   for(const d of userDocs){ try{ await deleteDoc(d.ref); }catch(e){ failed.push("login " + d.id); } }
+  for(const k of kaaringer){
+    try{ await setDoc(doc(db,"maanedensSpiller",k.id), {vindere: k.vindere.filter(v=>v.id !== id), rettet: serverTimestamp()}, {merge:true}); }
+    catch(e){ failed.push("Månedens spiller " + k.maaned); }
+  }
   try{ await deleteDoc(doc(db,"clubRanking",id)); }catch(e){ failed.push("klub-rangliste"); }
   try{ await deleteDoc(doc(db,"playerNotes",id)); }catch(e){ failed.push("traenernoten"); }
   try{ await deleteDoc(doc(db,"juggleLadder",id)); }catch(e){ failed.push("jongleringsstigen"); }
@@ -2767,7 +2793,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.72 · live database aktiv");
+  setSyncStatus("v15.73 · live database aktiv");
 
   besked(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -3282,11 +3308,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.72 · migrering færdig");
+    setSyncStatus("v15.73 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.72 · migrering fejlede");
+    setSyncStatus("v15.73 · migrering fejlede");
   }
 }
 
@@ -3461,7 +3487,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.72 · uploader video...");
+    setSyncStatus("v15.73 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -3482,8 +3508,9 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
         status: "pending",
         challengeId: challengeId || null,
         challengerId: c?.challengerId ?? null, opponentId: c?.opponentId ?? null,
+        // Loginnets e-mail gemmes IKKE her: indsendelsen laeses af hele aargangen, og
+        // e-mailen er som regel en foraelders. Hvem der sendte, fremgaar af playerId.
         submittedAt,
-        submittedBy: currentUser?.email || "",
         createdAt: serverTimestamp()
       });
       // Linket og stien ligger for sig, hvor kun traeneren, barnet selv og - efter
@@ -3504,12 +3531,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.72 · live database aktiv");
+    setSyncStatus("v15.73 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.72 · live database aktiv");
+    setSyncStatus("v15.73 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){

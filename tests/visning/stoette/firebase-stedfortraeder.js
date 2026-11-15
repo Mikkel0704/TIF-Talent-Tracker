@@ -88,6 +88,8 @@ export async function deleteDoc(ref){
   giv(ref.navn);
 }
 export function onSnapshot(maal, cb){
+  // Hvad appen lytter paa, saa en test kan se, at et login kun beder om det, det maa faa.
+  (window.__lyt ||= []).push({ navn: maal.navn, kind: maal.kind, id: maal.id || null, filtre: (maal.filtre || []).map(f => f.join("")) });
   const l = { maal, cb }; lyttere.add(l);
   setTimeout(() => lyttere.has(l) && cb(snap(maal)), 0);
   return () => lyttere.delete(l);

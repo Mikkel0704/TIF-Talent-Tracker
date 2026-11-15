@@ -33,12 +33,14 @@ await env.withSecurityRulesDisabled(async c => {
 });
 const db = k => env.authenticatedContext(BRUGERE[k].uid).firestore();
 
+// Praecis de felter, uploadSubmission() sender. Videolink og sti ligger ikke laengere paa
+// indsendelsen (de ligger i submissionVideos), og reglerne afviser nu ekstra felter.
 const medalje = (pid, year) => ({playerId:pid, playerName:'TEST', year, gender:'dreng',
   exercise:'Præcision', stepIndex:0, level:1, medal:'Bronze', status:'pending', challengeId:null,
-  videoPath:'x', videoURL:'y', submittedAt:new Date().toISOString()});
+  challengerId:null, opponentId:null, submittedAt:new Date().toISOString(), createdAt:new Date()});
 const friDuel = (pid, year) => ({playerId:pid, playerName:'TEST', year, gender:'dreng',
   exercise:'Flest jongleringer', stepIndex:null, level:null, medal:null, status:'pending',
-  challengeId:'c1', videoPath:'x', videoURL:'y', submittedAt:new Date().toISOString()});
+  challengeId:'c1', challengerId:pid, opponentId:'px', submittedAt:new Date().toISOString(), createdAt:new Date()});
 
 // ---------- før indstillingen findes overhovedet ----------
 await proev('uden clubConfig-dokumentet er alt som før: medaljevideo tilladt','ALLOW',
