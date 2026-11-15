@@ -212,17 +212,24 @@ service cloud.firestore {
     }
 
     // rangliste/: én linje pr. barn med navn, aargang og point. Admin alt; alle andre
-    // (spiller, demo og traener) linjerne i de aargange, der staar paa deres login.
-    // Bevidst UDEN koen: linjen rummer kun det, ranglisten viser, og spillerens
-    // forespoergsel er where("year","==",egenAargang) alene - en koensbetingelse kunne
-    // den ikke bevise. Saa er det samme for en koensbegraenset traener.
+    // (spiller, demo og traener) linjerne i de aargange, der staar paa deres login - og,
+    // hvis loginnet er begraenset til ét koen i aargangen (det er spillerlogins: drenge
+    // ser drenge), kun det koens linjer. Saadan har aargangslisten altid vaeret, og et
+    // barn skal ikke kunne hente mere, end listen viser. Appen spoerger derfor med
+    // where("year","==",aar) OG where("gender","==",koen), naar loginnet er begraenset.
+    // gender laeses UDEN standardvaerdi: i en forespoergsel uden koens-klausul kan den
+    // saa ikke bevises, og et begraenset login kan ikke lytte paa hele aargangen.
     // .get("years", []): et login uden years-felt faar intet i stedet for en fejl.
     function ranglisteLaeser() {
       return isActive() && ranglisteLaeserAktiv();
     }
     function ranglisteLaeserAktiv() {
       let d = userDoc().data;
-      return d.role == "admin" || resource.data.year in d.get("years", []);
+      let aar = resource.data.year;
+      return d.role == "admin"
+        || (aar in d.get("years", [])
+            && (!("yearGenders" in d) || !(aar in d.yearGenders) || d.yearGenders[aar] == "begge"
+                || d.yearGenders[aar] == resource.data.gender));
     }
 
     // Talentmaerket kan slaas fra pr. aargang, saa appen kan rulles ud til en aargang,

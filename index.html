@@ -551,7 +551,7 @@
     <h3>Hvem kan se hvad</h3>
     <table>
       <tr><th>Rolle</th><th>Kan se</th></tr>
-      <tr><td>Spiller</td><td><b>Om sig selv:</b> alt på sin egen profil.<br><b>Om de andre i sin egen årgang:</b> kun ranglisten - navn, årgang, køn, point i alt, denne uge og denne måned, og om barnet kan udfordres til en duel.<br><b>Om hele klubben:</b> klubbens top 10 med navn, årgang og point, og hvem der er Månedens spiller med de tal, der afgjorde det.<br><b>I en duel, barnet selv er med i:</b> modpartens navn, hvad duellen gælder, modpartens indsendelse (hvornår den er sendt, og hvad træneren afgjorde) og - når træneren har afgjort duellen - modpartens video.<br>Ikke andre børns træningsdage, øvelser, fremdrift i Talentmærket eller på Jongleringsstigen, medaljer, logge, trænerens noter eller joker-begrundelser.</td></tr>
+      <tr><td>Spiller</td><td><b>Om sig selv:</b> alt på sin egen profil.<br><b>Om de andre på sit eget hold</b> (samme årgang - og samme køn, når login'et er oprettet til drenge eller piger): kun ranglisten - navn, årgang, køn, point i alt, denne uge og denne måned, og om barnet kan udfordres til en duel.<br><b>Om hele klubben:</b> klubbens top 10 med navn, årgang og point, og hvem der er Månedens spiller med de tal, der afgjorde det.<br><b>I en duel, barnet selv er med i:</b> modpartens navn, hvad duellen gælder, modpartens indsendelse (hvornår den er sendt, og hvad træneren afgjorde) og - når træneren har afgjort duellen - modpartens video.<br>Ikke andre børns træningsdage, øvelser, fremdrift i Talentmærket eller på Jongleringsstigen, medaljer, logge, trænerens noter eller joker-begrundelser.</td></tr>
       <tr><td>Træner</td><td>Alt om spillerne i de årgange, træneren har fået adgang til - inklusive noter, historik, joker-begrundelser og videoer til godkendelse. Om andre årgange ser en træner kun klubbens top 10 og Månedens spiller - ingen registreringer, noter, logge eller joker-begrundelser.</td></tr>
       <tr><td>Administrator</td><td>Alle årgange, samt hvem der har login til systemet.</td></tr>
       <tr><td>Alle andre</td><td>Ingenting. Man skal have et login oprettet af klubben for at se noget som helst.</td></tr>
@@ -2292,7 +2292,14 @@ function startListeners(){
   function lytRangliste(aar){
     stopListeners(unsubRangliste);
     ranglisteAar = aar;
-    unsubRangliste = [onSnapshot(query(collection(db, "rangliste"), where("year","==",aar)), (snap)=>{
+    // Er loginnet begraenset til ét koen (det er spillerlogins: drenge ser drenge, piger
+    // ser piger), spoerges der kun efter det koen - som aargangslisten altid har vaeret.
+    // Reglerne kraever det ogsaa: uden koens-klausulen kan de ikke bevise forespoergslen.
+    const koen = genderRestrictionFor(aar);
+    const q = koen
+      ? query(collection(db, "rangliste"), where("year","==",aar), where("gender","==",koen))
+      : query(collection(db, "rangliste"), where("year","==",aar));
+    unsubRangliste = [onSnapshot(q, (snap)=>{
       rangliste = snap.docs.map(d=>({id:d.id, ...d.data()}));
       ranglisteHentet = true;
       renderAll();

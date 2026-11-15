@@ -22,6 +22,8 @@ const linje = (name, year, gender, kanUdfordres, total, uge, maaned, regler = RE
 const BRUGERE = {
   sp:    { email: "o@x.invalid", role: "player", playerId: "p1", years: ["2017"], ...ok_ },
   demo:  { email: "d@x.invalid", role: "player", playerId: "p9", years: ["2017"], demo: true, ...ok_ },
+  // Som de rigtige spillerlogins: begraenset til barnets eget koen i aargangen.
+  spd:   { email: "od@x.invalid", role: "player", playerId: "p1", years: ["2017"], yearGenders: { "2017": "dreng" }, ...ok_ },
   tr:    { email: "t@x.invalid", role: "coach", years: ["2017"], ...ok_ },
   dr:    { email: "dr@x.invalid", role: "coach", years: ["2017"], yearGenders: { "2017": "dreng" }, ...ok_ },
   admin: { email: "a@x.invalid", role: "admin", years: ["2017", "2016"], ...ok_ }
@@ -101,6 +103,21 @@ a = await aabn("demo", { players: { p9: { name: "Demo Test", year: "2017", gende
 lyt = await a.lyt();
 t("demo-loginnet beder om det samme - på sit eget id",
   JSON.stringify([...lyt].sort()) === JSON.stringify(forventet.map(x => x.replace(/p1/g, "p9")).sort()), lyt);
+await a.luk();
+
+console.log("\nEt login, der er begrænset til ét køn, spørger kun efter det køn");
+a = await aabn("spd", { players: OSCAR, rangliste: LINJER, klubRangliste: { top: TOP } });
+lyt = await a.lyt();
+t("ranglisten hentes med årgang OG køn", lyt.includes("rangliste|col||year==2017&gender==dreng"), lyt.filter(x => x.startsWith("rangliste")));
+t("og ikke for hele årgangen", !lyt.includes("rangliste|col||year==2017"));
+await a.gaaTil("leaderboard");
+await a.klik("All-time");
+{
+  const navne = (await a.raekker()).map(r => r.navn);
+  t("drengene i årgangen står på listen", ["Oscar Test", "Bo Test", "Carl Test"].every(n => navne.includes(n)), navne);
+  t("pigerne og en anden årgang står der ikke", !navne.includes("Ida Test") && !navne.includes("Anna Test"), navne);
+}
+t("ingen JS-fejl", a.fejl.length === 0, a.fejl);
 await a.luk();
 
 console.log("\nTræner og admin");
@@ -293,7 +310,7 @@ console.log("\nDatabehandlingsteksten");
 a = await aabn("sp", { players: OSCAR });
 await a.page.evaluate(() => { openPrivacy(); }); await a.page.waitForTimeout(200);
 const priv = (await a.tekst("#privacy")).replace(/\s+/g, " ");
-t("spillerens række siger, at andre børn kun ses på ranglisten", /Om de andre i sin egen årgang: kun ranglisten/.test(priv), priv.slice(0, 200));
+t("spillerens række siger, at andre børn kun ses på ranglisten", /Om de andre på sit eget hold \(samme årgang - og samme køn, når login'et er oprettet til drenge eller piger\): kun ranglisten/.test(priv), priv.slice(0, 200));
 t("og at træningsdage, øvelser, Talentmærket, medaljer og logge ikke kan hentes", /Ikke andre børns træningsdage, øvelser, fremdrift i Talentmærket/.test(priv) && /medaljer, logge/.test(priv));
 t("den gamle 'kendte svaghed' er væk", !/Skærmen viser mindre, end der hentes/.test(priv) && !/kendt svaghed/.test(priv));
 t("serverfunktionen og dens placering er nævnt", /serverfunktion hos Google.*Belgien \(europe-west1\)/.test(priv));

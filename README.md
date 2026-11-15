@@ -175,7 +175,7 @@ koden - "V-rul" hedder nu "V-rul yderside" (kode `v`), "V+L rul" hedder "L+V-rul
 | `challenges` | Dueller | De to parter; trænere i årgangen |
 | `juggleLadder` / `footwork` | Fremdrift og registreringer - kun tal og datoer | Barnet selv; trænere i årgangen |
 | `juggleLog` / `footworkLog` | Hvem registrerede hvad; joker-begrundelser | Barnet selv; trænere i årgangen |
-| `rangliste` | Én linje pr. barn, skrevet af serveren: navn, årgang, køn, point | Egen årgang |
+| `rangliste` | Én linje pr. barn, skrevet af serveren: navn, årgang, køn, point | Egen årgang - og kun eget køn, når login'et er begrænset til ét køn (det er spillerlogins) |
 | `klubRangliste` | `top`: klubbens top 10, skrevet af serveren | Hele klubben |
 | `clubRanking` | Gammelt spejl af medaljepoint. Skrives stadig af trænere, læses ikke længere af appens rangliste | Trænere i årgangen og admin |
 | `clubConfig` | Hvilke årgange kører Talentmærket (`modules`); adresserne på instruktionsvideoerne (`guideVideos`) | Hele klubben |

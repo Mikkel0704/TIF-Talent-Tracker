@@ -100,22 +100,27 @@ const hent = (k, s, id) => getDoc(doc(db(k), s, id));
 
 // =====================================================================================
 console.log('\n--- rangliste/: spilleren læser sin egen årgang ---');
-await proev('spiller: lytter på ranglisten for sin årgang (where year == 2017)', 'ALLOW', ()=>aar('spiller','rangliste','2017'));
+await proev('spiller (drenge-login): lytter på drengene i sin årgang (year + køn, som appen spørger)', 'ALLOW', ()=>aarKoen('spiller','rangliste','2017','dreng'));
+await proev('spiller (drenge-login): kan IKKE lytte på hele årgangen uden køn', 'DENY', ()=>aar('spiller','rangliste','2017'));
+await proev('spiller (drenge-login): kan IKKE lytte på pigerne i årgangen', 'DENY', ()=>aarKoen('spiller','rangliste','2017','pige'));
 await proev('spiller: kan IKKE lytte på en anden årgangs rangliste', 'DENY', ()=>aar('spiller','rangliste','2011'));
 await proev('spiller: kan IKKE liste ranglisten uden where-klausul', 'DENY', ()=>getDocs(collection(db('spiller'),'rangliste')));
 await proev('spiller: henter en holdkammerats linje i sin årgang', 'ALLOW', ()=>hent('spiller','rangliste','p2'));
-await proev('spiller: ser også pigernes linjer i årgangen (ranglisten er uden køn)', 'ALLOW', ()=>hent('spiller','rangliste','p3'));
+await proev('spiller (drenge-login): kan IKKE hente en piges linje i årgangen', 'DENY', ()=>hent('spiller','rangliste','p3'));
 await proev('spiller: kan IKKE hente en linje fra en anden årgang', 'DENY', ()=>hent('spiller','rangliste','p11'));
-await proev('2011-spiller: lytter på sin årgang', 'ALLOW', ()=>aar('elleve','rangliste','2011'));
+await proev('2011-spiller (login uden kønsgrænse): lytter på hele sin årgang', 'ALLOW', ()=>aar('elleve','rangliste','2011'));
 await proev('2011-spiller: kan IKKE lytte på 2017', 'DENY', ()=>aar('elleve','rangliste','2017'));
-await proev('demo: lytter på ranglisten for sin årgang', 'ALLOW', ()=>aar('demo','rangliste','2017'));
+await proev('demo (drenge-login): lytter på drengene i sin årgang', 'ALLOW', ()=>aarKoen('demo','rangliste','2017','dreng'));
+await proev('demo (drenge-login): kan IKKE lytte på hele årgangen uden køn', 'DENY', ()=>aar('demo','rangliste','2017'));
 await proev('demo: kan IKKE lytte på en anden årgang', 'DENY', ()=>aar('demo','rangliste','2011'));
 
 console.log('\n--- rangliste/: trænere og admin ---');
 await proev('træner: lytter på sin årgangs rangliste', 'ALLOW', ()=>aar('traener','rangliste','2017'));
 await proev('træner: kan IKKE lytte på en anden årgang', 'DENY', ()=>aar('traener','rangliste','2011'));
-await proev('drengetræner: lytter på hele årgangens rangliste (bevidst uden køn)', 'ALLOW', ()=>aar('drenge','rangliste','2017'));
-await proev('drengetræner: også med kønsfilteret, som subscribeYearScoped sender', 'ALLOW', ()=>aarKoen('drenge','rangliste','2017','dreng'));
+await proev('drengetræner: kan IKKE lytte på hele årgangens rangliste uden køn', 'DENY', ()=>aar('drenge','rangliste','2017'));
+await proev('drengetræner: lytter på drengenes linjer, som subscribeYearScoped spørger', 'ALLOW', ()=>aarKoen('drenge','rangliste','2017','dreng'));
+await proev('drengetræner: kan IKKE hente en piges linje', 'DENY', ()=>hent('drenge','rangliste','p3'));
+await proev('træner med begge køn: henter en piges linje', 'ALLOW', ()=>hent('traener','rangliste','p3'));
 await proev('anden årgang: lytter på 2011', 'ALLOW', ()=>aar('anden','rangliste','2011'));
 await proev('anden årgang: kan IKKE lytte på 2017', 'DENY', ()=>aar('anden','rangliste','2017'));
 await proev('anden årgang: kan IKKE hente en 2017-linje', 'DENY', ()=>hent('anden','rangliste','p1'));
