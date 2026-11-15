@@ -16,10 +16,11 @@ Live: https://mikkel0704.github.io/TIF-Talent-Tracker/
 | Videoer | Cloud Storage, bøtte `tif-talent-tracker`, Belgien (europe-west1). Mapperne hedder `submissions/{login-id}/`, kan ikke listes, og tømmes af en slettefrist på 8 dage. |
 | Adgangsregler | `firestore.rules` og `storage.rules` |
 | Værn mod fremmede klienter | App Check med reCAPTCHA Enterprise, håndhævet på Firestore og Storage |
+| Ranglisten | Cloud Functions i `functions/`, Belgien (europe-west1). Regner hvert barns point ud og skriver én linje pr. barn - se "Ranglisten regnes på serveren". |
 | Tests | `tests/` - se `tests/README.md` |
 
-Der er ingen server og ingen Cloud Functions. Alt, der skal håndhæves, håndhæves i
-reglerne; alt andet er brugerflade.
+Serveren gør kun én ting: den regner ranglisten ud. Alt andet, der skal håndhæves,
+håndhæves i reglerne; resten er brugerflade.
 
 ## Udrulning
 
@@ -32,6 +33,13 @@ den er rullet ud. Kør regeltestene først, og brug `tests/vaerktoej/udrul-regle
 læser reglerne tilbage og sammenligner dem med filen. Rækkefølgen betyder noget: kræver ny
 kode en ny regel, skal reglen ud først - ellers får familierne "missing or insufficient
 permissions".
+
+**Funktionerne rulles heller ikke ud af sig selv.** `tests/vaerktoej/udrul-funktioner.cjs`
+laver pointkoden forfra ud fra `index.html`, ruller ud og læser tilbage, hvilke funktioner
+der ligger live. Kør derefter `tests/vaerktoej/genberegn-rangliste.cjs`. **Ændres en
+pointregel i `index.html`, skal `POINTREGLER` hæves, funktionerne rulles ud og ranglisten
+genberegnes** - ellers regner serveren videre med de gamle regler. Admin-siden viser en
+advarsel, når det er tilfældet ("Ranglisten på serveren").
 
 `storage.rules` rulles ud for sig med `tests/vaerktoej/udrul-lager.cjs`, som også sætter
 bøttens slettefrist: alt under `submissions/` slettes af Google efter 8 dage, uanset hvad
@@ -69,9 +77,15 @@ Spillerne får en "Se video"-knap på øvelsen under Fodteknik, Jonglering og Gu
   træner flette sin egen årgang ind på et andet barns dokument og dermed overtage det.
 - **Spillere læser kun deres egne logge** (`footworkLog`, `juggleLog`), hvor joker-
   begrundelser og bruger-id'er står.
-- **Kendt svaghed:** tallene i `footwork`, `juggleLadder` og `clubRanking` læses af hele
-  klubben, fordi point regnes ud i browseren. Det står i databehandlingsteksten og kræver
-  en server at ændre.
+- **En spiller henter kun det om andre børn, som ranglisten viser.** Eget spillerdokument,
+  egne registreringer, årgangens linjer i `rangliste`, `klubRangliste/top`,
+  `maanedensSpiller` og indsendelser og dueller, barnet selv er part i. Ikke andre børns
+  spillerdokumenter, træningsdage, stige eller indsendelser. Appens forespørgsler er formet
+  præcis, som reglerne kan bevise dem - en bredere forespørgsel afvises som helhed.
+- **Ingen klient skriver i `rangliste` eller `klubRangliste`** - heller ikke admin.
+- **Et læsetjek må ikke give `null` som standard for køn.** I en forespørgsel uden
+  køns-klausul giver `.get("gender", null)` netop `null`, og så slipper en træner med kun
+  drenge ind til hele årgangen. Derfor læses `resource.data.gender` uden standardværdi.
 - Reglerne må højst regne 1000 udtryk pr. forespørgsel. `traenerAdgang()` slår derfor
   brugeren op én gang; regeltestene må ikke give advarslen "maximum of 1000 expressions".
 
@@ -85,6 +99,33 @@ En service-nøgle går uden om alle regler og kan læse og slette alt om alle b�
 - Læg den aldrig i repoet. `tests/.gitignore` holder den ude, men det er et sikkerhedsnet,
   ikke en plan.
 
+## Ranglisten regnes på serveren
+
+En spiller må ikke kunne hente andre børns registreringer, men ranglisten skal vise deres
+point. Derfor regner en Cloud Function pointene ud og skriver én linje pr. barn:
+
+- `rangliste/{spiller-id}`: navn, årgang, køn, om barnet kan udfordres, point i alt, og
+  point denne uge og denne måned med den dato, perioden begynder (`uge.fra`, `maaned.fra`).
+- `klubRangliste/top`: klubbens top 10 med navn, årgang og point i alt.
+
+**Samme kode, ikke en kopi.** `functions/byg.mjs` skærer pointkoden ud af `index.html` og
+skriver `functions/genereret/pointkode.js`, som ikke ligger i repoet. Den laves forfra før
+hver test og hver udrulning og stopper med en fejl, hvis noget, den skal bruge, mangler.
+`tests/funktioner/paritet.test.mjs` åbner den rigtige side og sammenligner tallene barn for
+barn med serverens linje.
+
+**Ingen planlagt kørsel.** Linjen regnes ud, hver gang barnets spillerdokument, stige,
+stigelog, fodteknik eller indsendelser ændres. Står der en gammel dato i `uge.fra` eller
+`maaned.fra`, læser appen periodens point som 0 - det er rigtigt, fordi der så ikke er
+skrevet noget siden perioden skiftede. Der er ingen trigger på `rangliste` eller
+`klubRangliste`, så funktionen kan aldrig udløse sig selv.
+
+**Tid.** Pointkoden bruger lokal tid, og i browseren er det dansk tid. Serveren sætter
+derfor tidszonen til Europe/Copenhagen, før noget andet køres (`functions/tid.js`).
+
+**Trænere og admin** regner stadig årgangens liste ud af de rå data, som de alligevel
+henter. Admin-siden sammenligner serverens linjer med appens egen beregning.
+
 ## Point gemmes ikke
 
 Point fra Daglig fodteknik og Jongleringsstigen står ingen steder i databasen. Der gemmes
@@ -92,6 +133,10 @@ kun registreringerne, og point regnes ud af dem, hver gang de vises. Derfor kan 
 rettelse, en sletning eller en bagudregistrering aldrig efterlade et forkert tal et andet
 sted - og derfor kan en spiller ikke skrive point til sig selv: der er intet pointfelt at
 skrive i. Medaljepoint står på spilleren og kan kun skrives af en træner.
+
+Ranglistens linjer er ikke en undtagelse: de er et udregnet spejl, som kun serveren
+skriver, og som kan regnes forfra af registreringerne når som helst
+(`tests/vaerktoej/genberegn-rangliste.cjs`).
 
 ## Fodteknik: regler med dato
 
@@ -123,20 +168,22 @@ koden - "V-rul" hedder nu "V-rul yderside" (kode `v`), "V+L rul" hedder "L+V-rul
 | Samling | Indhold | Hvem må læse |
 |---|---|---|
 | `users` | Login, rolle, årgange | Brugeren selv og admin |
-| `players` | Navn, årgang, medaljer, medaljepoint, historik | Egen årgang |
+| `players` | Navn, årgang, medaljer, medaljepoint, historik | Barnet selv; trænere i årgangen |
 | `playerNotes` | Trænerens note | Kun trænere |
-| `submissions` | Indsendelser: øvelse, status og point - **ikke** videolinket | Egen årgang |
+| `submissions` | Indsendelser: øvelse, status og point - **ikke** videolinket | Barnet selv og modparten i en duel; trænere i årgangen |
 | `submissionVideos` | Link og sti til videoen, samme id som indsendelsen | Træneren, barnet selv, og duel-modparten efter afgørelsen |
-| `challenges` | Dueller | Egen årgang |
-| `juggleLadder` / `footwork` | Fremdrift og registreringer - kun tal og datoer | Hele klubben |
-| `juggleLog` / `footworkLog` | Hvem registrerede hvad; joker-begrundelser | Egen årgang |
-| `clubRanking` | Navn, årgang og medaljepoint til klub-top-10 | Hele klubben |
+| `challenges` | Dueller | De to parter; trænere i årgangen |
+| `juggleLadder` / `footwork` | Fremdrift og registreringer - kun tal og datoer | Barnet selv; trænere i årgangen |
+| `juggleLog` / `footworkLog` | Hvem registrerede hvad; joker-begrundelser | Barnet selv; trænere i årgangen |
+| `rangliste` | Én linje pr. barn, skrevet af serveren: navn, årgang, køn, point | Egen årgang |
+| `klubRangliste` | `top`: klubbens top 10, skrevet af serveren | Hele klubben |
+| `clubRanking` | Gammelt spejl af medaljepoint. Skrives stadig af trænere, læses ikke længere af appens rangliste | Trænere i årgangen og admin |
 | `clubConfig` | Hvilke årgange kører Talentmærket (`modules`); adresserne på instruktionsvideoerne (`guideVideos`) | Hele klubben |
 | `maanedensSpiller` | Månedens spiller pr. måned og årgang: vinder(e) med navn og de tal, der afgjorde det. Oprettes én gang, ændres aldrig | Hele klubben |
 | `deletionRequests` | Anmodninger om sletning | Admin og familien selv |
 
-De samlinger, hele klubben må læse, rummer med vilje hverken navne (bortset fra
-ranglisten) eller bruger-id'er.
+De samlinger, hele klubben må læse, rummer med vilje hverken bruger-id'er eller andet om
+et barn end navn, årgang og de tal, der står på en rangliste eller en kåring.
 
 ## Backup
 

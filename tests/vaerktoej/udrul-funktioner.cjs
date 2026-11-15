@@ -7,7 +7,7 @@
 // bruges af firebase-vaerktoejet gennem GOOGLE_APPLICATION_CREDENTIALS.
 //
 //   node vaerktoej/udrul-funktioner.cjs --tjek   viser kun, hvad der ligger live, aendrer intet
-//   node vaerktoej/udrul-funktioner.cjs          ruller ud (spoerger undervejs, hvis firebase vil)
+//   node vaerktoej/udrul-funktioner.cjs          ruller ud uden at spoerge (--non-interactive --force)
 //
 // Bagefter: node vaerktoej/genberegn-rangliste.cjs (toerkoersel) og --udfoer, saa alle linjer
 // findes og er regnet med de nye regler.
@@ -55,7 +55,11 @@ async function live() {
   const foer = await vis();
   if (kunTjek) process.exit(foer ? 0 : 2);
 
-  koer(firebase, ['deploy', '--only', 'functions', '--project', PROJEKT]);
+  // --non-interactive: vaerktoejet koeres uden en terminal, der kan svare paa spoergsmaal.
+  // --force: saetter oprydningsreglen for de byggede billeder (slettes efter 1 dag), som
+  // firebase ellers SPOERGER om - og uden et svar ender udrulningen som en fejl, selv om
+  // funktionerne er lagt op. Med --only functions roerer --force kun funktioner i dette repo.
+  koer(firebase, ['deploy', '--only', 'functions', '--project', PROJEKT, '--non-interactive', '--force']);
   console.log('\nLaest tilbage:');
   const efter = await vis();
   console.log('\nHusk: koer vaerktoej/genberegn-rangliste.cjs, og slet saa tests/service-account.json og noeglen i Google Cloud Console.');
