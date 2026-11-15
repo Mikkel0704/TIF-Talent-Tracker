@@ -34,6 +34,9 @@ async function aabn(uid, tid, kaaringer = KAARINGER){
                p2: { name: "Ida Test", year: "2017", gender: "pige", points: 0, passed: {}, history: [] },
                p4: { name: "Bo Test", year: "2017", gender: "dreng", points: 0, passed: {}, history: [] },
                p3: { name: "Carl Test", year: "2016", gender: "dreng", points: 0, passed: {}, history: [] } },
+    // Spillerens rangliste bygges af serverens linjer - uden dem er der ingen navne at sætte emblemer ved.
+    rangliste: Object.fromEntries([["p1", "Oscar Test", "dreng"], ["p2", "Ida Test", "pige"], ["p4", "Bo Test", "dreng"]].map(([id, name, gender]) =>
+      [id, { name, year: "2017", gender, kanUdfordres: true, total: 0, uge: { fra: "2000-01-03", point: 0 }, maaned: { fra: "2000-01-01", point: 0 }, regler: "x" }])),
     maanedensSpiller: kaaringer };
   await page.addInitScript(([d, br, pv]) => { window.__db = d; window.__bruger = br; window.__skrivninger = []; try { sessionStorage.setItem("tif-demo-consent-seen", pv); } catch {} },
     [db, { uid, email: db.users[uid].email }, PV]);
