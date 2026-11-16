@@ -1,8 +1,9 @@
 // Fremmede konti: logins i Firebase Authentication uden et users-dokument. De kan intet i
 // Firestore (hver regel kraever et aktivt users-dokument), men de kan lægge filer i deres
 // egen mappe i lageret og roder i listen over logins. De opstaar, naar nogen har oprettet sig
-// selv, mens selvoprettelsen var aaben - og naar en spiller slettes i appen (deletePlayer
-// fjerner users-dokumentet, men kan ikke slette selve login'et).
+// selv, mens selvoprettelsen var aaben - og da en spiller blev slettet i appen foer v15.78
+// (browseren fjernede users-dokumentet, men kunne ikke slette selve login'et; nu goer
+// serverens sletSpiller begge dele).
 //
 // Logikken ligger for sig, saa den kan proeves mod emulatoren
 // (tests/funktioner/fremmede-konti.test.mjs). Den sletter INTET, medmindre slet er sand -

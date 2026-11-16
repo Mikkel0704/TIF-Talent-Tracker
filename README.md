@@ -13,14 +13,15 @@ Live: https://mikkel0704.github.io/TIF-Talent-Tracker/
 | Selve appen | `index.html` - én fil, ingen build. GitHub Pages viser `main`. |
 | Login | Firebase Authentication (email + adgangskode). Logins oprettes og slettes af serveren - se "Logins oprettes af serveren". |
 | Data | Cloud Firestore, projekt `tif-talent-tracker`, EU (eur3) |
-| Videoer | Cloud Storage, bøtte `tif-talent-tracker`, Belgien (europe-west1). Mapperne hedder `submissions/{login-id}/`, kan ikke listes, og tømmes af en slettefrist på 8 dage. |
+| Videoer | Cloud Storage, bøtte `tif-talent-tracker`, Belgien (europe-west1). Mapperne hedder `submissions/{login-id}/`, kan ikke listes fra appen, og tømmes af en slettefrist på 8 dage. |
 | Adgangsregler | `firestore.rules` og `storage.rules` |
 | Værn mod fremmede klienter | App Check med reCAPTCHA Enterprise, håndhævet på Firestore og Storage |
-| Ranglisten og logins | Cloud Functions i `functions/`, Belgien (europe-west1). Regner hvert barns point ud og skriver én linje pr. barn - se "Ranglisten regnes på serveren". Opretter og sletter logins - se "Logins oprettes af serveren". |
+| Ranglisten, logins og sletning | Cloud Functions i `functions/`, Belgien (europe-west1). Regner hvert barns point ud og skriver én linje pr. barn - se "Ranglisten regnes på serveren". Opretter og sletter logins - se "Logins oprettes af serveren". Sletter alt om et barn - se "Slet alt om et barn". |
 | Tests | `tests/` - se `tests/README.md` |
 
-Serveren gør tre ting: den regner ranglisten ud, den kårer Månedens spiller, og den opretter
-og sletter logins. Alt andet, der skal håndhæves, håndhæves i reglerne; resten er brugerflade.
+Serveren gør fire ting: den regner ranglisten ud, den kårer Månedens spiller, den opretter
+og sletter logins, og den sletter alt om et barn. Alt andet, der skal håndhæves, håndhæves i
+reglerne; resten er brugerflade.
 
 ## Udrulning
 
@@ -64,8 +65,7 @@ Appen kalder to kaldbare Cloud Functions i europe-west1, `opretLogin` og `sletLo
 - **Intet halvt.** Kan `users`-dokumentet ikke skrives, slettes det nye login igen.
 - **Slet sletter helt:** `users`-dokumentet, spillerens `hasActiveLogin` og selve login'et i
   Authentication. Samme e-mail kan bruges igen med det samme. (Slettes et barn med "Slet
-  alt" under Spillere, bliver login'et stadig liggende uden `users`-dokument - det fjernes
-  af `tests/vaerktoej/fremmede-konti.cjs`.)
+  alt", går barnets logins med - se "Slet alt om et barn".)
 - Serveren logger kun login-id'er og antal, aldrig e-mails eller navne.
 
 **Selvoprettelsen lukkes for sig.** Før kunne enhver med den offentlige API-nøgle i
@@ -80,6 +80,42 @@ et `users`-dokument.
 til `main`), prøv at oprette og slette et login fra appen - og først derefter
 `luk-selvoprettelse.cjs` og `fremmede-konti.cjs`. Lukkes der, før appen kalder serveren,
 kan ingen oprette logins.
+
+## Slet alt om et barn
+
+"Slet alt" under Spillere (og "Godkend og slet alt" på en sletteanmodning) kalder den
+kaldbare funktion `sletSpiller` i europe-west1 (`functions/sletning.js`). Samme valg og samme
+administratortjek som `opretLogin`/`sletLogin`: kun en aktiv administrator (læst i kalderens
+`users`-dokument på serveren), og App Check håndhæves.
+
+- **Først en opgørelse.** `{playerId, kunOpgoer: true}` læser kun og svarer med navn, årgang,
+  antal indsendelser, dueller, videolinks, videofiler og kåringer, barnets logins med e-mail,
+  og om note, stige, fodteknik, logge, klub-rangliste, ranglistelinje og sletteanmodning
+  findes. Appens bekræftelse bygges af svaret; browseren slår intet op selv.
+- **Så sletningen.** `{playerId, navn}`: serveren tjekker igen, at navnet (trimmet) er barnets,
+  ellers `failed-precondition`, og intet slettes. Er et af barnets logins kalderens eget,
+  afvises kaldet.
+- **Alt går med:** videofilerne (de stier, databasen kender, og alt under
+  `submissions/{login-id}/` for barnets logins - serveren kan liste mapperne, appen kan ikke),
+  `submissionVideos`, `submissions`, dueller som udfordrer og som udfordret, noten, stigen,
+  fodteknikken og loggene, `clubRanking`, ranglistelinjen, sletteanmodningen, spilleren,
+  `users`-dokumenterne og **selve login'ene i Authentication**. I Månedens spiller fjernes
+  kun barnet fra `vindere`, og `rettet` sættes; posten bliver stående. En sti i databasen,
+  der ikke ligger under `submissions/`, røres aldrig.
+- **Rækkefølgen** gør det sikkert at køre igen: adgangen lukkes først (`users`-dokumenterne
+  sættes til `active: false`), så filer og dokumenter, så login'ene i Authentication. Kun hvis
+  intet fejlede, slettes `users`-dokumenterne og til sidst spilleren, linjen og anmodningen i
+  ét hug, og klubbens top 10 regnes om. Fejler noget, svarer serveren med listen (art og id),
+  barnet bliver stående i appen med lukket adgang, og "Slet alt" igen gør resten. Det, der
+  allerede er væk, er ikke en fejl.
+- **Ranglisten kan ikke komme igen:** sletningerne undervejs udløser ranglistetriggerne, men
+  spilleren slettes sidst, sammen med linjen. En trigger, der kører bagefter, finder ingen
+  spiller og skriver intet.
+- Serveren logger kun id'er og antal - aldrig navne, e-mails eller filnavne.
+
+**Udrulning:** funktionerne først (`udrul-funktioner.cjs`), så appen. Funktionernes konto
+skal kunne læse og skrive Firestore, slette brugere i Authentication og liste, læse og
+slette filer i bøtten `tif-talent-tracker`.
 
 ## Instruktionsvideoer
 
@@ -107,7 +143,8 @@ Spillerne får en "Se video"-knap på øvelsen under Fodteknik, Jonglering og Gu
 - **Et login uden for klubben kan ingenting.** Logins oprettes af serveren, og
   selvoprettelsen i Firebase Authentication lukkes (se "Logins oprettes af serveren"). Der
   findes alligevel Auth-konti uden `users`-dokument - konti fra før selvoprettelsen blev
-  lukket, og login'et efter et barn, der er slettet i appen. Derfor kræver hver regel stadig
+  lukket, og logins efter børn, der blev slettet i appen før v15.78 (dengang kunne browseren
+  ikke slette selve login'et). Derfor kræver hver regel stadig
   et aktivt `users`-dokument; `signedIn()` alene giver aldrig adgang. `!isPlayerRole()` betyder "ikke en aktiv spiller"
   og er også sand for fremmede og deaktiverede - brug det aldrig uden `isActive()`.
 - **En træner rører kun det, der allerede ligger i trænerens egne årgange.** En rettelse

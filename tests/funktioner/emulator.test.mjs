@@ -1,6 +1,6 @@
 // Cloud Functions i emulatoren: de rigtige triggere (functions/index.js) mod en rigtig
 // Firestore-emulator. Koeres af `npm run funktioner` inde i
-//   firebase emulators:exec --config funktioner/firebase.json --only auth,firestore,functions
+//   firebase emulators:exec --config funktioner/firebase.json --only auth,firestore,functions,storage
 // med egne porte (auth 9199, firestore 8990, functions 8995, hub 4410, logging 4510, eventarc 9310),
 // saa den kan koere samtidig med `npm run regler`. Projektet er et demo-projekt: intet her
 // kan naa produktion.
@@ -56,8 +56,8 @@ const planlagt = alleEnder.filter(({ e }) => e?.scheduleTrigger);
 const kaldbare = alleEnder.filter(({ e }) => e?.callableTrigger);
 t("netop én planlagt funktion ud over de fem, og det er maanedensKaaring",
   alleEnder.length - kaldbare.length === 6 && planlagt.length === 1 && planlagt[0].navn === "maanedensKaaring", alleEnder.map(x => x.navn));
-t("og kun to kaldbare funktioner: opretLogin og sletLogin (proeves i logins.test.mjs)",
-  JSON.stringify(kaldbare.map(x => x.navn).sort()) === '["opretLogin","sletLogin"]' && alleEnder.length === 8, kaldbare.map(x => x.navn));
+t("og kun tre kaldbare funktioner: opretLogin og sletLogin (proeves i logins.test.mjs) og sletSpiller (sletning.test.mjs)",
+  JSON.stringify(kaldbare.map(x => x.navn).sort()) === '["opretLogin","sletLogin","sletSpiller"]' && alleEnder.length === 9, kaldbare.map(x => x.navn));
 const plan = funktioner.maanedensKaaring?.__endpoint;
 t("maanedensKaaring koerer hver dag kl. 05:00 i Europe/Copenhagen",
   plan?.scheduleTrigger?.schedule === "0 5 * * *" && plan?.scheduleTrigger?.timeZone === "Europe/Copenhagen", plan?.scheduleTrigger);

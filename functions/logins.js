@@ -30,13 +30,14 @@ export const BESKEDER = {
 };
 const fejlkode = e => e?.code || e?.errorInfo?.code || null;
 
-// Er kalderen en aktiv administrator? Svar: kalderens users-data. Ellers permission-denied.
-export async function kraevAdmin(db, auth){
+// Er kalderen en aktiv administrator? Svar: kalderens users-data. Ellers permission-denied
+// med beskeden (sletSpiller i sletning.js bruger samme tjek med sin egen besked).
+export async function kraevAdmin(db, auth, besked = "Kun en administrator kan oprette og slette logins."){
   const uid = auth?.uid;
-  if(!uid || typeof uid !== "string") throw new HttpsError("permission-denied", "Kun en administrator kan oprette og slette logins.");
+  if(!uid || typeof uid !== "string") throw new HttpsError("permission-denied", besked);
   const snap = await db.collection("users").doc(uid).get();
   const d = snap.exists ? snap.data() : null;
-  if(!d || d.role !== "admin" || d.active === false) throw new HttpsError("permission-denied", "Kun en administrator kan oprette og slette logins.");
+  if(!d || d.role !== "admin" || d.active === false) throw new HttpsError("permission-denied", besked);
   return d;
 }
 

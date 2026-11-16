@@ -9,12 +9,14 @@
 // Den ene planlagte funktion er maanedensKaaring: Maanedens spiller afgoeres af serveren
 // den 5. kl. 05 dansk tid i stedet for at vente paa, at en admin aabner appen.
 //
-// To kaldbare funktioner, opretLogin og sletLogin: logins oprettes og slettes af serveren,
-// saa Firebase Authentications aabne selvoprettelse kan lukkes (se logins.js).
+// Tre kaldbare funktioner. opretLogin og sletLogin: logins oprettes og slettes af serveren,
+// saa Firebase Authentications aabne selvoprettelse kan lukkes (se logins.js). sletSpiller:
+// "Slet alt" om et barn - dokumenter, videofiler og login'ene i ét hug (se sletning.js).
 import "./tid.js";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { getStorage } from "firebase-admin/storage";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -22,6 +24,7 @@ import { onCall } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import { haandter, kaarMaanedensSpiller } from "./server.js";
 import * as logins from "./logins.js";
+import * as sletning from "./sletning.js";
 
 // Funktionerne koerer i europe-west1. Selve Eventarc-triggeren skal ligge, hvor databasen
 // ligger (eur3); den saetter firebase deploy selv ud fra databasens placering.
@@ -60,3 +63,7 @@ const LOGIN_VALG = { enforceAppCheck: true };
 const deps = () => ({ db: hentDb(), adminAuth: getAuth(app()), FieldValue, logger });
 export const opretLogin = onCall(LOGIN_VALG, request => logins.opretLogin(deps(), request.auth, request.data));
 export const sletLogin = onCall(LOGIN_VALG, request => logins.sletLogin(deps(), request.auth, request.data));
+// Slet alt om ét barn. Samme valg og samme administratortjek som login-funktionerne.
+// Videoerne ligger i appens egen boette (VIDEO_BOETTE), ikke i projektets standardboette.
+export const sletSpiller = onCall(LOGIN_VALG, request =>
+  sletning.sletSpiller({ ...deps(), bucket: getStorage(app()).bucket(sletning.VIDEO_BOETTE) }, request.auth, request.data));

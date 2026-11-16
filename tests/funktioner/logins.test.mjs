@@ -1,7 +1,7 @@
 // opretLogin og sletLogin (functions/logins.js) i emulatoren: kaldt over HTTP, praecis som
 // appens httpsCallable kalder dem, med rigtige ID-beviser fra Auth-emulatoren. Koeres af
 // `npm run funktioner` inde i
-//   firebase emulators:exec --config funktioner/firebase.json --only auth,firestore,functions
+//   firebase emulators:exec --config funktioner/firebase.json --only auth,firestore,functions,storage
 // med egne porte (auth 9199, firestore 8990, functions 8995, hub 4410). Demo-projekt: intet
 // her kan naa produktion.
 //

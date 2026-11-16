@@ -2,11 +2,13 @@
   "functions": [
     { "source": "../../functions", "codebase": "default", "runtime": "nodejs22" }
   ],
+  "storage": { "rules": ".lager.rules" },
   "emulators": {
     "singleProjectMode": true,
     "auth": { "port": 9199 },
     "firestore": { "port": 8990, "websocketPort": 9160 },
     "functions": { "port": 8995 },
+    "storage": { "port": 9299 },
     "hub": { "port": 4410 },
     "logging": { "port": 4510 },
     "eventarc": { "port": 9310 },

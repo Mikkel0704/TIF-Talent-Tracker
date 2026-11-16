@@ -67,8 +67,9 @@ export const where = (felt, op, v) => [felt, op, v];
 export const query = (col, ...filtre) => ({ kind: "col", navn: col.navn, filtre });
 export const serverTimestamp = () => tid();
 export const deleteField = () => SLET;
-export const getDoc = async ref => docSnap(ref.navn, ref.id);
-export const getDocs = async maal => colSnap(maal);
+// Engangsopslag huskes i window.__hent, saa en test kan se, hvad appen selv slaar op.
+export const getDoc = async ref => { (window.__hent ||= []).push({ navn: ref.navn, kind: "doc", id: ref.id }); return docSnap(ref.navn, ref.id); };
+export const getDocs = async maal => { (window.__hent ||= []).push({ navn: maal.navn, kind: "col", filtre: (maal.filtre || []).map(f => f.join("")) }); return colSnap(maal); };
 // window.__fejlVed = "samling" faar skrivninger til den samling til at fejle, saa en test
 // kan se, hvad appen goer, naar reglerne siger nej midt i et forloeb.
 const afvist = () => Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
@@ -117,12 +118,14 @@ export const listAll = async () => ({ items: [] });
 // Cloud Functions (kaldbare funktioner). Hvert kald huskes i window.__kald som {navn, data}.
 // Svaret styres af window.__svar[navn]: {data} giver et svar, {fejl: {code, message}} en fejl
 // i samme form som den rigtige SDK (code "functions/<kode>"). Uden svar: {uid: "ny-bruger"}.
+// En liste af svar bruges ét ad gangen, i raekkefoelge (fx sletSpiller: opgoerelsen, saa sletningen).
 // window.__ventKald = ms holder kaldet hen, saa en test kan se, hvad appen goer imens.
 export const getFunctions = (app, region) => { window.__funktionsRegion = region; return { region }; };
 export const httpsCallable = (funktioner, navn) => async data => {
   (window.__kald ||= []).push({ navn, data: JSON.parse(JSON.stringify(data ?? null)), region: funktioner?.region ?? null });
   if (window.__ventKald) await new Promise(r => setTimeout(r, window.__ventKald));
-  const svar = (window.__svar || {})[navn];
+  const alle = (window.__svar || {})[navn];
+  const svar = Array.isArray(alle) ? alle.shift() : alle;
   if (svar?.fejl) throw Object.assign(new Error(svar.fejl.message), { code: "functions/" + svar.fejl.code, details: svar.fejl.details });
   return { data: svar && "data" in svar ? svar.data : { uid: "ny-bruger" } };
 };

@@ -73,18 +73,26 @@ t("og forælderens e-mail står ingen steder i den", !JSON.stringify(ind?.data |
 await a.luk();
 
 console.log("\nSletning af et barn fjerner det fra Månedens spiller");
+// Selve rettelsen af kåringerne sker nu på serveren (sletSpiller) og prøves mod emulatoren i
+// tests/funktioner/sletning.test.mjs: i en delt måned bliver den anden vinder stående, en
+// måned, barnet vandt alene, står uden vinder (posten slettes ikke), og kun vindere og
+// rettet røres. Her: at bekræftelsen nævner serverens tal, og at browseren ikke selv skriver.
 a = await aabn("admin");
+await a.page.evaluate(() => { window.__kald = []; window.__svar = { sletSpiller: [
+  { data: { playerId: "p2", findes: true, navn: "Ida Test", aargang: "2017", indsendelser: 0, udfordringer: 0, videodokumenter: 0, videofiler: 0,
+    kaaringer: 2, logins: [], note: false, stige: false, stigelog: true, fodteknik: false, fodtekniklog: true, klubRangliste: false, rangliste: true, anmodning: false } },
+  { data: { playerId: "p2", faerdig: true, fejl: [], slettet: { kaaringer: 2, spiller: 1 } } }] }; });
 await a.page.evaluate(() => { deletePlayer("p2"); }); await a.page.waitForTimeout(600);
 let tekst = await a.dialog();
-t("bekræftelsen nævner de to kåringer", /2 kåringer som Månedens spiller/.test(tekst || ""), tekst);
+t("bekræftelsen nævner de to kåringer, serveren fandt", /2 kåringer som Månedens spiller/.test(tekst || ""), tekst);
 await a.page.click("#dialogJa"); await a.page.waitForTimeout(300);
 await a.page.fill("#dialogInput", "Ida Test"); await a.page.click("#dialogJa"); await a.page.waitForTimeout(900);
+const kald = await a.page.evaluate(() => window.__kald);
+t("sletningen sendes til serveren med barnets id og navnet", JSON.stringify(kald.map(k => [k.navn, k.data]))
+  === JSON.stringify([["sletSpiller", { playerId: "p2", kunOpgoer: true }], ["sletSpiller", { playerId: "p2", navn: "Ida Test" }]]), kald);
 const w = (await a.page.evaluate(() => window.__skrivninger)).filter(x => x.navn === "maanedensSpiller");
-const okt = w.find(x => x.id === "2026-10_2017"), nov = w.find(x => x.id === "2026-11_2017");
-t("i den delte måned bliver den anden vinder stående", JSON.stringify(okt?.data.vindere.map(v => v.id)) === '["p1"]' && okt?.merge === true, okt?.data);
-t("måneden, hvor barnet vandt alene, står uden vinder - posten slettes ikke", JSON.stringify(nov?.data.vindere) === "[]" && nov?.type === "set", nov);
-t("skrivningen rører kun vinderlisten og et rettet-stempel", w.every(x => Object.keys(x.data).sort().join() === "rettet,vindere"), w.map(x => Object.keys(x.data)));
-t("barnets navn står ikke længere i nogen kåring", !(await a.page.evaluate(() => JSON.stringify(window.__db.maanedensSpiller))).includes("Ida Test"));
+t("browseren skriver ikke selv i kåringerne - det gør serveren", w.length === 0, w);
+t("admin får besked om, at alt er slettet", (await a.dialog()) === "Alt om Ida Test er slettet.", await a.dialog());
 t("admin: ingen JS-fejl og ingen browserbokse", a.fejl.length === 0 && a.nativ() === 0, a.fejl);
 await a.luk();
 
