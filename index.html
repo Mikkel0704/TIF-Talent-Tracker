@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.75</title>
+  <title>TIF Talent Tracker v15.76</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -166,7 +166,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.75 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.76 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -561,7 +561,7 @@
     <p class="small"><b>Backup:</b> trænere og administratorer kan hente en kopi af oplysningerne om deres egne årgange til deres egen computer - navne, point, noter og registreringer, men ikke videolinks. Kopien er trænerens ansvar og slettes ikke af systemet.</p>
 
     <h3>Hvilke tjenester bruges</h3>
-    <p><b>Google Firebase</b> står for login, database og opbevaring af videoer. Google behandler data på vegne af den dataansvarlige og bruger dem ikke til egne formål.</p><p><b>Databasen</b> - navne, point, niveauer, medaljer og historik - ligger i Googles <b>europæiske datacentre (eur3)</b> og forlader ikke EU.</p><p><b>Videoerne</b> ligger på en server i <b>Belgien (europe-west1)</b>.</p><p><b>Pointene til ranglisten</b> regnes ud af en lille serverfunktion hos Google (Cloud Functions), som også kører i <b>Belgien (europe-west1)</b>. Den læser de oplysninger, der allerede ligger i databasen, og skriver kun ranglistens linjer og klubbens top 10 tilbage.</p><p><b>Login</b> håndteres af Googles login-tjeneste, Firebase Authentication, som <b>kun kører fra datacentre i USA</b>. Dér ligger den e-mailadresse, I logger ind med, adgangskoden i krypteret form, tidspunkter for login og - i nogle uger - den IP-adresse, der blev logget ind fra. Barnets navn, point, træningsdage og videoer ligger ikke dér. Overførslen til USA sker efter Googles databehandlervilkår og aftalen mellem EU og USA om databeskyttelse (EU-U.S. Data Privacy Framework).</p>
+    <p><b>Google Firebase</b> står for login, database og opbevaring af videoer. Google behandler data på vegne af den dataansvarlige og bruger dem ikke til egne formål.</p><p><b>Databasen</b> - navne, point, niveauer, medaljer og historik - ligger i Googles <b>europæiske datacentre (eur3)</b> og forlader ikke EU.</p><p><b>Videoerne</b> ligger på en server i <b>Belgien (europe-west1)</b>.</p><p><b>Pointene til ranglisten</b> regnes ud af en lille serverfunktion hos Google (Cloud Functions), som også kører i <b>Belgien (europe-west1)</b>. Den læser de oplysninger, der allerede ligger i databasen, og skriver kun ranglistens linjer og klubbens top 10 tilbage. En tilsvarende funktion kårer Månedens spiller den 5. i måneden og gemmer kun kåringen.</p><p><b>Login</b> håndteres af Googles login-tjeneste, Firebase Authentication, som <b>kun kører fra datacentre i USA</b>. Dér ligger den e-mailadresse, I logger ind med, adgangskoden i krypteret form, tidspunkter for login og - i nogle uger - den IP-adresse, der blev logget ind fra. Barnets navn, point, træningsdage og videoer ligger ikke dér. Overførslen til USA sker efter Googles databehandlervilkår og aftalen mellem EU og USA om databeskyttelse (EU-U.S. Data Privacy Framework).</p>
     <p><b>Google reCAPTCHA Enterprise</b> bruges til at afvise henvendelser, der ikke kommer fra denne side. Det er den, der forhindrer fremmede i at hente videoer ud af systemet. Tjenesten ser jeres IP-adresse og oplysninger om browseren og kører på Googles globale net, så den behandling kan ske uden for EU.</p><p>Den sætter <b>én teknisk cookie fra google.com</b>, som bruges til at skelne et rigtigt besøg fra et automatiseret. Den følger jer ikke rundt på andre hjemmesider og bruges ikke til markedsføring eller profilering. Den sættes, så snart siden åbnes - også før man logger ind - fordi den netop skal beskytte login'et.</p>
     <p><b>GitHub Pages</b> leverer selve hjemmesiden - altså den kode, din browser henter. Der ligger ingen persondata dér. GitHub og deres leverandør Fastly ser din IP-adresse, når siden hentes, præcis som enhver anden hjemmeside.</p>
     <p><b>Og så er der ikke mere.</b> Ingen Google Analytics, ingen Facebook-pixel, ingen annoncenetværk, ingen cookies til markedsføring eller til at følge jeres adfærd, og ingen videregivelse af data til nogen tredjepart. Den sikkerhedscookie, der er nævnt ovenfor, er den eneste cookie på siden.</p>
@@ -587,7 +587,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.75 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.76 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -1887,7 +1887,11 @@ function maanedSammenlign(a, b){
 function maanedensSpillerRangering(spillere, maaned, forrigeVindere){
   const sidst = new Set(forrigeVindere || []);
   const alle = spillere.map(p=>({id: p.id, navn: p.name || "", ...maanedStat(p.id, maaned)})).filter(x=>x.dage > 0);
-  alle.sort((a, b)=>maanedSammenlign(a, b) || String(a.id).localeCompare(String(b.id)));
+  // Lige tal ordnes efter id - tegn for tegn og IKKE med localeCompare, som ordner efter
+  // sproget (paa dansk kommer "aa" efter "z"). Serveren kaarer med denne samme kode, men
+  // har et andet sprog end browseren, og saa kunne de to stille delte vindere i hver sin orden.
+  const efterId = (a, b)=>{ const x = String(a.id), y = String(b.id); return x < y ? -1 : x > y ? 1 : 0; };
+  alle.sort((a, b)=>maanedSammenlign(a, b) || efterId(a, b));
   const kandidater = alle.filter(x=>!sidst.has(x.id));
   const vindere = kandidater.length ? kandidater.filter(x=>maanedSammenlign(x, kandidater[0]) === 0) : [];
   return {vindere, rangliste: alle, sprunget: alle.filter(x=>sidst.has(x.id)).map(x=>x.id)};
@@ -2219,7 +2223,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.75 · ikke logget ind");
+    setSyncStatus("v15.76 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2245,7 +2249,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.75 · bekræft inden I går i gang");
+    setSyncStatus("v15.76 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2253,7 +2257,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.75 · vælg din egen adgangskode");
+    setSyncStatus("v15.76 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2327,7 +2331,7 @@ function startListeners(){
         if(!ranglisteAar) lytRangliste(normalizeYearValue(currentPlayerLink.year));
       }
     }
-    setSyncStatus("v15.75 · live database aktiv");
+    setSyncStatus("v15.76 · live database aktiv");
     renderAll();
   };
   spillereHentet = false;
@@ -2336,7 +2340,7 @@ function startListeners(){
       players = snap.exists() ? [migratePlayer({id: snap.id, ...snap.data()})] : [];
       spillereHentet = true;
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.75 · databasefejl: " + e.code))] : [];
+    }, (e)=>setSyncStatus("v15.76 · databasefejl: " + e.code))] : [];
     if(!egenId){ players = []; spillereHentet = true; spillerFaaet(); }
   } else {
     unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
@@ -2344,7 +2348,7 @@ function startListeners(){
       if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
       players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.75 · databasefejl: " + e.code));
+    }, (e)=>setSyncStatus("v15.76 · databasefejl: " + e.code));
   }
   // Spillerens egen aargang kendes fra loginnet (som allowedYears); mangler den dér,
   // startes lytteren, naar spillerens eget dokument er kommet (se spillerFaaet).
@@ -2703,8 +2707,10 @@ async function addPlayer(){
 // på Admin-siden den op igen.
 // ---------------------------------------------------------------------------
 // MAANEDENS SPILLER - kaaringen gemmes
-// Appen har ingen server. Kaaringen regnes derfor ud af den foerste admin eller traener,
-// der aabner appen den 5. eller senere, og gemmes i maanedensSpiller/{maaned}_{aargang}.
+// Serveren kaarer hver morgen kl. 5 (functions/: maanedensKaaring) med denne fils egen
+// kode og gemmer i maanedensSpiller/{maaned}_{aargang}. Koden herunder er RESERVEN: har
+// serveren ikke kaaret, goer den foerste admin eller traener, der aabner appen den 5.
+// eller senere, det. Posten kan kun oprettes én gang, saa de to kan ikke overskrive hinanden.
 // Reglerne paa serveren tillader kun at OPRETTE posten - aldrig at aendre den - og kun for
 // den, der ser HELE aargangen (begge koen): en traener, der kun ser drengene, kunne ellers
 // overse en pige. Der regnes foerst, naar spillere, fodteknik og tidligere kaaringer er
@@ -2930,7 +2936,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.75 · sletter...");
+  setSyncStatus("v15.76 · sletter...");
   for(const f of files){
     try{ await deleteObject(f); }
     catch(e){ if(e?.code !== "storage/object-not-found") failed.push("videofil " + f.name); }   // allerede vaek er ikke en fejl
@@ -2951,7 +2957,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.75 · live database aktiv");
+  setSyncStatus("v15.76 · live database aktiv");
 
   besked(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -3526,11 +3532,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.75 · migrering færdig");
+    setSyncStatus("v15.76 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.75 · migrering fejlede");
+    setSyncStatus("v15.76 · migrering fejlede");
   }
 }
 
@@ -3705,7 +3711,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.75 · uploader video...");
+    setSyncStatus("v15.76 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -3749,12 +3755,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.75 · live database aktiv");
+    setSyncStatus("v15.76 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.75 · live database aktiv");
+    setSyncStatus("v15.76 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -4333,7 +4339,7 @@ function maanedensKort(){
       const k = maanedensKaaring(m, y);
       const hvem = aargange.length > 1 || !isPlayer() ? `<span class="small">${escapeHtml(yearLabel(y))}: </span>` : "";
       if(!k){
-        const tekst = isPlayer() ? "Kåres, så snart en træner åbner appen." : kanKaareAargang(y) ? "Kåres om lidt." : "Kåres af admin eller en træner, der ser hele årgangen.";
+        const tekst = isPlayer() ? "Kåres automatisk kl. 5 om morgenen." : kanKaareAargang(y) ? "Kåres om lidt." : "Kåres af admin eller en træner, der ser hele årgangen.";
         return `<div class="maanedrad">${hvem}<span class="small">${tekst}</span></div>`;
       }
       const v = Array.isArray(k.vindere) ? k.vindere : [];

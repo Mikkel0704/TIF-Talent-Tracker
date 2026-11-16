@@ -19,8 +19,8 @@ Live: https://mikkel0704.github.io/TIF-Talent-Tracker/
 | Ranglisten | Cloud Functions i `functions/`, Belgien (europe-west1). Regner hvert barns point ud og skriver én linje pr. barn - se "Ranglisten regnes på serveren". |
 | Tests | `tests/` - se `tests/README.md` |
 
-Serveren gør kun én ting: den regner ranglisten ud. Alt andet, der skal håndhæves,
-håndhæves i reglerne; resten er brugerflade.
+Serveren gør to ting: den regner ranglisten ud, og den kårer Månedens spiller. Alt andet,
+der skal håndhæves, håndhæves i reglerne; resten er brugerflade.
 
 ## Udrulning
 
@@ -114,7 +114,7 @@ hver test og hver udrulning og stopper med en fejl, hvis noget, den skal bruge, 
 `tests/funktioner/paritet.test.mjs` åbner den rigtige side og sammenligner tallene barn for
 barn med serverens linje.
 
-**Ingen planlagt kørsel.** Linjen regnes ud, hver gang barnets spillerdokument, stige,
+**Ranglisten har ingen planlagt kørsel.** Linjen regnes ud, hver gang barnets spillerdokument, stige,
 stigelog, fodteknik eller indsendelser ændres. Står der en gammel dato i `uge.fra` eller
 `maaned.fra`, læser appen periodens point som 0 - det er rigtigt, fordi der så ikke er
 skrevet noget siden perioden skiftede. Der er ingen trigger på `rangliste` eller
@@ -125,6 +125,23 @@ derfor tidszonen til Europe/Copenhagen, før noget andet køres (`functions/tid.
 
 **Trænere og admin** regner stadig årgangens liste ud af de rå data, som de alligevel
 henter. Admin-siden sammenligner serverens linjer med appens egen beregning.
+
+## Månedens spiller kåres af serveren
+
+`maanedensKaaring` kører hver morgen kl. 05.00 dansk tid (Cloud Scheduler). Den finder de
+måneder, der er afgjort (den 5. i måneden efter), og opretter den kåring, der mangler, for
+hver årgang med spillere - med appens egen kode, skåret ud af `index.html` ligesom
+pointkoden. De fleste dage finder den ingenting og skriver ingenting.
+
+- **Daglig med vilje:** kørslen kan gentages uden skade, så en fejlet kørsel den 5. bliver
+  indhentet næste morgen.
+- **En kåring oprettes én gang** (`create()`), og findes den allerede, stopper serveren for
+  den årgang. Appens egen kåring (`kaarMaanedensSpiller`) er reserven: åbner admin appen,
+  før serveren har kåret, opretter appen posten, og serveren lader den stå.
+- **Registreringer til og med den 4. tæller med.** Det, der først skrives ind i løbet af
+  den 5., kommer ikke med.
+- `tests/funktioner/kaaring-paritet.test.mjs` lader den rigtige side kåre og sammenligner
+  det, siden skriver, felt for felt med serverens.
 
 ## Point gemmes ikke
 
