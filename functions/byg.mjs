@@ -103,7 +103,8 @@ function konstant(navn){
 
 // --- det, der skaeres ud -------------------------------------------------------------
 // 1) Hele fodteknik-blokken, praecis som tests/logik/udtraek.mjs tager den. Den rummer
-//    ogsaa dagsISO/iDagISO, juggleActiveDays, footworkStamp/footworkHusk og pointene.
+//    ogsaa dagsISO/iDagISO, juggleActiveDays, footworkStamp/footworkHusk, pointene og
+//    Maanedens spillers regler (maanederTilKaaring, maanedStat, maanedensSpillerRangering).
 const blokStart = html.indexOf("\n// DAGLIG FODTEKNIK");
 const blokSlut = html.indexOf("\nconst POINT_BASE =");
 if(blokStart < 0 || blokSlut < 0 || blokSlut < blokStart) fejl("kunne ikke finde blokken fra // DAGLIG FODTEKNIK til const POINT_BASE");
@@ -116,12 +117,20 @@ const FUNKTIONER = [
   "juggleMainPoints", "juggleWeakPoints", "juggleTrick",
   "juggleFor", "juggleLogFor", "juggleMainStep", "juggleWeakStep", "juggleTricks",
   "ladderPoints", "totalPoints", "ladderPointsInWindow",
-  "startOfWeek", "startOfMonth", "pointsInWindow"
+  "startOfWeek", "startOfMonth", "pointsInWindow",
+  // Maanedens spiller: spillerne goeres klar, som appen goer det, naar de hentes.
+  "migratePlayer", "inferYearFromNote"
 ];
 // Det, blokken SKAL indeholde (ellers er den flyttet, og serveren ville regne forkert).
-const I_BLOKKEN = ["dagsISO", "iDagISO", "juggleActiveDays", "footworkHusk", "footworkPoints", "footworkPointsInWindow"];
+const I_BLOKKEN = ["dagsISO", "iDagISO", "juggleActiveDays", "footworkHusk", "footworkPoints", "footworkPointsInWindow",
+  // Maanedens spiller (kaaring.js): de samme funktioner, som kaarMaanedensSpiller() i appen bruger.
+  "maanedPlus", "forrigeMaaned", "maanedAfgoeres", "maanederTilKaaring", "maanedStat", "maanedSammenlign", "maanedensSpillerRangering"];
+const KONSTANTER_I_BLOKKEN = ["FOOTWORK_V2_FRA", "MAANEDENS_FOERSTE", "MAANEDENS_AFGOERES_DAG"];
 for(const navn of I_BLOKKEN){
   if(!new RegExp("(^|\\n)function " + navn + "\\(").test(blok)) fejl(navn + " ligger ikke i fodteknik-blokken");
+}
+for(const navn of KONSTANTER_I_BLOKKEN){
+  if(!new RegExp("(^|\\n)const " + navn + " *=").test(blok)) fejl("const " + navn + " ligger ikke i fodteknik-blokken");
 }
 if(!/(^|\n)let footworkStamp = 0;/.test(blok)) fejl("let footworkStamp = 0; ligger ikke i fodteknik-blokken");
 for(const navn of [...KONSTANTER, ...FUNKTIONER]){
@@ -139,8 +148,9 @@ const forspil = `// GENERERET af functions/byg.mjs ud fra ../index.html - RET IK
 // Pointreglerne ${regler[1]}.
 //
 // Appens kode laeser modul-globale lister (footwork, juggleLadder, ...). Serveren saetter
-// dem til et enkelt barns data og regner synkront bagefter (se saetBarn). Der er intet await
-// imellem, saa to kald i samme instans kan ikke flette sig ind i hinanden.
+// dem til et enkelt barns data (saetBarn) eller alle boerns (saetAlleBoern) og regner synkront
+// bagefter. Der er intet await imellem, saa to kald i samme instans kan ikke flette sig ind
+// i hinanden.
 process.env.TZ = "Europe/Copenhagen";   // appen regner i lokal tid - det er dansk tid
 let players = [], submissions = [], footwork = [], footworkLogs = [], juggleLadder = [], juggleLog = [];
 // Stubbe for det, fodteknik-blokken naevner, men som pointene aldrig kalder.
@@ -168,10 +178,21 @@ export function saetBarn({ spiller = null, stige = null, stigelog = null, fodtek
   submissions = Array.isArray(indsendelser) ? indsendelser : [];
   footworkStamp++;
 }
+// Saet ALLE boerns data paa én gang - til Maanedens spiller, som sammenligner en hel aargang.
+// maanedStat laeser kun fodteknik-dokumenterne (dagene og jokerafgoerelserne ligger paa dem)
+// og spillerne; resten toemmes, saa intet fra et tidligere kald kan snige sig med.
+export function saetAlleBoern({ spillere = [], fodteknik = [] } = {}){
+  players = Array.isArray(spillere) ? spillere : [];
+  footwork = Array.isArray(fodteknik) ? fodteknik : [];
+  juggleLadder = []; juggleLog = []; footworkLogs = []; submissions = [];
+  footworkStamp++;
+}
 export {
   POINTREGLER, CLUB_TOP_N, normalizeYearValue, dagsISO, iDagISO,
   totalPoints, ladderPoints, ladderPointsInWindow, footworkPoints, footworkPointsInWindow,
-  pointsInWindow, startOfWeek, startOfMonth, FOOTWORK_V2_FRA
+  pointsInWindow, startOfWeek, startOfMonth, FOOTWORK_V2_FRA,
+  migratePlayer, MAANEDENS_FOERSTE, MAANEDENS_AFGOERES_DAG, maanedPlus, forrigeMaaned, maanedAfgoeres,
+  maanederTilKaaring, maanedStat, maanedensSpillerRangering
 };
 `;
 // Skrives foerst ved siden af og proeves; foerst naar den kan regne, erstatter den den gamle.
@@ -191,6 +212,12 @@ try{
   if(m.normalizeYearValue("U9") !== "2017") fejl("normalizeYearValue virker ikke som ventet");
   m.footworkPointsInWindow("x", m.startOfWeek(new Date()));
   m.pointsInWindow("x", m.startOfMonth(new Date()));
+  // Maanedens spiller paa et lille, haandregnet eksempel: to dage i november, ét barn.
+  m.saetAlleBoern({ spillere: [m.migratePlayer({ id: "x", name: "x", year: "U9" })],
+    fodteknik: [{ id: "x", days: { "2026-11-16": { t: 1 }, "2026-11-17": { t: 1 } } }] });
+  const k = m.maanedensSpillerRangering([{ id: "x", name: "x", year: "2017" }], "2026-11", []);
+  if(k.vindere.length !== 1 || k.vindere[0].dage !== 2) fejl("proevekaaringen gav " + JSON.stringify(k.vindere));
+  if(m.maanederTilKaaring("2026-12-05").join() !== m.MAANEDENS_FOERSTE) fejl("maanederTilKaaring virker ikke som ventet");
 }catch(e){
   rmSync(NY, { force: true });
   throw e;

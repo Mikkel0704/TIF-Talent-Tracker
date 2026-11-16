@@ -1,8 +1,10 @@
-// Det, triggerne goer mod databasen: regn ét barns linje ud i en transaktion, og hold
-// klubbens top 10 i takt. Skrives kun, naar noget ud over "opdateret" har aendret sig.
+// Det, funktionerne goer mod databasen: regn ét barns linje ud i en transaktion og hold
+// klubbens top 10 i takt (triggerne), og kaar Maanedens spiller (den planlagte funktion).
+// Skrives kun, naar noget har aendret sig.
 import "./tid.js";
 import { FieldValue } from "firebase-admin/firestore";
 import { beregnLinje, linjerEns, klubTop, topEns, POINTREGLER, CLUB_TOP_N } from "./rangliste.js";
+import { kaaringerAtOprette } from "./kaaring.js";
 
 const medId = s => (s && s.exists ? { id: s.id, ...s.data() } : null);
 
@@ -66,4 +68,47 @@ export async function haandter(db, ider, logger){
     if(svar.topRoert) top = await opdaterTop(db);
     logger?.info?.("rangliste", { spiller: id, handling: svar.handling, top });
   }
+}
+
+// Maanedens spiller: opret de kaaringer, der mangler. Praecis som kaarMaanedensSpiller() i
+// appen (se kaaring.js) - og appen goer det stadig, hvis den kommer foerst.
+// Hver kaaring skrives med create(), saa en eksisterende post ALDRIG overskrives. Findes
+// den allerede (en admins browser naaede det foerst), stopper aargangen, ligesom i appen,
+// og naeste koersel fortsaetter med den gemte post som forrige maaned.
+// Logger kun id'er og antal - aldrig navne.
+// Svar: {oprettet: [id'er], findesAllerede: [id'er], fejlet: [id'er]}
+export async function kaarMaanedensSpiller(db, nu = new Date(), logger){
+  const svar = { oprettet: [], findesAllerede: [], fejlet: [] };
+  const alle = async navn => (await db.collection(navn).get()).docs.map(d => ({ id: d.id, ...d.data() }));
+  const [spillere, kaaringer] = await Promise.all([alle("players"), alle("maanedensSpiller")]);
+  // Hvilke poster, der mangler, afhaenger kun af spillernes aargange og de gemte kaaringer -
+  // ikke af fodteknikken. Saa de fleste dage hentes fodteknikken slet ikke.
+  if(!kaaringerAtOprette({ spillere, kaaringer }, nu).length){
+    logger?.info?.("maanedensSpiller", { spillere: spillere.length, kaaringer: kaaringer.length, oprettet: 0 });
+    return svar;
+  }
+  const fodteknik = await alle("footwork");
+  // Ingen await herfra og til listen er regnet ud (se kaaring.js).
+  const nye = kaaringerAtOprette({ spillere, fodteknik, kaaringer }, nu);
+  const stoppet = new Set();
+  for(const k of nye){
+    if(stoppet.has(k.aargang)) continue;
+    try{
+      await db.collection("maanedensSpiller").doc(k.id).create({ ...k.post, beregnet: FieldValue.serverTimestamp() });
+      svar.oprettet.push(k.id);
+      logger?.info?.("maanedensSpiller oprettet", { id: k.id, vindere: k.post.vindere.length });
+    }catch(e){
+      stoppet.add(k.aargang);
+      if(e?.code === 6 || e?.code === "already-exists"){
+        svar.findesAllerede.push(k.id);
+        logger?.info?.("maanedensSpiller fandtes allerede", { id: k.id });
+      }else{
+        svar.fejlet.push(k.id);
+        logger?.error?.("maanedensSpiller blev ikke gemt", { id: k.id, kode: e?.code ?? null, fejl: String(e?.message || e) });
+      }
+    }
+  }
+  logger?.info?.("maanedensSpiller", { spillere: spillere.length, fodteknik: fodteknik.length, kaaringer: kaaringer.length,
+    oprettet: svar.oprettet.length, findesAllerede: svar.findesAllerede.length, fejlet: svar.fejlet.length });
+  return svar;
 }

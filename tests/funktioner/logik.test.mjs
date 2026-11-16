@@ -187,6 +187,24 @@ b = byg("flyttet", html.replace("function iDagISO(", "function iDagISO2(") .repl
 t("ligger iDagISO ikke i blokken laengere, stopper den", b.kode !== 0 && /iDagISO ligger ikke i fodteknik-blokken/.test(b.tekst), b.tekst.slice(0, 300));
 b = byg("kaster", html.replace("function totalPoints(p){", "function totalPoints(p){ return udefineretNavn;"));
 t("kan den byggede kode ikke regne, stopper den ogsaa - og der ligger ingen halv fil", b.kode !== 0 && /udefineretNavn/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+
+console.log("\nbyg.mjs fejler hoejlydt · Maanedens spiller");
+for(const navn of ["maanedPlus", "forrigeMaaned", "maanedAfgoeres", "maanederTilKaaring", "maanedStat", "maanedSammenlign", "maanedensSpillerRangering"]){
+  b = byg("m-" + navn, html.replace("function " + navn + "(", "function " + navn + "Omdoebt("));
+  t(`mangler ${navn} i blokken, stopper den med navnet`, b.kode !== 0 && new RegExp(navn + " ligger ikke i fodteknik-blokken").test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+}
+for(const navn of ["MAANEDENS_FOERSTE", "MAANEDENS_AFGOERES_DAG", "FOOTWORK_V2_FRA"]){
+  b = byg("k-" + navn, html.replace("const " + navn + " =", "const " + navn + "_FLYTTET ="));
+  t(`mangler const ${navn} i blokken, stopper den`, b.kode !== 0 && new RegExp("const " + navn + " ligger ikke i fodteknik-blokken").test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+}
+for(const navn of ["migratePlayer", "inferYearFromNote"]){
+  b = byg("f-" + navn, html.replace("function " + navn + "(", "function " + navn + "Omdoebt("));
+  t(`mangler function ${navn}, stopper den med navnet`, b.kode !== 0 && new RegExp("mangler function " + navn).test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+}
+b = byg("m-kaster", html.replace("function maanedStat(pid, maaned){", "function maanedStat(pid, maaned){ return udefineretMaaned;"));
+t("kan kaaringen ikke regnes i den byggede kode, stopper den - og der ligger ingen halv fil", b.kode !== 0 && /udefineretMaaned/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+b = byg("m-forkert", html.replace("const MAANEDENS_AFGOERES_DAG = 5;", "const MAANEDENS_AFGOERES_DAG = 6;"));
+t("regner kaaringen forkert paa proeveeksemplet, stopper den", b.kode !== 0 && /maanederTilKaaring virker ikke/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
 rmSync(mappe, { recursive: true, force: true });
 
 console.log(`\n${ok} ok, ${fejlet} fejl`);
