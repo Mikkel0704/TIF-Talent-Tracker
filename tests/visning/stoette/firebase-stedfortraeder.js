@@ -50,7 +50,9 @@ export const getAuth = () => ({ get currentUser(){ return bruger(); } });
 export const onAuthStateChanged = (auth, cb) => { setTimeout(() => cb(bruger()), 0); return () => {}; };
 export const signOut = async () => { window.__bruger = null; };
 export const signInWithEmailAndPassword = async () => ({ user: bruger() });
-export const createUserWithEmailAndPassword = async () => ({ user: { uid: "ny-bruger" } });
+// Appen maa ikke laengere oprette logins fra browseren (det goer serveren). Kaldes den
+// alligevel, huskes det, saa en test kan fange det.
+export const createUserWithEmailAndPassword = async () => { window.__oprettetIBrowseren = (window.__oprettetIBrowseren || 0) + 1; return { user: { uid: "ny-bruger" } }; };
 export const updatePassword = async () => {};
 export const sendPasswordResetEmail = async () => {};
 
@@ -111,3 +113,16 @@ export const uploadBytesResumable = (r, fil, meta) => ({ on(haendelse, fremdrift
 export const getDownloadURL = async r => "https://eksempel.invalid/" + r.sti;
 export const deleteObject = async r => { (window.__skrivninger ||= []).push({ type: "sletfil", sti: r.sti }); };
 export const listAll = async () => ({ items: [] });
+
+// Cloud Functions (kaldbare funktioner). Hvert kald huskes i window.__kald som {navn, data}.
+// Svaret styres af window.__svar[navn]: {data} giver et svar, {fejl: {code, message}} en fejl
+// i samme form som den rigtige SDK (code "functions/<kode>"). Uden svar: {uid: "ny-bruger"}.
+// window.__ventKald = ms holder kaldet hen, saa en test kan se, hvad appen goer imens.
+export const getFunctions = (app, region) => { window.__funktionsRegion = region; return { region }; };
+export const httpsCallable = (funktioner, navn) => async data => {
+  (window.__kald ||= []).push({ navn, data: JSON.parse(JSON.stringify(data ?? null)), region: funktioner?.region ?? null });
+  if (window.__ventKald) await new Promise(r => setTimeout(r, window.__ventKald));
+  const svar = (window.__svar || {})[navn];
+  if (svar?.fejl) throw Object.assign(new Error(svar.fejl.message), { code: "functions/" + svar.fejl.code, details: svar.fejl.details });
+  return { data: svar && "data" in svar ? svar.data : { uid: "ny-bruger" } };
+};

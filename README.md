@@ -11,16 +11,16 @@ Live: https://mikkel0704.github.io/TIF-Talent-Tracker/
 | Del | Hvor |
 |---|---|
 | Selve appen | `index.html` - én fil, ingen build. GitHub Pages viser `main`. |
-| Login | Firebase Authentication (email + adgangskode) |
+| Login | Firebase Authentication (email + adgangskode). Logins oprettes og slettes af serveren - se "Logins oprettes af serveren". |
 | Data | Cloud Firestore, projekt `tif-talent-tracker`, EU (eur3) |
 | Videoer | Cloud Storage, bøtte `tif-talent-tracker`, Belgien (europe-west1). Mapperne hedder `submissions/{login-id}/`, kan ikke listes, og tømmes af en slettefrist på 8 dage. |
 | Adgangsregler | `firestore.rules` og `storage.rules` |
 | Værn mod fremmede klienter | App Check med reCAPTCHA Enterprise, håndhævet på Firestore og Storage |
-| Ranglisten | Cloud Functions i `functions/`, Belgien (europe-west1). Regner hvert barns point ud og skriver én linje pr. barn - se "Ranglisten regnes på serveren". |
+| Ranglisten og logins | Cloud Functions i `functions/`, Belgien (europe-west1). Regner hvert barns point ud og skriver én linje pr. barn - se "Ranglisten regnes på serveren". Opretter og sletter logins - se "Logins oprettes af serveren". |
 | Tests | `tests/` - se `tests/README.md` |
 
-Serveren gør to ting: den regner ranglisten ud, og den kårer Månedens spiller. Alt andet,
-der skal håndhæves, håndhæves i reglerne; resten er brugerflade.
+Serveren gør tre ting: den regner ranglisten ud, den kårer Månedens spiller, og den opretter
+og sletter logins. Alt andet, der skal håndhæves, håndhæves i reglerne; resten er brugerflade.
 
 ## Udrulning
 
@@ -45,6 +45,42 @@ advarsel, når det er tilfældet ("Ranglisten på serveren").
 bøttens slettefrist: alt under `submissions/` slettes af Google efter 8 dage, uanset hvad
 appen gør.
 
+## Logins oprettes af serveren
+
+En administrator opretter trænere og spillerlogins under Admin, og sletter dem med "Slet".
+Appen kalder to kaldbare Cloud Functions i europe-west1, `opretLogin` og `sletLogin`
+(`functions/logins.js`). Browseren opretter ingen logins selv.
+
+- **Kun en aktiv administrator.** Serveren læser kalderens `users`-dokument (rolle `admin`,
+  `active` ikke `false` - samme regel som `isAdmin()` i `firestore.rules`). Custom claims og
+  det, klienten sender, tæller ikke. Alle andre får `permission-denied`.
+- **App Check håndhæves** på begge funktioner, som på Firestore og Storage: et kald, der
+  ikke kommer fra appens egen side, afvises, før koden kører.
+- **Det samme dokument som før.** Serveren skriver `users`-dokumentet, som appen gjorde:
+  rolle, `mustChangePassword` (ikke for demo), årgange og køn, `active`, `demo`,
+  administratorens lukkede årgange på en ny træner, `createdBy` (kalderens e-mail) og
+  serverens tidsstempler. For et spillerlogin læser serveren selv spillerens årgang og køn
+  og sætter `hasActiveLogin` (ikke for demo).
+- **Intet halvt.** Kan `users`-dokumentet ikke skrives, slettes det nye login igen.
+- **Slet sletter helt:** `users`-dokumentet, spillerens `hasActiveLogin` og selve login'et i
+  Authentication. Samme e-mail kan bruges igen med det samme. (Slettes et barn med "Slet
+  alt" under Spillere, bliver login'et stadig liggende uden `users`-dokument - det fjernes
+  af `tests/vaerktoej/fremmede-konti.cjs`.)
+- Serveren logger kun login-id'er og antal, aldrig e-mails eller navne.
+
+**Selvoprettelsen lukkes for sig.** Før kunne enhver med den offentlige API-nøgle i
+`index.html` oprette en konto i projektet, fordi appen oprettede logins fra browseren.
+`tests/vaerktoej/luk-selvoprettelse.cjs` lukker for det og beviser det bagefter udefra: en
+oprettelse med den offentlige nøgle skal afvises med `ADMIN_ONLY_OPERATION`. Indstillingen
+hører til Identity Platform; er projektet ikke opgraderet, stopper værktøjet og ændrer intet.
+`tests/vaerktoej/fremmede-konti.cjs` viser (og med `--slet` sletter) de konti, der ikke har
+et `users`-dokument.
+
+**Rækkefølgen ved udrulning:** funktionerne først (`udrul-funktioner.cjs`), så appen (push
+til `main`), prøv at oprette og slette et login fra appen - og først derefter
+`luk-selvoprettelse.cjs` og `fremmede-konti.cjs`. Lukkes der, før appen kalder serveren,
+kan ingen oprette logins.
+
 ## Instruktionsvideoer
 
 En administrator kan lægge én kort video op pr. øvelse under Admin → Instruktionsvideoer.
@@ -68,9 +104,11 @@ Spillerne får en "Se video"-knap på øvelsen under Fodteknik, Jonglering og Gu
 
 ## Adgangsreglerne i korte træk
 
-- **Et login uden for klubben kan ingenting.** Alle kan oprette en Auth-konto i projektet,
-  fordi logins oprettes fra browseren. Derfor kræver hver regel et aktivt `users`-dokument;
-  `signedIn()` alene giver aldrig adgang. `!isPlayerRole()` betyder "ikke en aktiv spiller"
+- **Et login uden for klubben kan ingenting.** Logins oprettes af serveren, og
+  selvoprettelsen i Firebase Authentication lukkes (se "Logins oprettes af serveren"). Der
+  findes alligevel Auth-konti uden `users`-dokument - konti fra før selvoprettelsen blev
+  lukket, og login'et efter et barn, der er slettet i appen. Derfor kræver hver regel stadig
+  et aktivt `users`-dokument; `signedIn()` alene giver aldrig adgang. `!isPlayerRole()` betyder "ikke en aktiv spiller"
   og er også sand for fremmede og deaktiverede - brug det aldrig uden `isActive()`.
 - **En træner rører kun det, der allerede ligger i trænerens egne årgange.** En rettelse
   kræver adgang til både det eksisterende dokument og det nye indhold; ellers kunne en

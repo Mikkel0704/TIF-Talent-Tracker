@@ -119,7 +119,9 @@ const FUNKTIONER = [
   "ladderPoints", "totalPoints", "ladderPointsInWindow",
   "startOfWeek", "startOfMonth", "pointsInWindow",
   // Maanedens spiller: spillerne goeres klar, som appen goer det, naar de hentes.
-  "migratePlayer", "inferYearFromNote"
+  "migratePlayer", "inferYearFromNote",
+  // Logins (logins.js): aargangslisten paa et nyt traenerlogin, som appen regner den ud.
+  "normalizeYearsList"
 ];
 // Det, blokken SKAL indeholde (ellers er den flyttet, og serveren ville regne forkert).
 const I_BLOKKEN = ["dagsISO", "iDagISO", "juggleActiveDays", "footworkHusk", "footworkPoints", "footworkPointsInWindow",
@@ -191,7 +193,7 @@ export {
   POINTREGLER, CLUB_TOP_N, normalizeYearValue, dagsISO, iDagISO,
   totalPoints, ladderPoints, ladderPointsInWindow, footworkPoints, footworkPointsInWindow,
   pointsInWindow, startOfWeek, startOfMonth, FOOTWORK_V2_FRA,
-  migratePlayer, MAANEDENS_FOERSTE, MAANEDENS_AFGOERES_DAG, maanedPlus, forrigeMaaned, maanedAfgoeres,
+  migratePlayer, normalizeYearsList, MAANEDENS_FOERSTE, MAANEDENS_AFGOERES_DAG, maanedPlus, forrigeMaaned, maanedAfgoeres,
   maanederTilKaaring, maanedStat, maanedensSpillerRangering
 };
 `;

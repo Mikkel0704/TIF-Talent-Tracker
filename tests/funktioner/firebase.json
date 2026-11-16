@@ -4,6 +4,7 @@
   ],
   "emulators": {
     "singleProjectMode": true,
+    "auth": { "port": 9199 },
     "firestore": { "port": 8990, "websocketPort": 9160 },
     "functions": { "port": 8995 },
     "hub": { "port": 4410 },

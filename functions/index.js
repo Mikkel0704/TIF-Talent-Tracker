@@ -8,21 +8,28 @@
 //
 // Den ene planlagte funktion er maanedensKaaring: Maanedens spiller afgoeres af serveren
 // den 5. kl. 05 dansk tid i stedet for at vente paa, at en admin aabner appen.
+//
+// To kaldbare funktioner, opretLogin og sletLogin: logins oprettes og slettes af serveren,
+// saa Firebase Authentications aabne selvoprettelse kan lukkes (se logins.js).
 import "./tid.js";
 import { initializeApp, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onCall } from "firebase-functions/v2/https";
 import { logger } from "firebase-functions";
 import { haandter, kaarMaanedensSpiller } from "./server.js";
+import * as logins from "./logins.js";
 
 // Funktionerne koerer i europe-west1. Selve Eventarc-triggeren skal ligge, hvor databasen
 // ligger (eur3); den saetter firebase deploy selv ud fra databasens placering.
 setGlobalOptions({ region: "europe-west1", memory: "256MiB", timeoutSeconds: 60, maxInstances: 3 });
 
 let db = null;
-const hentDb = () => db || (db = getFirestore(getApps()[0] || initializeApp()));
+const app = () => getApps()[0] || initializeApp();
+const hentDb = () => db || (db = getFirestore(app()));
 
 const id = (snap, felt) => (snap && snap.exists ? snap.get(felt) : null);
 const paaBarn = samling => onDocumentWritten(`${samling}/{id}`, event => haandter(hentDb(), [event.params.id], logger));
@@ -43,3 +50,13 @@ export const maanedensKaaring = onSchedule({ schedule: "0 5 * * *", timeZone: "E
   const svar = await kaarMaanedensSpiller(hentDb(), new Date(), logger);
   if(svar.fejlet.length) throw new Error("maanedensSpiller: " + svar.fejlet.length + " kaaring(er) blev ikke gemt: " + svar.fejlet.join(", "));
 });
+
+// Logins. Kaldes fra appen med httpsCallable (region europe-west1). Hvem der maa, afgoeres
+// inde i funktionen (en aktiv administrator, laest i users) - firebase deploy goer altid en
+// kaldbar funktion offentligt kaldbar, saa det er funktionen selv, der skal sige nej.
+// App Check haandhaeves som paa Firestore og Storage: et kald uden et gyldigt App Check-bevis
+// fra appens egen side afvises, foer koden koerer.
+const LOGIN_VALG = { enforceAppCheck: true };
+const deps = () => ({ db: hentDb(), adminAuth: getAuth(app()), FieldValue, logger });
+export const opretLogin = onCall(LOGIN_VALG, request => logins.opretLogin(deps(), request.auth, request.data));
+export const sletLogin = onCall(LOGIN_VALG, request => logins.sletLogin(deps(), request.auth, request.data));

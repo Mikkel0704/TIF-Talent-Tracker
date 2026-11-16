@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.76</title>
+  <title>TIF Talent Tracker v15.77</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -166,7 +166,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.76 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.77 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -587,16 +587,17 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.76 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.77 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, deleteField, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 import { getStorage, ref as storageRef, uploadBytes, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app-check.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-functions.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD-nsf6aP_l9fSA_kGRIAAHiHSvtgmDOlI",
@@ -610,25 +611,32 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const secondaryAppForUserCreation = initializeApp(firebaseConfig, "SecondaryUserCreation");
 
 // App Check: Firebase afviser kald, der ikke kommer fra denne side. Det er det, der
-// stopper en fremmed i selv at oprette en konto med SDK'et og hente spillernes videoer
-// ud af Storage - storage.rules kan kun se "er du logget ind?", ikke hvem du er.
+// stopper en fremmed i at hente spillernes videoer ud af Storage - storage.rules kan kun
+// se "er du logget ind?", ikke hvem du er. Det håndhæves på Firestore, Storage og
+// serverens login-funktioner (opretLogin/sletLogin), men ikke på selve login'et: at en
+// fremmed ikke kan oprette en konto, klares ved at lukke selvoprettelsen i Firebase
+// Authentication (tests/vaerktoej/luk-selvoprettelse.cjs) - logins oprettes af serveren.
 // Nøglen er en offentlig reCAPTCHA Enterprise-sitenøgle; den hører til domænet, ikke
 // til en bruger. Tom streng = App Check er slået fra, og siden opfører sig præcis som før.
 const APP_CHECK_SITE_KEY = "6LfnIrYtAAAAAAKnIOXoGGo5-6ovitgbIe8AyJcz";
 if(APP_CHECK_SITE_KEY){
-  [app, secondaryAppForUserCreation].forEach(a=>initializeAppCheck(a, {
+  initializeAppCheck(app, {
     provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY),
     isTokenAutoRefreshEnabled: true
-  }));
+  });
 }
 
 const auth = getAuth(app);
-const secondaryAuth = getAuth(secondaryAppForUserCreation);
 const db = getFirestore(app);
 const storage = getStorage(app);
+// Logins oprettes og slettes af serveren (functions/logins.js), ikke fra browseren. Så kan
+// Firebase Authentications åbne selvoprettelse være lukket. App Check-beviset sendes med
+// af sig selv, fordi App Check er sat op på samme app.
+const functions = getFunctions(app, "europe-west1");
+const opretLoginPaaServeren = httpsCallable(functions, "opretLogin");
+const sletLoginPaaServeren = httpsCallable(functions, "sletLogin");
 
 const defaultYears = ["2018","2017","2016","2015","2014","2013","2012","2011"];
 let localExtraYears = [];
@@ -2223,7 +2231,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.76 · ikke logget ind");
+    setSyncStatus("v15.77 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2249,7 +2257,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.76 · bekræft inden I går i gang");
+    setSyncStatus("v15.77 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2257,7 +2265,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.76 · vælg din egen adgangskode");
+    setSyncStatus("v15.77 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2331,7 +2339,7 @@ function startListeners(){
         if(!ranglisteAar) lytRangliste(normalizeYearValue(currentPlayerLink.year));
       }
     }
-    setSyncStatus("v15.76 · live database aktiv");
+    setSyncStatus("v15.77 · live database aktiv");
     renderAll();
   };
   spillereHentet = false;
@@ -2340,7 +2348,7 @@ function startListeners(){
       players = snap.exists() ? [migratePlayer({id: snap.id, ...snap.data()})] : [];
       spillereHentet = true;
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.76 · databasefejl: " + e.code))] : [];
+    }, (e)=>setSyncStatus("v15.77 · databasefejl: " + e.code))] : [];
     if(!egenId){ players = []; spillereHentet = true; spillerFaaet(); }
   } else {
     unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
@@ -2348,7 +2356,7 @@ function startListeners(){
       if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
       players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.76 · databasefejl: " + e.code));
+    }, (e)=>setSyncStatus("v15.77 · databasefejl: " + e.code));
   }
   // Spillerens egen aargang kendes fra loginnet (som allowedYears); mangler den dér,
   // startes lytteren, naar spillerens eget dokument er kommet (se spillerFaaet).
@@ -2936,7 +2944,7 @@ async function deletePlayer(id){
   }
 
   const failed = [];
-  setSyncStatus("v15.76 · sletter...");
+  setSyncStatus("v15.77 · sletter...");
   for(const f of files){
     try{ await deleteObject(f); }
     catch(e){ if(e?.code !== "storage/object-not-found") failed.push("videofil " + f.name); }   // allerede vaek er ikke en fejl
@@ -2957,7 +2965,7 @@ async function deletePlayer(id){
   try{ await deleteDoc(doc(db,"footworkLog",id)); }catch(e){ failed.push("loggen for daglig fodteknik"); }
   try{ await deleteDoc(doc(db,"players",id)); }catch(e){ failed.push("selve spilleren"); }
   try{ await deleteDoc(doc(db,"deletionRequests",id)); }catch(e){ /* fandtes maaske ikke */ }
-  setSyncStatus("v15.76 · live database aktiv");
+  setSyncStatus("v15.77 · live database aktiv");
 
   besked(
     (failed.length ? `ADVARSEL: ${failed.length} ting kunne ikke slettes:\n· ${failed.join("\n· ")}\n\nResten er slettet.\n\n` : `Alt om ${p.name} er slettet.\n\n`)
@@ -3442,10 +3450,14 @@ async function deleteUserAccess(uid){
   const u = users.find(x=>x.uid===uid);
   if(!u) return;
   if(uid === currentUser?.uid) return besked("Du kan ikke slette din egen adgang.");
-  if(!await spoerg(`Slet denne kontos adgang til appen: ${u.email}?\n\nBemærk: dette sletter ikke selve login'et i Firebase Authentication (det kræver Firebase-konsollen), så samme e-mail kan IKKE bruges til at oprette en ny bruger bagefter, før det er ryddet manuelt der. Vil du blot lukke midlertidigt for adgang (og evt. åbne igen senere) uden det problem, så brug "Deaktiver" i stedet.`)) return;
-  await deleteDoc(doc(db,"users",uid));
-  if(u.role==="player" && u.playerId){
-    await setDoc(doc(db,"players",u.playerId), {hasActiveLogin: false, updatedAt: serverTimestamp()}, {merge:true});
+  if(!await spoerg(`Slet denne kontos adgang til appen: ${u.email}?\n\nLogin'et slettes helt - både adgangen til appen og selve login'et - med det samme. Samme e-mail kan bagefter bruges til et nyt login. Vil du blot lukke midlertidigt for adgang (og evt. åbne igen senere), så brug "Deaktiver" i stedet.`)) return;
+  // Serveren sletter users-dokumentet, sætter spillerens hasActiveLogin til false (for et
+  // spillerlogin) og sletter login'et i Firebase Authentication.
+  try{
+    await sletLoginPaaServeren({uid});
+  }catch(e){
+    console.error(e);
+    besked("Kunne ikke slette login'et: " + serverFejlTekst(e));
   }
 }
 function yearGenderOptions(selectedValue){
@@ -3532,16 +3544,25 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.76 · migrering færdig");
+    setSyncStatus("v15.77 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.76 · migrering fejlede");
+    setSyncStatus("v15.77 · migrering fejlede");
   }
 }
 
 
 
+// Serverens fejl er allerede på dansk (functions/logins.js) og vises, som de er. Kun de fejl,
+// serveren ikke selv formulerer, oversættes her.
+function serverFejlTekst(e){
+  const kode = String(e?.code || "").replace(/^functions\//, "");
+  if(kode === "unauthenticated") return "Serveren kunne ikke bekræfte, at kaldet kommer fra appen. Genindlæs siden, og prøv igen.";
+  if(kode === "unavailable" || kode === "deadline-exceeded") return "Ingen forbindelse til serveren. Tjek internetforbindelsen, og prøv igen.";
+  if(e?.message && !/^internal$/i.test(e.message)) return e.message;
+  return "Der skete en fejl på serveren. Prøv igen om lidt." + (kode ? ` (${kode})` : "");
+}
 async function createCoachFromAdmin(){
   if(!isAdmin()) return besked("Kun admin kan oprette trænere.");
   const email = document.getElementById("newCoachEmail").value.trim();
@@ -3556,26 +3577,15 @@ async function createCoachFromAdmin(){
   if(!password || password.length < 6) return besked("Password skal være mindst 6 tegn.");
   if(!selectedYears.length) return besked("Vælg mindst én årgang.");
   try{
-    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
-    await setDoc(doc(db, "users", cred.user.uid), {
-      email,
-      role: "coach",
-      mustChangePassword: true,
-      years: selectedYears,
-      yearGenders,
-      active: true,
-      closedYears: closedYearsForCurrentUser(),
-      createdBy: currentUser?.email || "",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    }, {merge:true});
-    await signOut(secondaryAuth);
+    // Serveren opretter login'et og skriver users-dokumentet (rolle coach, skal skifte kode,
+    // de valgte årgange, administratorens lukkede årgange, createdBy og tidsstempler).
+    await opretLoginPaaServeren({rolle: "coach", email, kode: password, years: selectedYears, yearGenders});
     document.getElementById("newCoachEmail").value = "";
     document.getElementById("newCoachPassword").value = "";
     besked("Træner oprettet: " + email);
   }catch(e){
     console.error(e);
-    besked("Kunne ikke oprette træner: " + e.message);
+    besked("Kunne ikke oprette træner: " + serverFejlTekst(e));
   }
 }
 
@@ -3590,40 +3600,19 @@ async function createPlayerLoginFromAdmin(){
   if(!email) return besked("Skriv spillerens email.");
   if(!password || password.length < 6) return besked("Password skal være mindst 6 tegn.");
   try{
-    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
-    await setDoc(doc(db, "users", cred.user.uid), {
-      email,
-      role: "player",
-      playerId: p.id,
-      years: [p.year],
-      // Kun begræns spilleren til eget køn, hvis spilleren rent faktisk har fået sat
-      // et køn (se "Sæt køn på spillere" i Admin) - ellers ville de miste adgang til
-      // deres egen årgang, indtil migreringen er lavet.
-      yearGenders: p.gender ? {[p.year]: p.gender} : {},
-      active: true,
-      demo,
-      // Den kode, admin sender i en mail, skal ikke kunne staa ved magt for altid.
-      // Undtagen for demo: dens kode DELES med mange foraeldre, saa hvis den foerste,
-      // der logger ind, blev tvunget til at skifte den, ville alle de andre vaere laast
-      // ude af en adgang, der er ment som en aaben doer.
-      mustChangePassword: !demo,
-      createdBy: currentUser?.email || "",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    }, {merge:true});
-    // Denormaliseret på spilleren, så andre spillere (som ikke må læse users/) kan se
-    // hvem der har et aktivt login og dermed kan udfordres - se opponentsForCurrentPlayer().
-    // Et demo-login tæller IKKE som aktivt her: så slipper de rigtige spillere for at få
-    // demo-brugeren op i deres modstanderliste og vente på et svar, der aldrig kommer.
-    if(!demo) await setDoc(doc(db, "players", p.id), {hasActiveLogin: true, updatedAt: serverTimestamp()}, {merge:true});
-    await signOut(secondaryAuth);
+    // Serveren læser spilleren selv (årgang og køn) og skriver users-dokumentet, som appen
+    // gjorde: rolle player, årgangen, begrænset til spillerens eget køn, når det er sat,
+    // demo, og mustChangePassword for alle andre end demo (demo-koden deles af mange
+    // familier). Den sætter også spillerens hasActiveLogin - men ikke for et demo-login, så
+    // de rigtige spillere ikke kan udfordre det.
+    await opretLoginPaaServeren({rolle: "player", email, kode: password, playerId: p.id, demo});
     document.getElementById("newPlayerLoginEmail").value = "";
     document.getElementById("newPlayerLoginPassword").value = "";
     document.getElementById("newPlayerLoginDemo").checked = false;
     besked((demo ? "Demo-login" : "Spillerlogin") + " oprettet til " + p.name + ": " + email);
   }catch(e){
     console.error(e);
-    besked("Kunne ikke oprette spillerlogin: " + e.message);
+    besked("Kunne ikke oprette spillerlogin: " + serverFejlTekst(e));
   }
 }
 
@@ -3711,7 +3700,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.76 · uploader video...");
+    setSyncStatus("v15.77 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -3755,12 +3744,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.76 · live database aktiv");
+    setSyncStatus("v15.77 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.76 · live database aktiv");
+    setSyncStatus("v15.77 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
