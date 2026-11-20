@@ -111,7 +111,7 @@ if(blokStart < 0 || blokSlut < 0 || blokSlut < blokStart) fejl("kunne ikke finde
 const blok = html.slice(blokStart + 1, blokSlut);
 
 // 2) Jongleringsstigen og resten, enkeltvis efter navn.
-const KONSTANTER = ["POINTREGLER", "CLUB_TOP_N", "JUGGLE_MAIN", "JUGGLE_WEAK", "JUGGLE_WEAK_FACTOR", "JUGGLE_GATE_AFTER", "JUGGLE_TRICKS"];
+const KONSTANTER = ["POINTREGLER", "CLUB_TOP_N", "JUGGLE_MAIN", "JUGGLE_WEAK", "JUGGLE_MAIN_POINT", "JUGGLE_WEAK_POINT", "JUGGLE_GATE_AFTER", "JUGGLE_TRICKS"];
 const FUNKTIONER = [
   "normalizeYearValue",
   "juggleMainPoints", "juggleWeakPoints", "juggleTrick",

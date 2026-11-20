@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.78</title>
+  <title>TIF Talent Tracker v15.79</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -166,7 +166,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.78 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.79 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -363,7 +363,7 @@
       <p class="small hidden" id="guideIntroOff">Jeres årgang kører <b>hjemmetræningen</b>: <b>Fodteknik</b> og <b>Jonglering</b>, som I selv registrerer og får point for, og <b>Duel</b>, hvor I måler jer mod en holdkammerat. Talentmærket med medaljer er ikke slået til på jeres årgang endnu.</p>
       <p id="guideTalentIntro"><b>"Talentmærket":</b> Her er medaljerne. I ser øvelserne for jeres niveau, optager en kort video, hvor I udfører øvelsen, og uploader den. Træneren godkender eller afviser, og I kan følge status direkte under øvelsen. Det er den eneste del af appen, der giver bronze, sølv og guld.</p>
       <p id="guideFodteknik"><b>"Fodteknik":</b> Daglig fodteknik. Tolv korte øvelser, der kan laves indendørs på ca. 2 × 2 meter - 3 × 30 sekunder ad gangen, undtagen jongleringstræning, som er 5 minutter og giver flere point. Markér hver gennemførelse på dagen. Tre om dagen kan give en kombi-bonus, og træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning.</p>
-      <p><b>"Jonglering":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. I får lige så mange point, som I jonglerer - 40 jongleringer giver 40 point - og med det dårlige ben tæller det dobbelt. Også her er det på tillid, uden video. Stigen giver point, men ingen medaljer.</p>
+      <p><b>"Jonglering":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. Hvert trin giver 5, 10, 15 eller 20 point - jo højere oppe på stigen, jo flere - og stigen for det dårlige ben følger samme trappe. Også her er det på tillid, uden video. Stigen giver point, men ingen medaljer.</p>
       <p><b>"Duel":</b> Udfordr en holdkammerat i en fri duel, som "flest jongleringer" eller "fedeste trick" - eller, hvis jeres årgang kører Talentmærket, i en af øvelserne derfra. Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
       <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Point fra alle delene tæller med.</p>
       <p><b>"Månedens spiller":</b> Hver måned bliver én spiller i hver årgang Månedens spiller og får et emblem. Det er den, der har trænet fodteknik flest dage. Ved lighed tæller træningstid, så antal øvelser og så point. Man kan ikke vinde to måneder i træk. Vinderen findes den 5. i den næste måned og står øverst på ranglisten og på spillerens profil.</p>
@@ -587,7 +587,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.78 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.79 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -710,18 +710,30 @@ const criteria = {
 // vaere sandt: fandtes der et pointfelt at skrive i, ville hele den spaerring
 // vaere ligegyldig. Nu er det vaerste, et barn kan goere, at paastaa trin det
 // ikke har taget - hvilket er selve tillidsmodellen, og hvad traeneren retter.
-const JUGGLE_MAIN = [3,5,7,10,15,20,25,30,35,40,55,75,100,125,150];
+const JUGGLE_MAIN = [3,5,7,10,15,20,25,30,35,40,55,75,100,125,150,200];
 const JUGGLE_WEAK = [2,3,5,7,10,13,15,20,25,30];
-// Point = antallet af jongleringer. Dårligt ben taeller dobbelt.
+// Point pr. trin. Det er HER, stigens point bestemmes - alt andet (siden, ranglisten paa
+// serveren, fortryd og traenerens rettelser) spoerger juggleMainPoints/juggleWeakPoints.
 //
-// Der er ingen pointtabel, og det er med vilje. Trinnene var foer vaerd det samme hele
-// vejen op, saa 150 jongleringer gav praecis lige saa meget som 3 - og hovedparten af
-// stigens point laa paa de nemmeste trin. Nu er reglen én saetning, et barn kan regne i
-// hovedet, hvert trin er mere vaerd end det foregaaende, og tallet paa trinnet ER
-// belønningen. Aendrer du et trin i JUGGLE_MAIN, flytter pointene med af sig selv.
-const JUGGLE_WEAK_FACTOR = 2;
-function juggleMainPoints(i){ return JUGGLE_MAIN[i] || 0; }
-function juggleWeakPoints(i){ return (JUGGLE_WEAK[i] || 0) * JUGGLE_WEAK_FACTOR; }
+// Hovedstigen foelger faserne i JUGGLE_PHASES: Find kontakten (trin 1-4) 5 point pr. trin,
+// Rytme (trin 5-9) 10, Kontrol (trin 10-12) 15 og Udholdenhed (trin 13-16) 20 = 195.
+// Daarligt ben gaar samme trappe op: trin 1-4 5, trin 5-7 10, trin 8-9 15, trin 10 20 = 100.
+// Med tricks (75) er hele stigen 375.
+//
+// Hvorfor saa lidt: trinnene registreres paa tillid, uden video og uden godkendelse. Saa
+// skal et trin vaere mindre vaerd end en medalje i Talentmaerket (25-80 point, som en
+// traener har set paa video) og hoejst omtrent en god dag med fodteknik (15-25 point).
+// Foer var point = antallet af jongleringer, og daarligt ben talte dobbelt. Det lod de
+// oeverste trin dominere, og én eftermiddag kunne veje tungere end ugers fodteknik: den
+// 2026-11-20 registrerede et barn hele stigen paa 36 minutter og fik 690 point.
+//
+// Point gemmes ikke, saa en aendring her gaelder ALLE trin - ogsaa dem, der allerede er
+// taget. Haev POINTREGLER, rul funktionerne ud og genberegn ranglisten. Tabellerne skal
+// vaere lige saa lange som stigerne (testene tjekker det).
+const JUGGLE_MAIN_POINT = [5,5,5,5, 10,10,10,10,10, 15,15,15, 20,20,20,20];
+const JUGGLE_WEAK_POINT = [5,5,5,5, 10,10,10, 15,15, 20];
+function juggleMainPoints(i){ return JUGGLE_MAIN_POINT[i] || 0; }
+function juggleWeakPoints(i){ return JUGGLE_WEAK_POINT[i] || 0; }
 // Opløft er en PORT, ikke bare et trick: fra trin 4 skal bolden vippes op fra
 // jorden, saa den faerdighed skal sidde foerst. Samme startregel som medaljerne.
 const JUGGLE_GATE_AFTER = 3;
@@ -737,7 +749,7 @@ const JUGGLE_PHASES = [
   {til:4,  navn:"Find kontakten", tekst:"Lås anklen, tåen lidt op, ram bolden midt under. Bolden højst i knæhøjde."},
   {til:9,  navn:"Rytme",          tekst:"Små trip på standbenet. Bolden til hoftehøjde. Øjnene på bolden."},
   {til:12, navn:"Kontrol",        tekst:"Hold bolden lavt. Brug låret til at redde. Prøv det dårlige ben ind imellem."},
-  {til:15, navn:"Udholdenhed",    tekst:"Skift ben bevidst. Hold roen, når tallet bliver højt."}
+  {til:16, navn:"Udholdenhed",    tekst:"Skift ben bevidst. Hold roen, når tallet bliver højt."}
 ];
 const JUGGLE_RULES = [
   "Alle berøringer med fod, lår og hoved tæller. Arme og hænder tæller ikke.",
@@ -746,8 +758,8 @@ const JUGGLE_RULES = [
   "Du tæller, indtil bolden rammer jorden - så starter du forfra.",
   "Et trin er klaret, når du har gjort det én gang.",
   "Trinnene tages i rækkefølge, og hvert trin og trick giver kun point én gang.",
-  "Point: du får lige så mange point, som du jonglerer. 40 jongleringer giver 40 point, 150 giver 150. Med det dårlige ben tæller det dobbelt.",
-  "Jo længere op ad stigen, jo mere er hvert trin værd - så det kan betale sig at blive ved."
+  "Point: 5 point pr. trin i Find kontakten, 10 i Rytme, 15 i Kontrol og 20 i Udholdenhed. Dårligt ben følger samme trappe: 5, 10, 15 og 20.",
+  "Hver fase giver flere point pr. trin end den forrige - så det kan betale sig at blive ved."
 ];
 function juggleTrick(id){ return JUGGLE_TRICKS.find(t=>t.id===id) || null; }
 // Naeste trin, eller null naar stigen er faerdig. Raekkefoelgen er indbygget i, at vi
@@ -853,8 +865,8 @@ async function undoJuggleTrick(trickId){
   // maa foelge med tilbage - ellers stod der trin, der kraever en faerdighed, spilleren
   // lige har sagt, den ikke har. Samme opraydning som i traenerens rettelse.
   const lukkerPorten = trickId === "oploft" && juggleMainStep(pid) > JUGGLE_GATE_AFTER;
-  const tabt = t.point + (lukkerPorten
-    ? JUGGLE_MAIN.slice(JUGGLE_GATE_AFTER, juggleMainStep(pid)).reduce((n,x)=>n+x, 0) : 0);
+  let tabt = t.point;
+  if(lukkerPorten) for(let i = JUGGLE_GATE_AFTER; i < juggleMainStep(pid); i++) tabt += juggleMainPoints(i);
   if(!await spoerg(`Fortryd "${t.navn}"?\n\n`
     + (lukkerPorten
         ? `Opløft åbner trin 4 og opefter. Fortryder du den, ruller hovedstigen tilbage til trin ${JUGGLE_GATE_AFTER}, og du mister ${tabt} point i alt.`
@@ -941,7 +953,7 @@ function juggleTricks(pid){ const t = juggleFor(pid)?.tricks; return Array.isArr
 // (functions/byg.mjs haeler den ud af denne fil) og skriver udgaven paa hver linje.
 // Haev den, hver gang en pointregel aendres - saa kan admin-siden se, om serveren
 // stadig regner med de gamle regler, og funktionerne skal rulles ud igen.
-const POINTREGLER = "2026-11-15";
+const POINTREGLER = "2026-11-20";
 // Point som ren funktion af fremdrift. Intet gemt tal, intet at forfalske.
 function ladderPoints(pid){
   let sum = 0;
@@ -1921,9 +1933,9 @@ function pointsForStep(step){ return step.level*15 + POINT_BASE[step.medal]; }
 // "Debutant" betyder ny HER - ikke daarlig.
 //
 // Grænserne er regnet efter: en almindelig dag med tre oevelser giver 14 point, og
-// hele medaljeforloebet plus hele stigen er 3355 - altsaa lige UNDER Champions League
-// paa 3500. Tager man hver eneste medalje og hvert eneste trin paa stigen, naar man
-// Superliga. De tre oeverste trin kraever, at man ogsaa har traenet derhjemme.
+// hele medaljeforloebet (2325) plus hele stigen (375) er 2700 - altsaa midt i Superliga og
+// 800 under Champions League paa 3500. Tager man hver eneste medalje og hvert eneste trin
+// paa stigen, naar man Superliga. De tre oeverste trin kraever, at man ogsaa har traenet derhjemme.
 const RANK_TIERS = [
  {name:"Debutant", min:0, icon:"👟"},
  {name:"Klubspiller", min:150, icon:"⚽"},
@@ -2233,7 +2245,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.78 · ikke logget ind");
+    setSyncStatus("v15.79 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2259,7 +2271,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.78 · bekræft inden I går i gang");
+    setSyncStatus("v15.79 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2267,7 +2279,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.78 · vælg din egen adgangskode");
+    setSyncStatus("v15.79 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2341,7 +2353,7 @@ function startListeners(){
         if(!ranglisteAar) lytRangliste(normalizeYearValue(currentPlayerLink.year));
       }
     }
-    setSyncStatus("v15.78 · live database aktiv");
+    setSyncStatus("v15.79 · live database aktiv");
     renderAll();
   };
   spillereHentet = false;
@@ -2350,7 +2362,7 @@ function startListeners(){
       players = snap.exists() ? [migratePlayer({id: snap.id, ...snap.data()})] : [];
       spillereHentet = true;
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.78 · databasefejl: " + e.code))] : [];
+    }, (e)=>setSyncStatus("v15.79 · databasefejl: " + e.code))] : [];
     if(!egenId){ players = []; spillereHentet = true; spillerFaaet(); }
   } else {
     unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
@@ -2358,7 +2370,7 @@ function startListeners(){
       if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
       players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.78 · databasefejl: " + e.code));
+    }, (e)=>setSyncStatus("v15.79 · databasefejl: " + e.code));
   }
   // Spillerens egen aargang kendes fra loginnet (som allowedYears); mangler den dér,
   // startes lytteren, naar spillerens eget dokument er kommet (se spillerFaaet).
@@ -2931,14 +2943,14 @@ async function deletePlayer(id){
   const skrevet = ((await indtast(`Skriv spillerens navn for at bekræfte:\n\n${navn}`, {ja: "Slet alt", farlig: true})) || "").trim();
   if(skrevet !== navn.trim()) return besked("Navnet passede ikke. Intet er slettet.");
 
-  setSyncStatus("v15.78 · sletter...");
+  setSyncStatus("v15.79 · sletter...");
   let svar;
   try{
     // Serveren tjekker navnet igen, før den sletter noget.
     svar = (await sletSpillerPaaServeren({playerId: id, navn: skrevet})).data;
   }catch(e){
     console.error(e);
-    setSyncStatus("v15.78 · live database aktiv");
+    setSyncStatus("v15.79 · live database aktiv");
     const kode = String(e?.code || "").replace(/^functions\//, "");
     const tekst = serverFejlTekst(e);
     // Afviste serveren kaldet, før den gik i gang, er intet slettet - så ingen opfordring.
@@ -2946,7 +2958,7 @@ async function deletePlayer(id){
     return besked("Kunne ikke slette: " + tekst
       + (afvist ? "" : `\n\nNåede noget at blive slettet, så tryk "Slet alt" igen - så gør serveren resten.`));
   }
-  setSyncStatus("v15.78 · live database aktiv");
+  setSyncStatus("v15.79 · live database aktiv");
 
   const fejl = Array.isArray(svar?.fejl) ? svar.fejl : [];
   if(fejl.length){
@@ -3535,11 +3547,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.78 · migrering færdig");
+    setSyncStatus("v15.79 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.78 · migrering fejlede");
+    setSyncStatus("v15.79 · migrering fejlede");
   }
 }
 
@@ -3691,7 +3703,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.78 · uploader video...");
+    setSyncStatus("v15.79 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -3735,12 +3747,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.78 · live database aktiv");
+    setSyncStatus("v15.79 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.78 · live database aktiv");
+    setSyncStatus("v15.79 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -4771,7 +4783,7 @@ function renderJuggle(){
       <div><h3>Hovedstigen</h3>${hoved}</div>
       <div>
         <h3>Dårligt ben</h3>
-        <p class="small">Berøringer med det dårlige ben i træk - frit hvornår undervejs. Bolden vippes op fra jorden. Her tæller hver berøring <b>dobbelt</b>.</p>
+        <p class="small">Berøringer med det dårlige ben i træk - frit hvornår undervejs. Bolden vippes op fra jorden. Trinnene giver 5, 10, 15 og 20 point - samme trappe som hovedstigen.</p>
         ${svag}
         <h3 style="margin-top:18px">Tricks</h3>
         <p class="small">Engangsudfordringer. Tag dem i den rækkefølge du vil.</p>
