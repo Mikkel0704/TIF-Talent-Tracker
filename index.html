@@ -710,13 +710,13 @@ const criteria = {
 // vaere sandt: fandtes der et pointfelt at skrive i, ville hele den spaerring
 // vaere ligegyldig. Nu er det vaerste, et barn kan goere, at paastaa trin det
 // ikke har taget - hvilket er selve tillidsmodellen, og hvad traeneren retter.
-const JUGGLE_MAIN = [3,5,7,10,15,20,25,30,35,40,55,75,100,125,150,200];
+const JUGGLE_MAIN = [3,5,7,10, 15,20,30,40, 50,75,100,125, 150,200,250,300];
 const JUGGLE_WEAK = [2,3,5,7,10,13,15,20,25,30];
 // Point pr. trin. Det er HER, stigens point bestemmes - alt andet (siden, ranglisten paa
 // serveren, fortryd og traenerens rettelser) spoerger juggleMainPoints/juggleWeakPoints.
 //
-// Hovedstigen foelger faserne i JUGGLE_PHASES: Find kontakten (trin 1-4) 5 point pr. trin,
-// Rytme (trin 5-9) 10, Kontrol (trin 10-12) 15 og Udholdenhed (trin 13-16) 20 = 195.
+// Hovedstigen har fire faser med fire trin i hver (JUGGLE_PHASES): Find kontakten (trin 1-4)
+// 5 point pr. trin, Rytme (5-8) 10, Kontrol (9-12) 15 og Udholdenhed (13-16) 20 = 200.
 // Daarligt ben gaar samme trappe op: trin 1-4 5, trin 5-7 10, trin 8-9 15, trin 10 20 = 100.
 // Med tricks (75) er hele stigen 375.
 //
@@ -730,7 +730,12 @@ const JUGGLE_WEAK = [2,3,5,7,10,13,15,20,25,30];
 // Point gemmes ikke, saa en aendring her gaelder ALLE trin - ogsaa dem, der allerede er
 // taget. Haev POINTREGLER, rul funktionerne ud og genberegn ranglisten. Tabellerne skal
 // vaere lige saa lange som stigerne (testene tjekker det).
-const JUGGLE_MAIN_POINT = [5,5,5,5, 10,10,10,10,10, 15,15,15, 20,20,20,20];
+//
+// PAS PAA med tallene i JUGGLE_MAIN/JUGGLE_WEAK: der gemmes ikke antal jongleringer, men
+// et trin-NUMMER (juggleLadder.mainStep og v/fra/til i juggleLog). Flyttes et tal, betyder
+// de gemte trin noget andet. Saa skal data omlaegges - som ved skiftet til 16 trin den
+// 2026-11-20 (tests/vaerktoej/omlaeg-stige.cjs).
+const JUGGLE_MAIN_POINT = [5,5,5,5, 10,10,10,10, 15,15,15,15, 20,20,20,20];
 const JUGGLE_WEAK_POINT = [5,5,5,5, 10,10,10, 15,15, 20];
 function juggleMainPoints(i){ return JUGGLE_MAIN_POINT[i] || 0; }
 function juggleWeakPoints(i){ return JUGGLE_WEAK_POINT[i] || 0; }
@@ -747,7 +752,7 @@ const JUGGLE_TRICKS = [
 ];
 const JUGGLE_PHASES = [
   {til:4,  navn:"Find kontakten", tekst:"Lås anklen, tåen lidt op, ram bolden midt under. Bolden højst i knæhøjde."},
-  {til:9,  navn:"Rytme",          tekst:"Små trip på standbenet. Bolden til hoftehøjde. Øjnene på bolden."},
+  {til:8,  navn:"Rytme",          tekst:"Små trip på standbenet. Bolden til hoftehøjde. Øjnene på bolden."},
   {til:12, navn:"Kontrol",        tekst:"Hold bolden lavt. Brug låret til at redde. Prøv det dårlige ben ind imellem."},
   {til:16, navn:"Udholdenhed",    tekst:"Skift ben bevidst. Hold roen, når tallet bliver højt."}
 ];

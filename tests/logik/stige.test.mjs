@@ -58,26 +58,28 @@ const hovedPoint = n => sum(K.JUGGLE_MAIN.slice(0, n).map((_,i)=>K.juggleMainPoi
 const svagPoint = n => sum(K.JUGGLE_WEAK.slice(0, n).map((_,i)=>K.juggleWeakPoints(i)));
 
 console.log("\nStigerne");
-t("hovedstigen har 16 trin og slutter på 200", K.JUGGLE_MAIN, [3,5,7,10,15,20,25,30,35,40,55,75,100,125,150,200]);
+t("hovedstigen har 16 trin og slutter på 300", K.JUGGLE_MAIN, [3,5,7,10, 15,20,30,40, 50,75,100,125, 150,200,250,300]);
 t("dårligt ben er uændret", K.JUGGLE_WEAK, [2,3,5,7,10,13,15,20,25,30]);
 t("tallene stiger hele vejen (hoved)", K.JUGGLE_MAIN.every((x,i)=>i===0 || x > K.JUGGLE_MAIN[i-1]), true);
 t("pointtabellerne er lige så lange som stigerne",
   [K.JUGGLE_MAIN_POINT.length, K.JUGGLE_WEAK_POINT.length], [K.JUGGLE_MAIN.length, K.JUGGLE_WEAK.length]);
+t("fire faser med fire trin i hver", K.JUGGLE_PHASES.map(f=>f.til), [4,8,12,16]);
 t("sidste fase dækker trin 16", K.JUGGLE_PHASES[K.JUGGLE_PHASES.length-1].til, K.JUGGLE_MAIN.length);
 t("trin 16 hører til Udholdenhed", K.jugglePhaseFor(16).navn, "Udholdenhed");
 
 console.log("\nPoint pr. trin");
 t("hovedstigen trin for trin", K.JUGGLE_MAIN.map((_,i)=>K.juggleMainPoints(i)),
-  [5,5,5,5, 10,10,10,10,10, 15,15,15, 20,20,20,20]);
+  [5,5,5,5, 10,10,10,10, 15,15,15,15, 20,20,20,20]);
 t("dårligt ben trin for trin", K.JUGGLE_WEAK.map((_,i)=>K.juggleWeakPoints(i)),
   [5,5,5,5, 10,10,10, 15,15, 20]);
 const faseTakst = {"Find kontakten":5, "Rytme":10, "Kontrol":15, "Udholdenhed":20};
 t("hovedstigens point følger faserne (5/10/15/20)",
   K.JUGGLE_MAIN.every((_,i)=>K.juggleMainPoints(i) === faseTakst[K.jugglePhaseFor(i+1).navn]), true);
 t("trin 1 = 3 jongleringer = 5 point", K.juggleMainPoints(0), 5);
-t("trin 10 = 40 jongleringer = 15 point", K.juggleMainPoints(9), 15);
-t("trin 15 = 150 jongleringer = 20 point", K.juggleMainPoints(14), 20);
-t("trin 16 = 200 jongleringer = 20 point", [K.JUGGLE_MAIN[15], K.juggleMainPoints(15)], [200, 20]);
+t("trin 8 = 40 jongleringer = 10 point", [K.JUGGLE_MAIN[7], K.juggleMainPoints(7)], [40, 10]);
+t("trin 10 = 75 jongleringer = 15 point", [K.JUGGLE_MAIN[9], K.juggleMainPoints(9)], [75, 15]);
+t("trin 13 = 150 jongleringer = 20 point", [K.JUGGLE_MAIN[12], K.juggleMainPoints(12)], [150, 20]);
+t("trin 16 = 300 jongleringer = 20 point", [K.JUGGLE_MAIN[15], K.juggleMainPoints(15)], [300, 20]);
 t("dårligt ben trin 10 = 30 berøringer = 20 point", [K.JUGGLE_WEAK[9], K.juggleWeakPoints(9)], [30, 20]);
 t("intet trin er mindre værd end det foregående (hoved)",
   K.JUGGLE_MAIN.every((_,i)=>i===0 || K.juggleMainPoints(i) >= K.juggleMainPoints(i-1)), true);
@@ -89,7 +91,7 @@ t("et trin uden for stigen giver nul",
   [K.juggleMainPoints(16), K.juggleMainPoints(99), K.juggleMainPoints(-1), K.juggleWeakPoints(10), K.juggleWeakPoints(-1)], [0,0,0,0,0]);
 
 console.log("\nSamlede point");
-t("hovedstigen i alt = 195", hovedPoint(K.JUGGLE_MAIN.length), 195);
+t("hovedstigen i alt = 200", hovedPoint(K.JUGGLE_MAIN.length), 200);
 t("dårligt ben i alt = 100", svagPoint(K.JUGGLE_WEAK.length), 100);
 t("tricks i alt = 75", sum(K.JUGGLE_TRICKS.map(x=>x.point)), 75);
 saet(0,0,[]);
@@ -98,26 +100,29 @@ saet(16,10,K.JUGGLE_TRICKS.map(x=>x.id));
 t("hele stigen = 375", K.ladderPoints(PID), 375);
 saet(15,10,K.JUGGLE_TRICKS.map(x=>x.id));
 t("et barn, der stod øverst på den gamle stige (15), har 355 og mangler trin 16", K.ladderPoints(PID), 355);
-saet(13,10,["oploft"]);
-t("hovedstige 13, dårligt ben 10, opløft = 135 + 100 + 10 = 245", K.ladderPoints(PID), 245);
+saet(12,10,["oploft"]);
+t("hovedstige 12, dårligt ben 10, opløft = 5x4+10x4+15x4 + 100 + 10 = 230", K.ladderPoints(PID), 230);
 saet(3,0,[]);
 t("tre trin = 5+5+5", K.ladderPoints(PID), 15);
 saet(10,4,["oploft","vrist","skiftefod"]);
-t("trin 10, svagt 4, 3 tricks = 80 + 20 + 30", K.ladderPoints(PID), 130);
+t("trin 10, svagt 4, 3 tricks = 90 + 20 + 30", K.ladderPoints(PID), 140);
 saet(0,0,["oploft","oploft","oploft"]);
 t("dubletter i tricks tæller stadig kun én gang", K.ladderPoints(PID), 10);
 saet(99,99,[]);
 t("et håndskrevet trin klippes stadig til stigens længde (16 og 10)",
-  [K.juggleMainStep(PID), K.juggleWeakStep(PID), K.ladderPoints(PID)], [16, 10, 295]);
+  [K.juggleMainStep(PID), K.juggleWeakStep(PID), K.ladderPoints(PID)], [16, 10, 300]);
 saet(16,0,[]);
-t("trin 16 gemt som mainStep 16 virker", [K.juggleMainStep(PID), K.ladderPoints(PID)], [16, 195]);
+t("trin 16 gemt som mainStep 16 virker", [K.juggleMainStep(PID), K.ladderPoints(PID)], [16, 200]);
 
 console.log("\nMedaljemærkater (Talentmærkets krav er uændrede)");
 const marks = K.juggleMedalMarks();
 t("Talentmærkets højeste krav er stadig 150", K.criteria["Jonglering"][3]["Guld"][0], "150 jongleringer");
-t("mærkater på hovedstigen", marks.hoved, {10:"N1 B",20:"N1 S",35:"N1 G",40:"N2 B",55:"N2 S",75:"N2 G",80:"N3 B",100:"N3 S",150:"N3 G"});
+t("mærkaterne hentes stadig fra alle Talentmærkets krav", marks.hoved, {10:"N1 B",20:"N1 S",35:"N1 G",40:"N2 B",55:"N2 S",75:"N2 G",80:"N3 B",100:"N3 S",150:"N3 G"});
 t("mærkater på dårligt ben", marks.daarligt, {5:"N2 S",10:"N2 G",15:"N3 B",20:"N3 S",30:"N3 G"});
-t("trin 200 får intet mærkat", marks.hoved[200], undefined);
+t("trin med et mærkat på hovedstigen", K.JUGGLE_MAIN.filter(n=>marks.hoved[n]).map(n=>n+" "+marks.hoved[n]),
+  ["10 N1 B","20 N1 S","40 N2 B","75 N2 G","100 N3 S","150 N3 G"]);
+t("trin med et mærkat på dårligt ben", K.JUGGLE_WEAK.filter(n=>marks.daarligt[n]), [5,10,15,20,30]);
+t("de nye trin 50, 200, 250 og 300 får intet mærkat", [50,200,250,300].map(n=>marks.hoved[n]), [undefined,undefined,undefined,undefined]);
 
 console.log("\nUge/måned-vinduet");
 const nu = new Date();
@@ -191,7 +196,7 @@ const pointI = m => (/(?:giver|mister) (\d+) point/.exec(m) || /([+-]\d+) point/
 K.saetRolle("spiller");
 saet(15, 9, ["oploft"]);
 await K.registerJuggle("main", 15);
-t("registrér trin 16: \"200 jongleringer\" giver 20 point", [/"200 jongleringer"/.test(sidste()), pointI(sidste())], [true, "20"]);
+t("registrér trin 16: \"300 jongleringer\" giver 20 point", [/"300 jongleringer"/.test(sidste()), pointI(sidste())], [true, "20"]);
 await K.registerJuggle("weak", 9);
 t("registrér dårligt ben trin 10 giver 20 point", [/"30 med dårligt ben"/.test(sidste()), pointI(sidste())], [true, "20"]);
 saet(4, 0, ["oploft"]);
@@ -199,10 +204,10 @@ await K.registerJuggle("main", 4);
 t("registrér trin 5 (15 jongleringer) giver 10 point", pointI(sidste()), "10");
 saet(16, 10, ["oploft"]);
 await K.undoJuggle("main");
-t("fortryd trin 16: mister 20 point", [/"200 jongleringer"/.test(sidste()), pointI(sidste())], [true, "20"]);
+t("fortryd trin 16: mister 20 point", [/"300 jongleringer"/.test(sidste()), pointI(sidste())], [true, "20"]);
 saet(10, 0, ["oploft"]);
 await K.undoJuggle("main");
-t("fortryd trin 10 (40 jongleringer): mister 15 point", [/"40 jongleringer"/.test(sidste()), pointI(sidste())], [true, "15"]);
+t("fortryd trin 10 (75 jongleringer): mister 15 point", [/"75 jongleringer"/.test(sidste()), pointI(sidste())], [true, "15"]);
 saet(0, 8, []);
 await K.undoJuggle("weak");
 t("fortryd dårligt ben trin 8: mister 15 point", [/"20 med dårligt ben"/.test(sidste()), pointI(sidste())], [true, "15"]);
@@ -213,8 +218,8 @@ t("fortryd dårligt ben trin 3: mister 5 point", pointI(sidste()), "5");
 console.log("\nOpløft lukker porten - tabet regnes med de nye point");
 saet(16, 0, ["oploft"]);
 await K.undoJuggleTrick("oploft");
-// Trin 4-16 ruller tilbage: 5 + 5x10 + 3x15 + 4x20 = 180, plus opløft 10.
-t("fortryd opløft på trin 16: hovedstigen tilbage til 3 og 190 point i alt", /tilbage til trin 3, og du mister 190 point i alt/.test(sidste()), true);
+// Trin 4-16 ruller tilbage: 5 + 4x10 + 4x15 + 4x20 = 185, plus opløft 10.
+t("fortryd opløft på trin 16: hovedstigen tilbage til 3 og 195 point i alt", /tilbage til trin 3, og du mister 195 point i alt/.test(sidste()), true);
 saet(5, 0, ["oploft"]);
 await K.undoJuggleTrick("oploft");
 t("fortryd opløft på trin 5: 5 + 10 + opløft 10 = 25", /du mister 25 point i alt/.test(sidste()), true);
@@ -226,18 +231,18 @@ t("et andet trick: kun dets egne point", sidste().endsWith("Du mister 10 point."
 
 console.log("\nTrænerens rettelser viser forskellen med de nye point");
 K.saetRolle("traener");
-saet(13, 10, ["oploft"]);
-t("udgangspunktet: 245", K.ladderPoints(PID), 245);
+saet(12, 10, ["oploft"]);
+t("udgangspunktet: 230", K.ladderPoints(PID), 230);
 K.saetSvar("16");
 await K.correctJuggle(PID, "main");
-t("prompten siger 13 af 16 trin", /Står nu på 13 af 16 trin \(100 jongleringer\)/.test(K.beskeder[K.beskeder.length-2]), true);
-t("hovedstige 13 -> 16: +60 point", pointI(sidste()), "+60");
+t("prompten siger 12 af 16 trin", /Står nu på 12 af 16 trin \(125 jongleringer\)/.test(K.beskeder[K.beskeder.length-2]), true);
+t("hovedstige 12 -> 16: +4x20 = +80 point", pointI(sidste()), "+80");
 K.saetSvar("9");
 await K.correctJuggle(PID, "main");
-t("hovedstige 13 -> 9: -(20 + 15x3) = -65 point", pointI(sidste()), "-65");
+t("hovedstige 12 -> 9: -15x3 = -45 point", pointI(sidste()), "-45");
 K.saetSvar("0");
 await K.correctJuggle(PID, "main");
-t("hovedstige 13 -> 0: -135 point", pointI(sidste()), "-135");
+t("hovedstige 12 -> 0: -120 point", pointI(sidste()), "-120");
 K.saetSvar("7");
 await K.correctJuggle(PID, "weak");
 t("dårligt ben 10 -> 7: -(20 + 15 + 15) = -50 point", pointI(sidste()), "-50");

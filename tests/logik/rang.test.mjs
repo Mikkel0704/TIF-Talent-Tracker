@@ -29,10 +29,10 @@ t("negative point falder ikke igennem", K.tierForPoints(-50).name, "Debutant");
 t("149 er stadig Debutant", K.tierForPoints(149).name, "Debutant");
 t("150 er Klubspiller", K.tierForPoints(150).name, "Klubspiller");
 t("hele medaljeforløbet (2325) er Superliga", K.tierForPoints(2325).name, "Superliga");
-// Hele medaljeforløbet + hele stigen = 3355, altså LIGE UNDER Champions League (3500).
+// Hele medaljeforløbet + hele stigen = 2325 + 375 = 2700, midt i Superliga (2200-3499).
 // De tre øverste trin kan ikke nås uden også at have trænet hjemme.
-t("medaljer + hele stigen (3355) er Superliga", K.tierForPoints(3355).name, "Superliga");
-t("og der mangler 145 point til Champions League", 3500 - 3355, 145);
+t("medaljer + hele stigen (2700) er Superliga", K.tierForPoints(2325 + 375).name, "Superliga");
+t("og der mangler 800 point til Champions League", 3500 - (2325 + 375), 800);
 t("8000 er Verdensstjerne", K.tierForPoints(8000).name, "Verdensstjerne");
 t("over toppen bliver man på toppen", K.tierForPoints(999999).name, "Verdensstjerne");
 t("manglende pointtal regnes som nul", K.tierForPoints(undefined).name, "Debutant");

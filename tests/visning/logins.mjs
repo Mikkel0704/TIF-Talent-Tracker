@@ -21,7 +21,7 @@ const importer = [...html.matchAll(/from "https:\/\/www\.gstatic\.com\/firebasej
 t("Functions-SDK'et hentes fra gstatic i samme version som de andre Firebase-moduler (12.13.0)",
   importer.some(([m, v]) => m === "firebase-functions" && v === "12.13.0") && importer.every(([, v]) => v === "12.13.0"), importer);
 t("App Check saettes kun op paa den ene app", (html.match(/initializeAppCheck\(/g) || []).length === 1 && /initializeAppCheck\(app,/.test(html));
-t("versionen er hævet til v15.78 overalt", !html.includes("v15.77") && (html.match(/v15\.78/g) || []).length >= 10);
+t("versionen er hævet til v15.79 overalt", !html.includes("v15.78") && (html.match(/v15\.79/g) || []).length >= 10);
 
 const ok_ = { active: true, mustChangePassword: false, privacyAcceptedAt: new Date().toISOString(), privacyVersion: PRIVACY };
 const data = () => ({

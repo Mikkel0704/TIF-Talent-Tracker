@@ -42,5 +42,5 @@ console.log("\nStigen med demo-login");
 t("ingen JS-fejl", fejl.length===0); if(fejl.length) console.log("   "+fejl.join("\n   "));
 t('"Klaret"-knapperne er der ogsaa for demo', knapper > 0);
 console.log("   antal knapper: " + knapper);
-t("stigen vises med point pr. trin", /150 jongleringer i træk · 150 point/.test(tekst));
+t("stigen vises med point pr. trin", /150 jongleringer i træk · 20 point/.test(tekst) && /300 jongleringer i træk · 20 point/.test(tekst));
 await br.close(); console.log(`\n${ok} ok, ${d} fejl`); process.exit(d?1:0);

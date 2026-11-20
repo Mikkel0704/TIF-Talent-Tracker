@@ -38,10 +38,27 @@ const tekst = await p.evaluate(()=>document.getElementById("juggleArea").innerTe
 let ok=0,d=0; const t=(n,b)=>{ b?(ok++,console.log("  ok   "+n)):(d++,console.log("  FEJL  "+n)); };
 console.log("\nStigen i browser");
 t("ingen JS-fejl", fejl.length===0); if(fejl.length) console.log("   "+fejl.join("\n   "));
-t("trin 1 viser 3 point", /3 jongleringer i træk · 3 point/.test(tekst));
-t("trin 15 viser 150 point", /150 jongleringer i træk · 150 point/.test(tekst));
-t("dårligt ben 30 viser 60 point", /30 berøringer med dårligt ben i træk · 60 point/.test(tekst));
-t("totalen står øverst", /\d+ point fra stigen/.test(tekst));
+t("trin 1 (3 jongleringer) viser 5 point", /(^|\n)3 jongleringer i træk · 5 point/.test(tekst));
+t("trin 8 (40) viser 10 point", /(^|\n)40 jongleringer i træk · 10 point/.test(tekst));
+t("trin 10 (75) viser 15 point", /(^|\n)75 jongleringer i træk · 15 point/.test(tekst));
+t("trin 13 (150) viser 20 point", /(^|\n)150 jongleringer i træk · 20 point/.test(tekst));
+t("trin 16 (300) er med og viser 20 point", /(^|\n)300 jongleringer i træk · 20 point/.test(tekst));
+t("hovedstigen har 16 trin", (tekst.match(/jongleringer i træk · \d+ point/g)||[]).length === 16);
+t("dårligt ben 2 viser 5 point", /(^|\n)2 berøringer med dårligt ben i træk · 5 point/.test(tekst));
+t("dårligt ben 20 viser 15 point", /(^|\n)20 berøringer med dårligt ben i træk · 15 point/.test(tekst));
+t("dårligt ben 30 viser 20 point", /(^|\n)30 berøringer med dårligt ben i træk · 20 point/.test(tekst));
+const faser = await p.evaluate(()=>[...document.querySelectorAll("#juggleArea .phasehead")].map(x=>x.firstChild.textContent.trim()));
+t("faserne: 1-4, 5-8, 9-12, 13-16",
+  JSON.stringify(faser) === JSON.stringify(["Trin 1-4 · Find kontakten", "Trin 5-8 · Rytme", "Trin 9-12 · Kontrol", "Trin 13-16 · Udholdenhed"]));
+t("ingen point tæller dobbelt længere", !/dobbelt/i.test(tekst));
+t("dårligt ben forklarer trappen", tekst.includes("Trinnene giver 5, 10, 15 og 20 point - samme trappe som hovedstigen."));
+// Fikstur: hovedstige 10 (5x4 + 10x4 + 15x2 = 90), dårligt ben 4 (4x5 = 20), opløft + vrist (20).
+t("totalen står øverst: 90 + 20 + 20 = 130", /(^|\n)130 point fra stigen/.test(tekst));
+t("og fremdriften er 10/16", tekst.includes("Hovedstigen 10/16 · Dårligt ben 4/10 · Tricks 2/6"));
+const regler = await p.evaluate(()=>document.getElementById("juggleRulesArea").innerText);
+t("reglerne forklarer de nye point",
+  regler.includes("Point: 5 point pr. trin i Find kontakten, 10 i Rytme, 15 i Kontrol og 20 i Udholdenhed. Dårligt ben følger samme trappe: 5, 10, 15 og 20."));
+t("og ikke de gamle", !/lige så mange point|dobbelt/.test(regler));
 console.log("   -> " + (tekst.match(/\d+ point fra stigen/)||[""])[0]);
 // Fortryd skal staa paa det SENEST klarede trin - og kun dér.
 const fortryd = await p.evaluate(()=>{
@@ -56,10 +73,10 @@ const fortryd = await p.evaluate(()=>{
     klaredeUdenFortryd: raekker.filter(r=>r.className.includes("done") && !r.innerHTML.includes("undoJuggle")).length
   };
 });
-// Fikstur: mainStep 10 (trin 10 = 40), weakStep 4 (trin 4 = 7), tricks oploft + vrist.
+// Fikstur: mainStep 10 (trin 10 = 75), weakStep 4 (trin 4 = 7), tricks oploft + vrist.
 t("fortryd staar paa ét trin pr. stige (det senest klarede)", fortryd.antalTrin === 2);
-t("og det er 40 paa hovedstigen og 7 paa dårligt ben",
-  fortryd.paaTrin.includes("40") && fortryd.paaTrin.includes("7"));
+t("og det er 75 paa hovedstigen og 7 paa dårligt ben",
+  fortryd.paaTrin.includes("75") && fortryd.paaTrin.includes("7"));
 t("fortryd staar paa begge klarede tricks", fortryd.antalTricks === 2);
 t("og kun paa dem, der ER klaret",
   fortryd.tricks.includes("Opløft") && fortryd.tricks.includes("Stop på vristen"));
