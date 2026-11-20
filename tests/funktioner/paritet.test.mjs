@@ -53,13 +53,13 @@ function lavData(nu, seed){
       points: n === 0 ? 0 : heltal(0, 40) * 5, hasActiveLogin: r() < 0.5, passed: {}, history: [] };
     if(n === 0) continue;   // ét barn uden noget som helst
     if(r() < 0.8){   // stigen
-      const mainStep = heltal(0, 15), weakStep = heltal(0, 10);
+      const mainStep = heltal(0, 17), weakStep = heltal(0, 13);   // et trin over stigen skal klippes ens
       const tricks = TRICKS.filter(() => r() < 0.4);
       if(r() < 0.3) tricks.push(tricks[0] || "oploft", "ukendt");   // dubletter og skrald
       const entries = [];
       for(let k = 0, m = heltal(0, 25); k < m; k++){
         const type = vaelg(["main", "main", "weak", "trick", "correct"]);
-        const v = type === "main" ? heltal(0, 16) : type === "weak" ? heltal(0, 11) : type === "trick" ? vaelg([...TRICKS, "ukendt"]) : undefined;
+        const v = type === "main" ? heltal(0, 17) : type === "weak" ? heltal(0, 13) : type === "trick" ? vaelg([...TRICKS, "ukendt"]) : undefined;
         entries.push({ t: type, ...(v !== undefined ? { v } : {}), at: tid().toISOString() });
         if(r() < 0.15) entries.push({ ...entries[entries.length - 1] });   // samme linje to gange
       }

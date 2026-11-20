@@ -87,8 +87,8 @@ t("en godkendt indsendelse taeller i uge og maaned (total kommer fra players.poi
 
 await db.collection("juggleLadder").doc("a").set({ year: "2017", mainStep: 2, days: [iDag] });
 await db.collection("juggleLog").doc("a").set({ year: "2017", entries: [{ t: "main", v: 1, at: new Date().toISOString() }, { t: "main", v: 0, at: new Date().toISOString() }] });
-l = await vent(async () => { const x = await linje("a"); return x && x.uge.point === 36 + 8 && x; });
-t("stigen og stigeloggen giver point i total og uge", l && l.total === 21 + 8, l);
+l = await vent(async () => { const x = await linje("a"); return x && x.uge.point === 36 + 10 && x; });
+t("stigen og stigeloggen giver point i total og uge (trin 1 og 2 = 5 + 5)", l && l.total === 21 + 10, l);
 t("og linjen stemmer stadig med beregningen", await stemmer("a"));
 
 console.log("\nCloud Functions · intet at skrive");
@@ -117,7 +117,7 @@ console.log("\nCloud Functions · flytning, mange skrivninger og sletning");
 await db.collection("submissions").doc("s1").update({ playerId: "b" });
 l = await vent(async () => { const x = await linje("b"); return x && x.uge.point === 25 && x; });
 t("flyttes en indsendelse til et andet barn, faar det barn pointene", !!l, await linje("b"));
-t("og det foerste barn mister dem", await vent(async () => (await linje("a"))?.uge.point === 19));
+t("og det foerste barn mister dem (46 - 25 = 21)", await vent(async () => (await linje("a"))?.uge.point === 21));
 await Promise.all(Array.from({ length: 8 }, (_, i) => db.collection("footwork").doc("b").set({ year: "2014", days: { [iDag]: { c: i + 1 } } })));
 await db.collection("footwork").doc("b").set({ year: "2014", days: { [iDag]: { c: 4, t: 1 } } });
 t("mange skrivninger lige efter hinanden ender i den rigtige linje", await vent(() => stemmer("b"), 30000), { db: await linje("b"), forventet: await forventet("b") });

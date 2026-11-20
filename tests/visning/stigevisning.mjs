@@ -45,16 +45,19 @@ t("trin 13 (150) viser 20 point", /(^|\n)150 jongleringer i træk · 20 point/.t
 t("trin 16 (300) er med og viser 20 point", /(^|\n)300 jongleringer i træk · 20 point/.test(tekst));
 t("hovedstigen har 16 trin", (tekst.match(/jongleringer i træk · \d+ point/g)||[]).length === 16);
 t("dårligt ben 2 viser 5 point", /(^|\n)2 berøringer med dårligt ben i træk · 5 point/.test(tekst));
-t("dårligt ben 20 viser 15 point", /(^|\n)20 berøringer med dårligt ben i træk · 15 point/.test(tekst));
-t("dårligt ben 30 viser 20 point", /(^|\n)30 berøringer med dårligt ben i træk · 20 point/.test(tekst));
+t("dårligt ben 7 viser 10 point", /(^|\n)7 berøringer med dårligt ben i træk · 10 point/.test(tekst));
+t("dårligt ben 30 viser 15 point", /(^|\n)30 berøringer med dårligt ben i træk · 15 point/.test(tekst));
+t("dårligt ben 100 er med og viser 20 point", /(^|\n)100 berøringer med dårligt ben i træk · 20 point/.test(tekst));
+t("dårligt ben har 12 trin", (tekst.match(/berøringer med dårligt ben i træk · \d+ point/g)||[]).length === 12);
 const faser = await p.evaluate(()=>[...document.querySelectorAll("#juggleArea .phasehead")].map(x=>x.firstChild.textContent.trim()));
-t("faserne: 1-4, 5-8, 9-12, 13-16",
-  JSON.stringify(faser) === JSON.stringify(["Trin 1-4 · Find kontakten", "Trin 5-8 · Rytme", "Trin 9-12 · Kontrol", "Trin 13-16 · Udholdenhed"]));
+t("hovedstigens faser: 1-4, 5-8, 9-12, 13-16 - og dårligt bens: 1-3, 4-6, 7-9, 10-12",
+  JSON.stringify(faser) === JSON.stringify(["Trin 1-4 · Find kontakten", "Trin 5-8 · Rytme", "Trin 9-12 · Kontrol", "Trin 13-16 · Udholdenhed",
+    "Trin 1-3 · Find kontakten", "Trin 4-6 · Rytme", "Trin 7-9 · Kontrol", "Trin 10-12 · Udholdenhed"]));
 t("ingen point tæller dobbelt længere", !/dobbelt/i.test(tekst));
 t("dårligt ben forklarer trappen", tekst.includes("Trinnene giver 5, 10, 15 og 20 point - samme trappe som hovedstigen."));
-// Fikstur: hovedstige 10 (5x4 + 10x4 + 15x2 = 90), dårligt ben 4 (4x5 = 20), opløft + vrist (20).
-t("totalen står øverst: 90 + 20 + 20 = 130", /(^|\n)130 point fra stigen/.test(tekst));
-t("og fremdriften er 10/16", tekst.includes("Hovedstigen 10/16 · Dårligt ben 4/10 · Tricks 2/6"));
+// Fikstur: hovedstige 10 (5x4 + 10x4 + 15x2 = 90), dårligt ben 4 (3x5 + 10 = 25), opløft + vrist (20).
+t("totalen står øverst: 90 + 25 + 20 = 135", /(^|\n)135 point fra stigen/.test(tekst));
+t("og fremdriften er 10/16 og 4/12", tekst.includes("Hovedstigen 10/16 · Dårligt ben 4/12 · Tricks 2/6"));
 const regler = await p.evaluate(()=>document.getElementById("juggleRulesArea").innerText);
 t("reglerne forklarer de nye point",
   regler.includes("Point: 5 point pr. trin i Find kontakten, 10 i Rytme, 15 i Kontrol og 20 i Udholdenhed. Dårligt ben følger samme trappe: 5, 10, 15 og 20."));

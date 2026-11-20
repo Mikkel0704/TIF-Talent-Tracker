@@ -66,9 +66,9 @@ const stigelog = { entries: [
   { t: "weak", v: 1, at: "2026-11-05T09:00:00Z" }      // denne maaned, forrige uge
 ] };
 l = linje({ player: spiller(), juggleLadderDoc: stige, juggleLogDoc: stigelog });
-t("stigens total: 3+5+7 + (2+3)x2 + oploeft 10 = 35 (dubletter og ukendte tricks taeller ikke)", l.total === 35, l.total);
-t("ugen: trin 1 og 2 og oploeft én gang hver = 18", l.uge.point === 18, l.uge);
-t("maaneden: + daarligt ben trin 2 (6) = 24", l.maaned.point === 24, l.maaned);
+t("stigens total: 5+5+5 + 5+5 + oploeft 10 = 35 (dubletter og ukendte tricks taeller ikke)", l.total === 35, l.total);
+t("ugen: trin 1 og 2 og oploeft én gang hver = 20", l.uge.point === 20, l.uge);
+t("maaneden: + daarligt ben trin 2 (5) = 25", l.maaned.point === 25, l.maaned);
 t("tildelte point og stigen laegges sammen", linje({ player: spiller({ points: 10 }), juggleLadderDoc: stige, juggleLogDoc: stigelog }).total === 45);
 
 console.log("\nDaglig fodteknik");
@@ -112,8 +112,8 @@ l = linje({
   footworkDoc: { days: { "2026-11-15": { j: 1 } } }
 }, MANDAG);
 t("mandag kl. 00:00:30 er ugen den nye uge (fra 16/11)", l.uge.fra === "2026-11-16", l.uge);
-t("indsendelse godkendt mandag 00:00:00 taeller i ugen, soendag 23:59:59 ikke", l.uge.point === 10 + 3, l.uge);
-t("en bagudregistrering paa soendagen havner i forrige uge, men i maaneden", l.maaned.point === 1 + 10 + 3 + 5, l.maaned);
+t("indsendelse godkendt mandag 00:00:00 taeller i ugen, soendag 23:59:59 ikke", l.uge.point === 10 + 5, l.uge);
+t("en bagudregistrering paa soendagen havner i forrige uge, men i maaneden", l.maaned.point === 1 + 10 + 5 + 5, l.maaned);
 const DEC = new Date("2026-11-30T23:05:00Z");   // tirsdag 1/12 kl. 00:05
 l = linje({
   player: spiller(),
@@ -121,7 +121,7 @@ l = linje({
   juggleLadderDoc: { mainStep: 1 }, juggleLogDoc: { entries: [{ t: "main", v: 0, at: "2026-11-30T23:01:00Z" }] }       // 1/12 kl. 00:01
 }, DEC);
 t("1/12 kl. 00:05: maaneden er december, ugen startede mandag 30/11", l.maaned.fra === "2026-12-01" && l.uge.fra === "2026-11-30", l);
-t("30/11 kl. 23:59 taeller i ugen, ikke i maaneden", l.uge.point === 13 && l.maaned.point === 3, l);
+t("30/11 kl. 23:59 taeller i ugen, ikke i maaneden", l.uge.point === 15 && l.maaned.point === 5, l);
 const VINTERTID = new Date("2026-10-25T23:30:00Z");   // mandag 26/10 kl. 00:30, dagen efter skiftet til vintertid
 l = linje({ player: spiller(), submissions: [
   { playerId: "a", status: "approved", reviewedAt: ts("2026-10-25T22:59:59Z"), pointsAwarded: 1 },
@@ -134,7 +134,7 @@ t("findes spilleren ikke, er der ingen linje (den skal slettes)", linje({ player
 const A = { player: spiller(), footworkDoc: { days: { "2026-11-17": { t: 3 } } } };
 const B = { player: spiller({ id: "b", name: "Bo" }), footworkDoc: { days: { "2026-11-17": { c: 2 } } }, juggleLadderDoc: { mainStep: 5 } };
 const a1 = linje(A), b1 = linje(B), a2 = linje(A);
-t("to boern regnet skiftevis paavirker ikke hinanden", linjerEns(a1, a2) && !linjerEns(a1, b1) && b1.total === 10 + 40, { a1, b1, a2 });
+t("to boern regnet skiftevis paavirker ikke hinanden", linjerEns(a1, a2) && !linjerEns(a1, b1) && b1.total === 10 + 30, { a1, b1, a2 });
 const A2 = { ...A, footworkDoc: { days: { "2026-11-17": { t: 4 } } } };
 t("nye data for samme barn samme dag giver nyt svar (footworkStamp haeves)", linje(A2).total === 4 * 2 + 5 && a1.total === 3 * 2 + 5, linje(A2));
 t("en indsendelse til et andet barn i listen taeller ikke", linje({ ...A, submissions: [{ playerId: "b", status: "approved", reviewedAt: ts("2026-11-17T09:00:00Z"), pointsAwarded: 9 }] }).total === a1.total);

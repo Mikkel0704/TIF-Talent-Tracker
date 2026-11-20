@@ -230,6 +230,43 @@ Ranglistens linjer er ikke en undtagelse: de er et udregnet spejl, som kun serve
 skriver, og som kan regnes forfra af registreringerne når som helst
 (`tests/vaerktoej/genberegn-rangliste.cjs`).
 
+## Jongleringsstigen: point og trin
+
+Stigens point står ét sted: `JUGGLE_MAIN_POINT` og `JUGGLE_WEAK_POINT` i `index.html`
+(`juggleMainPoints`/`juggleWeakPoints`). Fra pointreglerne **2026-11-20**:
+
+- **Hovedstigen**, 16 trin med fire i hver fase: Find kontakten (3, 5, 7, 10) 5 point pr.
+  trin, Rytme (15, 20, 30, 40) 10, Kontrol (50, 75, 100, 125) 15 og Udholdenhed
+  (150, 200, 250, 300) 20 - i alt 200.
+- **Dårligt ben**, 12 trin med tre i hver fase: (2, 3, 5) 5, (7, 10, 15) 10,
+  (20, 30, 40) 15 og (50, 75, 100) 20 - i alt 150.
+- **Tricks** 10 eller 15 - i alt 75. Hele stigen giver 425.
+
+Før gav et trin lige så mange point som jongleringer (dårligt ben dobbelt). Stigen
+registreres på tillid uden video, og et barn tog hele stigen på 36 minutter for 690 point -
+mere end uger med fodteknik. Nu er et trin mindre værd end en medalje (25-80) og omtrent en
+god dag med fodteknik. Pointene gemmes ikke, så de nye gælder også trin, der er taget før.
+
+**Trinnene er gemt som numre, ikke som antal jongleringer** (`mainStep`/`weakStep` og
+`v`/`fra`/`til` i `juggleLog`). Da stigerne fik nye tal, skulle de gemte numre derfor
+lægges om: et barn får de nye trin, hvis antal er højst det, barnet havde nået (gammel 100
+på hovedstigen → trin 11 = 100; gammel 30 på dårligt ben → trin 8 = 30).
+`tests/vaerktoej/omlaeg-stige.cjs` gør det én gang og gemmer originalerne på barnets
+`juggleLog` (`stigeFoer`, `entriesFoer`) - ikke på `juggleLadder`, hvor reglerne kun tillader
+appens egne felter. `stigeOmlaegning/koersel` markerer, at det er gjort; en ny kørsel rører
+så intet.
+
+**Udrulning af ændringen (i denne rækkefølge, uden pause mellem trin 2 og 3):**
+
+1. `firestore.rules`: lofterne for spillerens egen skrivning (`mainStep <= 15`,
+   `weakStep <= 10`) skal hæves til 16 og 12 - ellers kan intet barn registrere de nye
+   øverste trin. Kør regeltestene, og rul reglerne ud.
+2. Funktionerne: `node vaerktoej/udrul-funktioner.cjs` (pointreglerne 2026-11-20).
+3. `node vaerktoej/omlaeg-stige.cjs` (tørkørsel), så `node vaerktoej/omlaeg-stige.cjs --udfoer`.
+4. Appen (`index.html`, v15.79). Mellem trin 3 og 4 viser den gamle app de omlagte numre
+   med de gamle tal, og et barn, der registrerer i det vindue, får et forkert trin.
+5. `node vaerktoej/genberegn-rangliste.cjs --udfoer`.
+
 ## Fodteknik: regler med dato
 
 Fodteknikkens kategorier, point, tider og kombier ligger i versioner med en dato
@@ -273,6 +310,7 @@ koden - "V-rul" hedder nu "V-rul yderside" (kode `v`), "V+L rul" hedder "L+V-rul
 | `clubConfig` | Hvilke årgange kører Talentmærket (`modules`); adresserne på instruktionsvideoerne (`guideVideos`) | Hele klubben |
 | `maanedensSpiller` | Månedens spiller pr. måned og årgang: vinder(e) med navn og de tal, der afgjorde det. Oprettes én gang, ændres aldrig | Hele klubben |
 | `deletionRequests` | Anmodninger om sletning | Admin og familien selv |
+| `stigeOmlaegning` | `koersel`: dato og antal for omlægningen af stigen 2026-11-20 - ingen data om børn | Ingen (kun Admin SDK) |
 
 De samlinger, hele klubben må læse, rummer med vilje hverken bruger-id'er eller andet om
 et barn end navn, årgang og de tal, der står på en rangliste eller en kåring.
