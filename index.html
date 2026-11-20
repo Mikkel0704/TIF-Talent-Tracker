@@ -711,14 +711,14 @@ const criteria = {
 // vaere ligegyldig. Nu er det vaerste, et barn kan goere, at paastaa trin det
 // ikke har taget - hvilket er selve tillidsmodellen, og hvad traeneren retter.
 const JUGGLE_MAIN = [3,5,7,10, 15,20,30,40, 50,75,100,125, 150,200,250,300];
-const JUGGLE_WEAK = [2,3,5,7,10,13,15,20,25,30];
+const JUGGLE_WEAK = [2,3,5, 7,10,15, 20,30,40, 50,75,100];
 // Point pr. trin. Det er HER, stigens point bestemmes - alt andet (siden, ranglisten paa
 // serveren, fortryd og traenerens rettelser) spoerger juggleMainPoints/juggleWeakPoints.
 //
 // Hovedstigen har fire faser med fire trin i hver (JUGGLE_PHASES): Find kontakten (trin 1-4)
 // 5 point pr. trin, Rytme (5-8) 10, Kontrol (9-12) 15 og Udholdenhed (13-16) 20 = 200.
-// Daarligt ben gaar samme trappe op: trin 1-4 5, trin 5-7 10, trin 8-9 15, trin 10 20 = 100.
-// Med tricks (75) er hele stigen 375.
+// Daarligt ben gaar samme trappe op med tre trin i hver fase (JUGGLE_WEAK_PHASES): trin 1-3
+// 5, trin 4-6 10, trin 7-9 15 og trin 10-12 20 = 150. Med tricks (75) er hele stigen 425.
 //
 // Hvorfor saa lidt: trinnene registreres paa tillid, uden video og uden godkendelse. Saa
 // skal et trin vaere mindre vaerd end en medalje i Talentmaerket (25-80 point, som en
@@ -733,10 +733,10 @@ const JUGGLE_WEAK = [2,3,5,7,10,13,15,20,25,30];
 //
 // PAS PAA med tallene i JUGGLE_MAIN/JUGGLE_WEAK: der gemmes ikke antal jongleringer, men
 // et trin-NUMMER (juggleLadder.mainStep og v/fra/til i juggleLog). Flyttes et tal, betyder
-// de gemte trin noget andet. Saa skal data omlaegges - som ved skiftet til 16 trin den
+// de gemte trin noget andet. Saa skal data omlaegges - som ved skiftet til 16 + 12 trin den
 // 2026-11-20 (tests/vaerktoej/omlaeg-stige.cjs).
 const JUGGLE_MAIN_POINT = [5,5,5,5, 10,10,10,10, 15,15,15,15, 20,20,20,20];
-const JUGGLE_WEAK_POINT = [5,5,5,5, 10,10,10, 15,15, 20];
+const JUGGLE_WEAK_POINT = [5,5,5, 10,10,10, 15,15,15, 20,20,20];
 function juggleMainPoints(i){ return JUGGLE_MAIN_POINT[i] || 0; }
 function juggleWeakPoints(i){ return JUGGLE_WEAK_POINT[i] || 0; }
 // Opløft er en PORT, ikke bare et trick: fra trin 4 skal bolden vippes op fra
@@ -756,6 +756,8 @@ const JUGGLE_PHASES = [
   {til:12, navn:"Kontrol",        tekst:"Hold bolden lavt. Brug låret til at redde. Prøv det dårlige ben ind imellem."},
   {til:16, navn:"Udholdenhed",    tekst:"Skift ben bevidst. Hold roen, når tallet bliver højt."}
 ];
+// Daarligt ben har de samme fire faser, med tre trin i hver.
+const JUGGLE_WEAK_PHASES = [{til:3, navn:"Find kontakten"}, {til:6, navn:"Rytme"}, {til:9, navn:"Kontrol"}, {til:12, navn:"Udholdenhed"}];
 const JUGGLE_RULES = [
   "Alle berøringer med fod, lår og hoved tæller. Arme og hænder tæller ikke.",
   "Trin 1-3: du må starte med bolden i hånden.",
@@ -927,7 +929,7 @@ async function correctJuggleTrick(pid, trickId){
       {t: "correct", stige: "trick", trick: trickId, til: har ? "fjernet" : "givet", at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""});
   }catch(e){ console.error(e); besked("Kunne ikke rette: " + (e.message || "ukendt fejl")); }
 }
-function jugglePhaseFor(trinNr){ return JUGGLE_PHASES.find(f=>trinNr<=f.til) || JUGGLE_PHASES[JUGGLE_PHASES.length-1]; }
+function jugglePhaseFor(trinNr, faser = JUGGLE_PHASES){ return faser.find(f=>trinNr<=f.til) || faser[faser.length-1]; }
 
 // Medaljemaerkaterne hentes fra de rigtige kriterier frem for at staa to steder:
 // aendrer du kravet til N2 Soelv, flytter maerkatet paa stigen med af sig selv.
@@ -1938,8 +1940,8 @@ function pointsForStep(step){ return step.level*15 + POINT_BASE[step.medal]; }
 // "Debutant" betyder ny HER - ikke daarlig.
 //
 // Grænserne er regnet efter: en almindelig dag med tre oevelser giver 14 point, og
-// hele medaljeforloebet (2325) plus hele stigen (375) er 2700 - altsaa midt i Superliga og
-// 800 under Champions League paa 3500. Tager man hver eneste medalje og hvert eneste trin
+// hele medaljeforloebet (2325) plus hele stigen (425) er 2750 - altsaa midt i Superliga og
+// 750 under Champions League paa 3500. Tager man hver eneste medalje og hvert eneste trin
 // paa stigen, naar man Superliga. De tre oeverste trin kraever, at man ogsaa har traenet derhjemme.
 const RANK_TIERS = [
  {name:"Debutant", min:0, icon:"👟"},
@@ -4755,8 +4757,13 @@ function renderJuggle(){
     </div>`;
   });
 
-  let svag = "";
+  let svag = "", sidsteSvagFase = null;
   JUGGLE_WEAK.forEach((antal, i)=>{
+    const fase = jugglePhaseFor(i + 1, JUGGLE_WEAK_PHASES);
+    if(fase !== sidsteSvagFase){
+      svag += `<div class="phasehead">Trin ${i + 1}-${fase.til} · ${escapeHtml(fase.navn)}</div>`;
+      sidsteSvagFase = fase;
+    }
     const klaret = i < svagt, erNaeste = i === svagt;
     const mark = marks.daarligt[antal] ? `<span class="medalmark">${escapeHtml(marks.daarligt[antal])}</span>` : "";
     svag += `<div class="ladderrow ${klaret ? "done" : erNaeste ? "next" : "locked"}">
