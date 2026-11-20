@@ -536,7 +536,7 @@ service cloud.firestore {
     // Der gemmes ALDRIG point. De regnes ud af tallene her (se index.html), saa en
     // spiller kan ikke skrive sig til point - kun paastaa trin, hvilket er hele
     // tillidsmodellen og det traeneren tager stikproeve paa. Graenserne nedenfor
-    // bestemmer det absolutte loft: 15 trin + 10 trin + 6 tricks.
+    // bestemmer det absolutte loft: 16 trin + 12 trin + 6 tricks (JUGGLE_MAIN og JUGGLE_WEAK i index.html).
     match /juggleLadder/{playerId} {
       allow read: if egetEllerTraener(playerId);
 
@@ -572,8 +572,8 @@ service cloud.firestore {
           // eneste spillers ALLERFOERSTE registrering, og det blev ikke fanget, fordi
           // testen seedede alle tre felter paa én gang - noget den rigtige klient aldrig
           // goer. Samme faelde som med "demo" paa brugerdokumentet.
-          && (!("mainStep" in request.resource.data) || (request.resource.data.mainStep is int && request.resource.data.mainStep >= 0 && request.resource.data.mainStep <= 15))
-          && (!("weakStep" in request.resource.data) || (request.resource.data.weakStep is int && request.resource.data.weakStep >= 0 && request.resource.data.weakStep <= 10))
+          && (!("mainStep" in request.resource.data) || (request.resource.data.mainStep is int && request.resource.data.mainStep >= 0 && request.resource.data.mainStep <= 16))
+          && (!("weakStep" in request.resource.data) || (request.resource.data.weakStep is int && request.resource.data.weakStep >= 0 && request.resource.data.weakStep <= 12))
           && (!("tricks" in request.resource.data) || (request.resource.data.tricks is list && request.resource.data.tricks.size() <= 6))
           && (!("days" in request.resource.data) || (request.resource.data.days is list && request.resource.data.days.size() <= 400))
           // Spilleren skal skrive SIN egen aargang - samme krav som i juggleLog. Uden det

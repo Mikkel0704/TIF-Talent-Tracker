@@ -44,8 +44,12 @@ await proev('træneren kan rette inden for sin årgang','ALLOW',()=>setDoc(doc(d
 await proev('en træner uden adgang til årgangen kan IKKE rette','DENY',()=>setDoc(doc(db('fremmed'),'juggleLadder','p1'), {...FREM, mainStep:9}, {merge:true}));
 
 // ---------- loftet ----------
-await proev('mainStep over 15 afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, mainStep:99}, {merge:true}));
-await proev('weakStep over 10 afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, weakStep:99}, {merge:true}));
+await proev('det øverste trin på hovedstigen (16 = 300 jongleringer) kan registreres','ALLOW',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, mainStep:16}, {merge:true}));
+await proev('mainStep over 16 afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, mainStep:17}, {merge:true}));
+await proev('mainStep langt over afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, mainStep:99}, {merge:true}));
+await proev('det øverste trin for dårligt ben (12 = 100 berøringer) kan registreres','ALLOW',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, weakStep:12}, {merge:true}));
+await proev('weakStep over 12 afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, weakStep:13}, {merge:true}));
+await proev('weakStep langt over afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, weakStep:99}, {merge:true}));
 await proev('negativt trin afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, mainStep:-5}, {merge:true}));
 await proev('mere end 6 tricks afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, tricks:['a','b','c','d','e','f','g']}, {merge:true}));
 await proev('et point-felt kan IKKE smugles med','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, points:99999}, {merge:true}));
