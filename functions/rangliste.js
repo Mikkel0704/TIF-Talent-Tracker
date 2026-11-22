@@ -12,7 +12,9 @@ export const CLUB_TOP_N = kode.CLUB_TOP_N;
 //   juggleLadderDoc juggleLadder/{id} som {id, ...data} (eller null)
 //   juggleLogDoc    juggleLog/{id}
 //   footworkDoc     footwork/{id}
-//   submissions     indsendelser med playerId == id (alle; appens kode filtrerer selv)
+//   submissions     indsendelser med playerId == id. Taeller ikke laengere med i pointene
+//                   (pointreglerne 2026-11-25: Talentmaerket og dueller giver ingen point),
+//                   men gives stadig til appens kode, saa linjen regnes med det hele.
 //   nu              tidspunktet, uge og maaned regnes ud fra
 //
 // Alt herinde er synkront: data saettes og regnes i ét hug uden await, saa to kald i
@@ -40,8 +42,9 @@ function linje(p, id, medId, { juggleLadderDoc, juggleLogDoc, footworkDoc, submi
     indsendelser: (submissions || []).filter(s => s && s.playerId === id)
   });
   const uge = kode.startOfWeek(nu), maaned = kode.startOfMonth(nu);
-  // Praecis som renderLeaderboard's pointsFor() for en traener, der har alle data.
-  const vindue = since => kode.pointsInWindow(id, since) + kode.ladderPointsInWindow(id, since) + kode.footworkPointsInWindow(id, since);
+  // Praecis som renderLeaderboard's pointsFor() for en traener, der har alle data: kun
+  // fodteknik og stige. players.points og submissions.pointsAwarded taeller ikke.
+  const vindue = since => kode.rangPointIVindue(id, since);
   return {
     name: String(p.name ?? ""),
     year: kode.normalizeYearValue(p.year),

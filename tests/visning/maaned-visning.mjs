@@ -80,9 +80,13 @@ t("topscorerens forklaring ligger ved siden af, foldet sammen", await a.page.eva
   return !!d && !d.open && d.querySelector("summary").textContent === "Sådan bliver man Månedens topscorer"; }));
 await a.page.click('#maanedensArea .maanedforklaring[data-forklaring="topscorer"] summary'); await a.page.waitForTimeout(100);
 const forkl = (await a.tekst('#maanedensArea .maanedforklaring[data-forklaring="topscorer"]')).replace(/\n/g, " ");
-t("topscorer: flest point i måneden - alle point: fodteknik, stigen, godkendte videoer og vundne dueller, en video i den måned, træneren godkender den",
-  /flest point i måneden/.test(forkl) && /Alle point tæller: fodteknik, Jongleringsstigen, godkendte videoer i Talentmærket og vundne dueller\./.test(forkl)
-  && /Point for en video tæller i den måned, træneren godkender den/.test(forkl) && !/medalje/.test(forkl), forkl);
+// Pointreglerne 2026-11-25: kun fodteknik og stigen. "medaljer" maa kun staa i saetningen om,
+// hvad Talentmaerket og duellerne beloennes med - emblemet kaldes aldrig en medalje.
+t("topscorer: flest point i måneden - kun fodteknik og stigen; Talentmærket og dueller tæller ikke",
+  /flest point i måneden/.test(forkl) && /Alle point fra Daglig fodteknik og Jongleringsstigen tæller\./.test(forkl)
+  && /Talentmærket og dueller tæller ikke - de belønnes med medaljer og sejre\./.test(forkl)
+  && !/godkendte videoer|vundne dueller|Point for en video/.test(forkl)
+  && !/medalje/.test(forkl.replace("belønnes med medaljer og sejre", "")), forkl);
 t("topscorer: ved lige point flest øvelser, så flest svære, mellem, lette og starter",
   /lige mange point, vinder den, der har lavet flest øvelser/.test(forkl) && /flest svære øvelser \(grundtræning tæller som svær\)\. Så flest mellem, så flest lette og til sidst flest starter/.test(forkl), forkl);
 t("topscorer: den, der bliver Månedens spiller, kan ikke også blive topscorer samme måned",

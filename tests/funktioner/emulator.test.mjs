@@ -71,24 +71,30 @@ await db.collection("players").doc("a").set({ name: "Anna", year: "U9", gender: 
 let l = await vent(() => linje("a"));
 t("en ny spiller faar en linje", !!l);
 t("med navn, aargang (normaliseret), koen, kanUdfordres, total og pointregler",
-  l && l.name === "Anna" && l.year === "2017" && l.gender === "pige" && l.kanUdfordres === true && l.total === 10 && l.regler === POINTREGLER, l);
+  l && l.name === "Anna" && l.year === "2017" && l.gender === "pige" && l.kanUdfordres === true && l.total === 0 && l.regler === POINTREGLER, l);
+t("spillerens 10 Talentmaerke-point (players.points) taeller ikke (pointreglerne 2026-11-25)", l && l.total === 0 && l.uge.point === 0 && l.maaned.point === 0, l);
 t("og et opdateret-tidsstempel fra serveren", l?.opdateret instanceof Timestamp);
 let tp = await vent(() => top());
-t("klubRangliste/top foelger med", tp && tp.top.length === 1 && tp.top[0].id === "a" && tp.top[0].total === 10 && tp.regler === POINTREGLER, tp);
+t("klubRangliste/top foelger med", tp && tp.top.length === 1 && tp.top[0].id === "a" && tp.top[0].total === 0 && tp.regler === POINTREGLER, tp);
 
 await db.collection("footwork").doc("a").set({ year: "2017", days: { [iDag]: { t: 3 } } });
-l = await vent(async () => { const x = await linje("a"); return x && x.total > 10 && x; });
-t("en fodteknik-registrering i dag flytter total, uge og maaned", l && l.total === 10 + 3 * 2 + 5 && l.uge.point === 11 && l.maaned.point === 11, l);
+l = await vent(async () => { const x = await linje("a"); return x && x.total > 0 && x; });
+t("en fodteknik-registrering i dag flytter total, uge og maaned", l && l.total === 3 * 2 + 5 && l.uge.point === 11 && l.maaned.point === 11, l);
 t("linjen er det samme, som beregningen giver paa de raa data", await stemmer("a"));
 
-await db.collection("submissions").doc("s1").set({ playerId: "a", status: "approved", reviewedAt: Timestamp.now(), pointsAwarded: 25 });
-l = await vent(async () => { const x = await linje("a"); return x && x.uge.point === 36 && x; });
-t("en godkendt indsendelse taeller i uge og maaned (total kommer fra players.points)", l && l.total === 21 && l.maaned.point === 36, l);
+{
+  const foerIndsendelse = await linje("a");
+  await db.collection("submissions").doc("s1").set({ playerId: "a", status: "approved", reviewedAt: Timestamp.now(), pointsAwarded: 25 });
+  await sov(4000);
+  l = await linje("a");
+  t("en godkendt indsendelse (25 point) taeller hverken i total, uge eller maaned", l && l.total === 11 && l.uge.point === 11 && l.maaned.point === 11, l);
+  t("linjen skrives ikke engang igen - den er uaendret", l && l._tid === foerIndsendelse._tid);
+}
 
 await db.collection("juggleLadder").doc("a").set({ year: "2017", mainStep: 2, days: [iDag] });
 await db.collection("juggleLog").doc("a").set({ year: "2017", entries: [{ t: "main", v: 1, at: new Date().toISOString() }, { t: "main", v: 0, at: new Date().toISOString() }] });
-l = await vent(async () => { const x = await linje("a"); return x && x.uge.point === 36 + 10 && x; });
-t("stigen og stigeloggen giver point i total og uge (trin 1 og 2 = 5 + 5)", l && l.total === 21 + 10, l);
+l = await vent(async () => { const x = await linje("a"); return x && x.uge.point === 11 + 10 && x; });
+t("stigen og stigeloggen giver point i total og uge (trin 1 og 2 = 5 + 5)", l && l.total === 11 + 10, l);
 t("og linjen stemmer stadig med beregningen", await stemmer("a"));
 
 console.log("\nCloud Functions · intet at skrive");
@@ -103,11 +109,13 @@ t("en skrivning, der ikke aendrer linjen, skriver intet", (await linje("a"))._ti
 t("og roerer ikke klubbens top 10", (await top())._tid === topFoer._tid);
 
 console.log("\nCloud Functions · flere boern og klubbens top 10");
+// Pointreglerne 2026-11-25: Talentmaerkets point (players.points) flytter ingen i klubbens top 10.
 await db.collection("players").doc("b").set({ name: "Bo", year: "2014", points: 100 });
 tp = await vent(async () => { const x = await top(); return x && x.top.length === 2 && x; });
-t("en spiller med flere point gaar forrest", tp && tp.top.map(r => r.id).join() === "b,a", tp?.top);
+t("Bo med 100 Talentmaerke-point gaar IKKE forrest - Anna med 21 fra fodteknik og stige gaar", tp && tp.top.map(r => r.id + ":" + r.total).join() === "a:21,b:0", tp?.top);
 for(let i = 0; i < 11; i++) await db.collection("players").doc("c" + String(i).padStart(2, "0")).set({ name: "C" + i, year: "2016", points: 20 });
-tp = await vent(async () => { const x = await top(); return x && x.top.length === 10 && x.top.filter(r => r.total === 20).length === 8 && x; });
+tp = await vent(async () => { const x = await top(); return x && x.top.length === 10 && x.top.filter(r => r.total === 0).length === 9 && x; });
+t("de 11 boern med 20 Talentmaerke-point staar med 0", tp && tp.top.slice(1).every(r => r.total === 0) && tp.top[0].id === "a", tp?.top);
 const alle = (await db.collection("rangliste").get()).docs.map(d => ({ id: d.id, ...d.data() }));
 t("hoejst 10, og ved lige point afgoeres det efter id som i appen",
   tp && JSON.stringify(tp.top.map(r => r.id)) === JSON.stringify(klubTop(alle).map(r => r.id)), { db: tp?.top.map(r => r.id), forventet: klubTop(alle).map(r => r.id) });
@@ -115,9 +123,9 @@ t("toppen rummer kun id, navn, aargang og total", tp && tp.top.every(r => JSON.s
 
 console.log("\nCloud Functions · flytning, mange skrivninger og sletning");
 await db.collection("submissions").doc("s1").update({ playerId: "b" });
-l = await vent(async () => { const x = await linje("b"); return x && x.uge.point === 25 && x; });
-t("flyttes en indsendelse til et andet barn, faar det barn pointene", !!l, await linje("b"));
-t("og det foerste barn mister dem (46 - 25 = 21)", await vent(async () => (await linje("a"))?.uge.point === 21));
+await sov(4000);
+t("flyttes en indsendelse til et andet barn, faar det barn ingen point", (await linje("b"))?.uge.point === 0 && (await linje("b"))?.total === 0, await linje("b"));
+t("og det foerste barn beholder sine 21 fra fodteknik og stige", (await linje("a"))?.uge.point === 21 && await stemmer("a") && await stemmer("b"));
 await Promise.all(Array.from({ length: 8 }, (_, i) => db.collection("footwork").doc("b").set({ year: "2014", days: { [iDag]: { c: i + 1 } } })));
 await db.collection("footwork").doc("b").set({ year: "2014", days: { [iDag]: { c: 4, t: 1 } } });
 t("mange skrivninger lige efter hinanden ender i den rigtige linje", await vent(() => stemmer("b"), 30000), { db: await linje("b"), forventet: await forventet("b") });
@@ -162,8 +170,9 @@ for(const [id, [spiller, fodteknik]] of Object.entries(boern)){
   await db.collection("players").doc(id).set({ ...spiller, points: 0 });
   if(fodteknik) await db.collection("footwork").doc(id).set(fodteknik);
 }
-// Til topscoreren: en medalje til Bo (2018) godkendt i november og et trin paa stigen i
-// december til Oscar - med rigtige Firestore-tidsstempler.
+// Til topscoreren: en medalje til Bo (2018) godkendt i november - som ikke taeller
+// (pointreglerne 2026-11-25) - og et trin paa stigen i december til Oscar, med rigtige
+// Firestore-tidsstempler.
 await db.collection("submissions").doc("ks1").set({ playerId: "k4", year: "2018", status: "approved", reviewedAt: Timestamp.fromDate(new Date("2026-11-20T10:00:00+01:00")), pointsAwarded: 35 });
 await db.collection("juggleLadder").doc("k1").set({ year: "2017", mainStep: 1 });
 await db.collection("juggleLog").doc("k1").set({ year: "2017", entries: [{ t: "main", v: 0, at: "2026-12-20T10:00:00+01:00" }] });
@@ -195,8 +204,8 @@ t("topscorer-posterne i databasen er dem, beregningen giver (felt for felt, undt
   Object.fromEntries(Object.entries(topPoster).map(([id, p]) => [id, p.data.vindere])));
 t("november 2017: Ida er Maanedens spiller, Oscar topscorer; december: Oscar er Maanedens spiller, Ida topscorer",
   topPoster["2026-11_2017"]?.data.vindere.map(v => v.id).join() === "k1" && topPoster["2026-12_2017"]?.data.vindere.map(v => v.id).join() === "k2");
-t("2018: Bo traener ikke fodteknik og er ikke Maanedens spiller, men hans medalje (35, et rigtigt tidsstempel) goer ham til topscorer i november",
-  JSON.stringify(topPoster["2026-11_2018"]?.data.vindere) === JSON.stringify([{ id: "k4", navn: "Bo Kaaring", point: 35, oevelser: 0, svaer: 0, mellem: 0, let: 0, starter: 0 }])
+t("2018: Bo traener ikke fodteknik, og hans medalje i november (35, et rigtigt tidsstempel) taeller ikke - ingen topscorer (foer vandt han)",
+  JSON.stringify(topPoster["2026-11_2018"]?.data.vindere) === "[]"
   && JSON.stringify(topPoster["2026-12_2018"]?.data.vindere) === "[]", [topPoster["2026-11_2018"]?.data.vindere, topPoster["2026-12_2018"]?.data.vindere]);
 await sov(1000);
 ks = await kaarMaanedensSpiller(fdb, new Date("2027-01-08T05:00:00+01:00"), logger);

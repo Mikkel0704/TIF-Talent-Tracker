@@ -27,7 +27,8 @@ const grund = () => ({
     p1: { year: "2017", gender: "dreng", days: { ...dage("2026-11", 1, 8, { t: 1 }), ...dage("2026-12", 1, 5, { t: 1 }) } },
     p2: { year: "2017", gender: "pige",  days: { ...dage("2026-11", 1, 12, { t: 1 }), ...dage("2026-12", 1, 9, { t: 1 }) } },
     p3: { year: "2016", gender: "dreng", days: dage("2026-11", 3, 4, { j: 1 }) } },
-  // Topscoreren: medaljer efter godkendelsesdato og trin på stigen efter loggens dato.
+  // Topscoreren: trin på stigen efter loggens dato. Medaljerne her tæller ikke (pointreglerne
+  // 2026-11-25) - heller ikke 25 i november.
   submissions: {
     s1: { playerId: "p1", year: "2017", gender: "dreng", status: "approved", reviewedAt: "2026-11-20T10:00:00+01:00", pointsAwarded: 25 },
     s2: { playerId: "p1", year: "2017", gender: "dreng", status: "approved", reviewedAt: "2026-10-20T10:00:00+01:00", pointsAwarded: 500 } },
@@ -92,11 +93,12 @@ t("rækkefølgen: årgang for årgang, og i hver Månedens spiller og så topsco
   JSON.stringify(a.orden) === JSON.stringify(["S 2026-11_2017", "T 2026-11_2017", "S 2026-11_2016", "T 2026-11_2016"]), a.orden);
 const t2017 = a.top.find(g => g.id === "2026-11_2017");
 t("2017: Ida er Månedens spiller og kan ikke også være topscorer -> Oscar", JSON.stringify(t2017?.vindere) === '["p1"]', t2017?.vindere);
-// Oscar i november: 8 dage × 2 + streak 3/5/7 dage (5 + 5 + 10) = 36, medaljen 20/11 (25), trin 1 og 2 (5 + 5) = 71.
-// Medaljen fra oktober tæller ikke. Øvelser: 8 toe-taps + 2 trin = 10. 1.-8. november er
-// version 1-dage, hvor toe-taps var "let" (starter kom med version 2).
-t("og hans tal: 71 point (fodteknik med streak 36, medalje 25, to trin 10), 10 øvelser, 8 lette (version 1-dage)",
-  JSON.stringify(t2017?.data.vindere[0]) === JSON.stringify({ id: "p1", navn: "Oscar Test", point: 71, oevelser: 10, svaer: 0, mellem: 0, let: 8, starter: 0 }), t2017?.data.vindere[0]);
+// Oscar i november: 8 dage × 2 + streak 3/5/7 dage (5 + 5 + 10) = 36 og trin 1 og 2 (5 + 5) = 46.
+// Medaljen 20/11 (25) tæller ikke (pointreglerne 2026-11-25 - før gav den 71), og det gør den
+// fra oktober heller ikke. Øvelser: 8 toe-taps + 2 trin = 10. 1.-8. november er version 1-dage,
+// hvor toe-taps var "let" (starter kom med version 2).
+t("og hans tal: 46 point (fodteknik med streak 36, to trin 10 - ikke medaljen på 25), 10 øvelser, 8 lette (version 1-dage)",
+  JSON.stringify(t2017?.data.vindere[0]) === JSON.stringify({ id: "p1", navn: "Oscar Test", point: 46, oevelser: 10, svaer: 0, mellem: 0, let: 8, starter: 0 }), t2017?.data.vindere[0]);
 t("topscorer-posten har præcis de felter, reglerne tillader", Object.keys(t2017?.data || {}).sort().join() === "aargang,beregnet,maaned,vindere");
 t("2016: Carl er Månedens spiller og den eneste med point -> ingen topscorer", JSON.stringify(a.top.find(g => g.id === "2026-11_2016")?.vindere) === "[]");
 

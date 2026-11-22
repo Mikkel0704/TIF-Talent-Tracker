@@ -25,7 +25,8 @@ export const MAANEDENS_AFGOERES_DAG = kode.MAANEDENS_AFGOERES_DAG;
 // Hvilke kaaringer skal oprettes nu - begge slags, i den orden, de skal skrives?
 //   spillere     alle players/{id} som {id, ...data}
 //   fodteknik    alle footwork/{id} (dagene og jokerafgoerelserne)
-//   indsendelser alle submissions/{id} (medaljepoint efter reviewedAt)
+//   indsendelser alle submissions/{id} (taeller ikke laengere - Talentmaerket og dueller giver
+//                ingen point fra pointreglerne 2026-11-25 - men gives stadig til appens kode)
 //   stiger       alle juggleLadder/{id} (hvor langt barnet er naaet)
 //   stigelogge   alle juggleLog/{id} (hvornaar hvert trin blev taget)
 //   kaaringer    alle eksisterende maanedensSpiller/{id}

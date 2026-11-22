@@ -7,9 +7,9 @@
 // den goer for en admin, og de poster, siden skriver (window.__skrivninger), sammenlignes
 // felt for felt (undtagen beregnet) med det, functions/kaaring.js giver for de SAMME data og
 // det SAMME tidspunkt - ogsaa raekkefoelgen paa tvaers af de to samlinger. Data er
-// tilfaeldige med fast fro: fodteknik med jokere, indsendelser (medaljepoint efter
-// godkendelsesdato), stigen og stigens log med fortrydelser, rettelser og trin uden for
-// fremdriften.
+// tilfaeldige med fast fro: fodteknik med jokere, indsendelser med pointsAwarded og spillere
+// med Talentmaerke-point (players.points) - som fra pointreglerne 2026-11-25 IKKE taeller -,
+// stigen og stigens log med fortrydelser, rettelser og trin uden for fremdriften.
 //
 // Den eneste aendring af siden er én linje foran den sidste Object.assign(window, ...) i den
 // kopi, browseren faar, saa testen kan se, om kaaringen er faerdig - filen roeres ikke.
@@ -55,7 +55,7 @@ function lavData(nu, seed, { kaaringer = {}, topscorere = {} } = {}){
     const id = nytId();
     const year = n === 0 ? "" : n === 1 ? undefined : vaelg(AAR);   // uden aargang: noten eller 2017 (migratePlayer)
     db.players[id] = { name: "Barn " + String(n).padStart(2, "0"), ...(year !== undefined ? { year } : {}), ...(n === 0 ? { note: "U11 ny" } : {}),
-      gender: vaelg(["dreng", "pige", null]), points: 0, passed: {}, history: [] };
+      gender: vaelg(["dreng", "pige", null]), points: (n * 37) % 400, passed: {}, history: [] };   // taeller ikke
     const norm = /^U\d+$/.test(year || "") ? String(2026 - Number(year.slice(1))) : year;
     if(norm === "2018") continue;
     (efterAar[norm] ||= []).push(id);
@@ -75,7 +75,8 @@ function lavData(nu, seed, { kaaringer = {}, topscorere = {} } = {}){
     if(r() < 0.1) days["ikke-en-dato"] = { t: 3 };
     db.footwork[id] = { days, jokers, jokerRequests, year: year || "2017" };
   }
-  // Topscoreren: medaljer og stigen for de fleste boern - ogsaa dem, der ikke traener fodteknik.
+  // Topscoreren: stigen for de fleste boern - ogsaa dem, der ikke traener fodteknik - og
+  // godkendte medaljer og dueller, som ikke taeller.
   for(const [id, p] of Object.entries(db.players)){
     const year = p.year || "2017";
     for(let k = 0, m = heltal(0, 3); k < m; k++){
@@ -191,6 +192,14 @@ for(const [i, [navn, iso, valg]] of TILFAELDE.entries()){
     .filter(x => JSON.stringify(x.side) !== JSON.stringify(x.server));
   t("hver post er ens felt for felt - Maanedens spiller (id, navn, dage, minutter, oevelser, point) og topscorer (id, navn, point, oevelser, svaer, mellem, let, starter) - undtagen beregnet",
     !afvig.length, afvig.slice(0, 2));
+  {
+    // Pointreglerne 2026-11-25: uden Talentmaerkets point og uden indsendelser kaares praecis det samme.
+    const udenTalent = alleKaaringerAtOprette(medId({ ...db, submissions: {},
+      players: Object.fromEntries(Object.entries(db.players).map(([id, p]) => [id, { ...p, points: 0 }])) }), nu);
+    const godkendte = Object.values(db.submissions).filter(x => x.status === "approved" && x.pointsAwarded > 0).length;
+    t(`Talentmaerket og dueller taeller ikke: samme kaaringer uden players.points og uden de ${godkendte} godkendte indsendelser`,
+      godkendte >= 10 && JSON.stringify(udenTalent) === JSON.stringify(server), godkendte);
+  }
   t("hver topscorer kommer lige efter Maanedens spiller for samme maaned og aargang - eller den var gemt i forvejen",
     server.every((k, j) => k.samling !== "maanedensTopscorer" || (server[j - 1]?.samling === "maanedensSpiller" && server[j - 1].id === k.id) || db.maanedensSpiller[k.id]));
   t("siden skriver hele poster (ikke merge) med et beregnet-tidsstempel", poster.every(p => p.type === "set" && !p.merge && p.data.beregnet?.seconds > 0));

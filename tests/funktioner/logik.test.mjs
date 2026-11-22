@@ -38,13 +38,13 @@ t("kanUdfordres kun ved hasActiveLogin === true",
 
 console.log("\nGamle spillere og dage efter i dag (pointreglerne 2026-11-24)");
 l = linje({ player: { id: "g", name: "Gammel", note: "U10 - hurtig", points: 7 } });
-t("en gammel spiller uden aargang faar aargangen fra noten, som i appen og kaaringen (migratePlayer)", l.year === "2016" && l.total === 7, l);
+t("en gammel spiller uden aargang faar aargangen fra noten, som i appen og kaaringen (migratePlayer) - og hans 7 Talentmaerke-point taeller ikke", l.year === "2016" && l.total === 0, l);
 l = linje({ player: spiller(), footworkDoc: { days: { "2026-11-18": { t: 1 }, "2026-11-19": { t: 10 }, "2027-01-01": { t: 10 } } } });
 t("en fodteknik-dag efter 'nu' giver ingen point - hverken i alt, ugen eller maaneden", l.total === 2 && l.uge.point === 2 && l.maaned.point === 2, l);
 l = linje({ player: spiller(), footworkDoc: { days: { "2026-11-18": { t: 1 }, "2026-11-19": { t: 10 } } } }, new Date("2026-11-19T12:00:00Z"));
 t("dagen efter taeller den - linjen regnes 'pr. nu', ikke efter maskinens ur", l.total === 2 + 20 + 3 * 5 && l.uge.point === l.total, l);
 
-console.log("\nKun Talentmaerke");
+console.log("\nTalentmaerket og dueller taeller ikke (pointreglerne 2026-11-25)");
 const indsendelser = [
   { playerId: "a", status: "approved", reviewedAt: ts("2026-11-17T09:00:00Z"), pointsAwarded: 20 },  // denne uge
   { playerId: "a", status: "approved", reviewedAt: ts("2026-11-10T09:00:00Z"), pointsAwarded: 15 },  // forrige uge, samme maaned
@@ -54,11 +54,24 @@ const indsendelser = [
   { playerId: "b", status: "approved", reviewedAt: ts("2026-11-17T09:00:00Z"), pointsAwarded: 30 }   // et andet barn
 ];
 l = linje({ player: spiller({ points: 45 }), submissions: indsendelser });
-t("total er spillerens tildelte point (players.points)", l.total === 45, l);
-t("ugen taeller kun godkendte indsendelser med reviewedAt i ugen", l.uge.point === 20, l.uge);
-t("maaneden taeller ogsaa forrige uge, men ikke oktober", l.maaned.point === 35, l.maaned);
-t("reviewedAt som tekst (gamle data) virker ogsaa",
-  linje({ player: spiller(), submissions: [{ playerId: "a", status: "approved", reviewedAt: "2026-11-17T09:00:00Z", pointsAwarded: 4 }] }).uge.point === 4);
+t("kun Talentmaerke og dueller: 0 i alt - spillerens 45 (players.points) taeller ikke", l.total === 0, l);
+t("og 0 i ugen og maaneden - godkendte indsendelser (pointsAwarded 20 og 15) taeller ikke", l.uge.point === 0 && l.maaned.point === 0, [l.uge, l.maaned]);
+t("heller ikke med reviewedAt som tekst (gamle data)",
+  linje({ player: spiller(), submissions: [{ playerId: "a", status: "approved", reviewedAt: "2026-11-17T09:00:00Z", pointsAwarded: 4 }] }).uge.point === 0);
+{
+  // Barnet har 500 paa spilleren og godkendte videoer og en vundet duel i ugen og maaneden,
+  // men linjen er kun fodteknik og stige:
+  //   fodteknik 17/11: 3 x toe-taps = 6 + 5 i kombi = 11 (uge og maaned)
+  //   stigen: hovedtrin 1 10/11 (5, maaned), hovedtrin 2 17/11 (5, uge og maaned)
+  const fw = { days: { "2026-11-17": { t: 3 } } }, st = { mainStep: 2 },
+    lg = { entries: [{ t: "main", v: 0, at: "2026-11-10T09:00:00Z" }, { t: "main", v: 1, at: "2026-11-17T09:00:00Z" }] };
+  const medAlt = linje({ player: spiller({ points: 500 }), footworkDoc: fw, juggleLadderDoc: st, juggleLogDoc: lg,
+    submissions: [...indsendelser, { playerId: "a", status: "approved", reviewedAt: ts("2026-11-18T08:00:00Z"), pointsAwarded: 25, challengeId: "c1" }] });
+  const udenTalent = linje({ player: spiller({ points: 0 }), footworkDoc: fw, juggleLadderDoc: st, juggleLogDoc: lg });
+  t("500 paa spilleren og godkendte videoer og en duel i uge og maaned: total 21, uge 16, maaned 21 = fodteknik + stige",
+    medAlt.total === 21 && medAlt.uge.point === 16 && medAlt.maaned.point === 21, medAlt);
+  t("og linjen er den samme som uden Talentmaerke og dueller", linjerEns(medAlt, udenTalent), { medAlt, udenTalent });
+}
 
 console.log("\nJongleringsstigen");
 const stige = { mainStep: 3, weakStep: 2, tricks: ["oploft", "oploft", "findesikke"] };
@@ -77,7 +90,7 @@ l = linje({ player: spiller(), juggleLadderDoc: stige, juggleLogDoc: stigelog })
 t("stigens total: 5+5+5 + 5+5 + oploeft 10 = 35 (dubletter og ukendte tricks taeller ikke)", l.total === 35, l.total);
 t("ugen: trin 1 og 2 og oploeft én gang hver = 20", l.uge.point === 20, l.uge);
 t("maaneden: + daarligt ben trin 2 (5) = 25", l.maaned.point === 25, l.maaned);
-t("tildelte point og stigen laegges sammen", linje({ player: spiller({ points: 10 }), juggleLadderDoc: stige, juggleLogDoc: stigelog }).total === 45);
+t("spillerens point (players.points) laegges IKKE til stigen", linje({ player: spiller({ points: 10 }), juggleLadderDoc: stige, juggleLogDoc: stigelog }).total === 35);
 
 console.log("\nDe 16 tricks (pointreglerne 2026-11-23)");
 const ALLE_TRICKS = ["oploft", "vrist", "skiftefod", "inderside5", "yderside5", "laarfod", "hoved", "gribfod", "inderside10", "yderside10",
@@ -127,31 +140,38 @@ console.log("\nUge- og maanedsgraenser i dansk tid");
 const MANDAG = new Date("2026-11-15T23:00:30Z");
 l = linje({
   player: spiller(),
+  // Indsendelserne taeller ikke (pointreglerne 2026-11-25) - graenserne vises med stigen.
   submissions: [
     { playerId: "a", status: "approved", reviewedAt: ts("2026-11-15T22:59:59Z"), pointsAwarded: 1 },   // soendag 23:59:59
     { playerId: "a", status: "approved", reviewedAt: ts("2026-11-15T23:00:00Z"), pointsAwarded: 10 }   // mandag 00:00:00
   ],
-  juggleLadderDoc: { mainStep: 1 }, juggleLogDoc: { entries: [{ t: "main", v: 0, at: "2026-11-15T23:00:10Z" }] },
+  juggleLadderDoc: { mainStep: 2 }, juggleLogDoc: { entries: [
+    { t: "main", v: 0, at: "2026-11-15T22:59:59Z" },    // soendag 23:59:59
+    { t: "main", v: 1, at: "2026-11-15T23:00:00Z" }     // mandag 00:00:00
+  ] },
   // Registreret bagud: soendagen ligger i forrige uge, selv om den skrives nu.
   footworkDoc: { days: { "2026-11-15": { j: 1 } } }
 }, MANDAG);
 t("mandag kl. 00:00:30 er ugen den nye uge (fra 16/11)", l.uge.fra === "2026-11-16", l.uge);
-t("indsendelse godkendt mandag 00:00:00 taeller i ugen, soendag 23:59:59 ikke", l.uge.point === 10 + 5, l.uge);
-t("en bagudregistrering paa soendagen havner i forrige uge, men i maaneden", l.maaned.point === 1 + 10 + 5 + 5, l.maaned);
+t("et trin taget mandag 00:00:00 taeller i ugen, soendag 23:59:59 ikke - og indsendelserne slet ikke", l.uge.point === 5, l.uge);
+t("en bagudregistrering paa soendagen havner i forrige uge, men i maaneden", l.maaned.point === 5 + 5 + 5, l.maaned);
 const DEC = new Date("2026-11-30T23:05:00Z");   // tirsdag 1/12 kl. 00:05
 l = linje({
   player: spiller(),
-  submissions: [{ playerId: "a", status: "approved", reviewedAt: ts("2026-11-30T22:59:00Z"), pointsAwarded: 10 }],   // 30/11 kl. 23:59
-  juggleLadderDoc: { mainStep: 1 }, juggleLogDoc: { entries: [{ t: "main", v: 0, at: "2026-11-30T23:01:00Z" }] }       // 1/12 kl. 00:01
+  submissions: [{ playerId: "a", status: "approved", reviewedAt: ts("2026-11-30T22:59:00Z"), pointsAwarded: 10 }],   // taeller ikke
+  juggleLadderDoc: { mainStep: 2 }, juggleLogDoc: { entries: [
+    { t: "main", v: 0, at: "2026-11-30T22:59:00Z" },    // 30/11 kl. 23:59
+    { t: "main", v: 1, at: "2026-11-30T23:01:00Z" }     // 1/12 kl. 00:01
+  ] }
 }, DEC);
 t("1/12 kl. 00:05: maaneden er december, ugen startede mandag 30/11", l.maaned.fra === "2026-12-01" && l.uge.fra === "2026-11-30", l);
-t("30/11 kl. 23:59 taeller i ugen, ikke i maaneden", l.uge.point === 15 && l.maaned.point === 5, l);
+t("30/11 kl. 23:59 taeller i ugen, ikke i maaneden", l.uge.point === 10 && l.maaned.point === 5, l);
 const VINTERTID = new Date("2026-10-25T23:30:00Z");   // mandag 26/10 kl. 00:30, dagen efter skiftet til vintertid
-l = linje({ player: spiller(), submissions: [
-  { playerId: "a", status: "approved", reviewedAt: ts("2026-10-25T22:59:59Z"), pointsAwarded: 1 },
-  { playerId: "a", status: "approved", reviewedAt: ts("2026-10-25T23:00:00Z"), pointsAwarded: 10 }
-] }, VINTERTID);
-t("efter skiftet til vintertid starter ugen stadig mandag kl. 00:00 dansk tid", l.uge.fra === "2026-10-26" && l.uge.point === 10, l.uge);
+l = linje({ player: spiller(), juggleLadderDoc: { mainStep: 2 }, juggleLogDoc: { entries: [
+  { t: "main", v: 0, at: "2026-10-25T22:59:59Z" },      // soendag 23:59:59 vintertid
+  { t: "main", v: 1, at: "2026-10-25T23:00:00Z" }       // mandag 00:00:00
+] } }, VINTERTID);
+t("efter skiftet til vintertid starter ugen stadig mandag kl. 00:00 dansk tid", l.uge.fra === "2026-10-26" && l.uge.point === 5, l.uge);
 
 console.log("\nSlettet spiller og huskelisten");
 t("findes spilleren ikke, er der ingen linje (den skal slettes)", linje({ player: null, footworkDoc: { days: { "2026-11-17": { t: 1 } } } }) === null);
@@ -161,7 +181,7 @@ const a1 = linje(A), b1 = linje(B), a2 = linje(A);
 t("to boern regnet skiftevis paavirker ikke hinanden", linjerEns(a1, a2) && !linjerEns(a1, b1) && b1.total === 10 + 30, { a1, b1, a2 });
 const A2 = { ...A, footworkDoc: { days: { "2026-11-17": { t: 4 } } } };
 t("nye data for samme barn samme dag giver nyt svar (footworkStamp haeves)", linje(A2).total === 4 * 2 + 5 && a1.total === 3 * 2 + 5, linje(A2));
-t("en indsendelse til et andet barn i listen taeller ikke", linje({ ...A, submissions: [{ playerId: "b", status: "approved", reviewedAt: ts("2026-11-17T09:00:00Z"), pointsAwarded: 9 }] }).total === a1.total);
+t("en indsendelse taeller ikke - heller ikke til et andet barn i listen", linje({ ...A, submissions: [{ playerId: "b", status: "approved", reviewedAt: ts("2026-11-17T09:00:00Z"), pointsAwarded: 9 }] }).total === a1.total);
 const gemt = process.env.TZ; process.env.TZ = "UTC";
 let kastede = false; try { linje(A); } catch { kastede = true; }
 process.env.TZ = gemt;
@@ -253,8 +273,19 @@ b = byg("o-forkert", html.replace("ms - uploadet > VIDEO_MAX_AGE_MS", "ms - uplo
 t("sletter oprydningen ikke en video efter 7 dage paa proeveeksemplet, stopper den", b.kode !== 0 && /videoSkalSlettes/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
 b = byg("t-forkert", html.replace("(b.point - a.point) || (b.oevelser - a.oevelser)", "(a.point - b.point) || (b.oevelser - a.oevelser)"));
 t("regner topscoreren forkert paa proeveeksemplet (faerrest point vinder), stopper den", b.kode !== 0 && /proeven paa Maanedens topscorer gav/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
-b = byg("t-medaljer", html.replace("const vindue = since=>pointsInWindow(pid, since) + ladderPointsInWindow", "const vindue = since=>ladderPointsInWindow"));
-t("glemmer topscoreren medaljepointene, stopper den ogsaa", b.kode !== 0 && /proeven paa Maanedens topscorer gav/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+
+console.log("\nbyg.mjs fejler hoejlydt · Talentmaerket og dueller taeller ikke (pointreglerne 2026-11-25)");
+const erstat = (navn, fra, til) => { if(!html.includes(fra)) throw new Error("testen passer ikke til index.html: " + fra); return byg(navn, html.replace(fra, til)); };
+b = byg("r-mangler", html.replace("function rangPointIVindue(", "function rangPointIVindueOmdoebt("));
+t("mangler function rangPointIVindue, stopper den med navnet", b.kode !== 0 && /mangler function rangPointIVindue/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+b = erstat("r-total", "function totalPoints(p){ return ladderPoints(p?.id)", "function totalPoints(p){ return (p?.points || 0) + ladderPoints(p?.id)");
+t("taeller totalPoints Talentmaerkets point (players.points) med igen, stopper den", b.kode !== 0 && /totalPoints taeller Talentmaerkets point/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+b = erstat("r-vindue", "function rangPointIVindue(pid, since){ return ladderPointsInWindow(pid, since)",
+  "function rangPointIVindue(pid, since){ return submissions.filter(s=>s.playerId===pid && s.status===\"approved\").reduce((n,s)=>n+(s.pointsAwarded||0), 0) + ladderPointsInWindow(pid, since)");
+t("taeller uge/maaned indsendelsernes point (pointsAwarded) med igen, stopper den", b.kode !== 0 && /rangPointIVindue taeller Talentmaerkets eller duellernes point/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+b = erstat("t-medaljer", "const st = {point: rangPointIVindue(pid, fra) - rangPointIVindue(pid, til),",
+  "const st = {point: rangPointIVindue(pid, fra) - rangPointIVindue(pid, til) + submissions.filter(s=>s.playerId===pid && s.status===\"approved\" && String(s.reviewedAt).startsWith(maaned)).reduce((n,s)=>n+(s.pointsAwarded||0), 0),");
+t("taeller topscoreren medaljepoint med igen, stopper den ogsaa", b.kode !== 0 && /proeven paa Maanedens topscorer gav/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
 rmSync(mappe, { recursive: true, force: true });
 
 console.log(`\n${ok} ok, ${fejlet} fejl`);

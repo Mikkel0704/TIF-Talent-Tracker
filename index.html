@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.81</title>
+  <title>TIF Talent Tracker v15.82</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -171,7 +171,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.81 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.82 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -195,7 +195,7 @@
     <p>Appen gemmer oplysninger om dit barn, og der kan uploades video. Læs det her igennem, og bekræft, at det er i orden. Du kan altid trække det tilbage igen.</p>
 
     <div class="checkrow"><div><b>Hvad der gemmes</b><div class="small">Navn, årgang, point, hvilke øvelser der er bestået, medaljer, fremdrift på Jongleringsstigen, hvilke dage der er trænet fodteknik hjemme, og en log over det. Træneren kan skrive en kort note.</div></div></div>
-    <div class="checkrow"><div><b>Videoer er frivillige</b><div class="small">Man kan bruge appen uden nogensinde at uploade. Træneren kan i stedet godkende øvelser til træning - så får man medaljen, men ingen point.</div></div></div>
+    <div class="checkrow"><div><b>Videoer er frivillige</b><div class="small">Man kan bruge appen uden nogensinde at uploade. Træneren kan i stedet godkende øvelser til træning - så får man medaljen på samme måde.</div></div></div>
     <div class="checkrow"><div><b>Hvem der ser en video</b><div class="small">Træneren. Og ved udfordringer: den ene holdkammerat, dit barn selv har valgt - først når begge har uploadet, og træneren har afgjort duellen.</div></div></div>
     <div class="checkrow"><div><b>Videoer slettes automatisk</b><div class="small">Træningsvideoer slettes, når træneren har godkendt eller afvist dem, og duelvideoer, når modparten har set dem (senest 2 døgn efter afgørelsen). Senest 7 dage efter upload er de væk - og lageret sletter alt efter 8 dage, uanset hvad.</div></div></div>
     <div class="checkrow" style="border-bottom:0"><div><b>Data i EU – login i USA</b><div class="small">Databasen og videoerne ligger i EU. Selve login'et (e-mail og adgangskode) håndteres af Google i USA. Ingen reklamer, ingen sporing, ingen deling med andre.</div></div></div>
@@ -287,7 +287,7 @@
 <section id="review" class="page hidden">
   <div class="card">
     <h2>Godkendelser</h2>
-    <p class="small">Spillere uploader videoer af sig selv, når de træner øvelserne hjemme. Se videoen og godkend eller afvis den. Godkendelse giver spilleren point og markerer øvelsen som bestået.</p>
+    <p class="small">Spillere uploader videoer af sig selv, når de træner øvelserne hjemme. Se videoen og godkend eller afvis den. Godkendelse markerer øvelsen som bestået. Talentmærket giver medaljer, ikke point.</p>
     <div id="reviewArea"></div>
   </div>
 </section>
@@ -335,7 +335,7 @@
 <section id="challenges" class="page hidden">
   <div class="card">
     <h2>Duel</h2>
-    <p class="small">Udfordr en holdkammerat til en duel i en øvelse. Den der først får sin video godkendt af træneren vinder duellen og en bonus.</p>
+    <p class="small">Udfordr en holdkammerat til en duel i en øvelse. Den der først får sin video godkendt af træneren vinder duellen.</p>
     <div id="challengesArea"></div>
   </div>
 </section>
@@ -370,9 +370,9 @@
       <p id="guideFodteknik"><b>"Fodteknik":</b> Daglig fodteknik med øvelser i fire niveauer - Starter (2 point), Let (3), Mellem (4) og Svær (5) - og Grundtræning (5 point). En niveauøvelse tager 3 × 30 sekunder, en grundtræningsøvelse 5 minutter. Tryk + hver gang en øvelse er lavet. Samme øvelse 3 gange giver +5 i bonus, og én fra hvert niveau giver +7. Træner I mange dage i træk, kommer der en streak-bonus oveni. Nåede I det ikke en dag, kan I søge en joker, som træneren godkender - så bliver streaken ikke brudt. Der er ingen video: I registrerer selv, og træneren tager en stikprøve til træning.</p>
       <p><b>"Jonglering":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. Hvert trin giver 5, 10, 15 eller 20 point - jo højere oppe på stigen, jo flere - og stigen for det dårlige ben følger samme trappe. Også her er det på tillid, uden video. Stigen giver point, men ingen medaljer.</p>
       <p><b>"Duel":</b> Udfordr en holdkammerat i en fri duel, som "flest jongleringer" eller "fedeste trick" - eller, hvis jeres årgang kører Talentmærket, i en af øvelserne derfra. Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
-      <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Point fra alle delene tæller med.</p>
+      <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Kun point fra Fodteknik og Jonglering tæller med. Talentmærket og dueller giver ingen point - de belønnes med medaljer og sejre.</p>
       <p><b>"Månedens spiller":</b> Hver måned bliver én spiller i hver årgang Månedens spiller og får et emblem. Det er den, der har trænet fodteknik flest dage. Ved lighed tæller træningstid, så antal øvelser og så point. Man kan ikke vinde to måneder i træk. Vinderen findes den 5. i den næste måned og står øverst på ranglisten og på spillerens profil.</p>
-      <p><b>"Månedens topscorer":</b> Hver måned bliver også én spiller i hver årgang Månedens topscorer og får et emblem med en bold. Det er den, der har fået flest point i måneden - fra fodteknik, Jongleringsstigen, godkendte videoer i Talentmærket og vundne dueller. Ved lighed tæller antal øvelser og så de sværeste øvelser. Den, der bliver Månedens spiller, kan ikke også blive topscorer samme måned. Så går topscorer til den næste. Man kan godt være topscorer flere måneder i træk.</p>
+      <p><b>"Månedens topscorer":</b> Hver måned bliver også én spiller i hver årgang Månedens topscorer og får et emblem med en bold. Det er den, der har fået flest point i måneden - fra fodteknik og Jongleringsstigen. Ved lighed tæller antal øvelser og så de sværeste øvelser. Den, der bliver Månedens spiller, kan ikke også blive topscorer samme måned. Så går topscorer til den næste. Man kan godt være topscorer flere måneder i træk.</p>
       <p id="guideGuidesIntro"><b>"Guides":</b> Her står kravene til hver øvelse på Talentmærket, sammen med beskrivelsen af, hvordan øvelsen sættes op og udføres.</p>
       <p><b>"Min profil":</b> Her ser I jeres point, rang (fra Debutant til Verdensstjerne) og hvilke øvelser der allerede er bestået.</p>
       <p class="small"><b>Om videoerne:</b> De bruges kun til godkendelse og slettes automatisk bagefter - ved Talentmærket med det samme, og ved en duel senest et par dage efter, at træneren har taget stilling. Vi gemmer ikke børnenes videoer permanent.</p>
@@ -531,13 +531,13 @@
     <p>Appen er lavet og drives af <b>Mikkel Brogaard Pedersen</b>, som også er den, der er ansvarlig for de data, der ligger i den. Den bruges af Tjørring IF, men det er altså ikke klubben, der står for driften.</p><p>Har du spørgsmål, vil se hvad der er registreret om dit barn, have noget rettet eller slettet, så skriv til <b>mikkel0704@hotmail.com</b>. Du får svar, og sletning sker hurtigst muligt.</p>
 
     <h3>Hvad der gemmes</h3>
-    <p><b>Om spilleren:</b> navn, årgang, køn, point, hvilke øvelser der er bestået, hvilke medaljer der er optjent og overrakt, samt en log over hvad der er sket - fx "Jonglering N1 Bronze godkendt, +25 point" med dato og hvilken træner der gjorde det (trænerens e-mail). </p><p><b>Trænerens note:</b> træneren kan skrive en kort note om spilleren, fx „venstrebenet“. Den gemmes adskilt fra resten og <b>kan kun ses af trænere</b> - ikke af spilleren selv og ikke af andre familier. Vil I vide, hvad der står om jeres barn, så skriv til adressen ovenfor; I har ret til at få det at vide.</p>
+    <p><b>Om spilleren:</b> navn, årgang, køn, point, hvilke øvelser der er bestået, hvilke medaljer der er optjent og overrakt, samt en log over hvad der er sket - fx "Jonglering · N1 B godkendt via video" med dato og hvilken træner der gjorde det (trænerens e-mail). </p><p><b>Trænerens note:</b> træneren kan skrive en kort note om spilleren, fx „venstrebenet“. Den gemmes adskilt fra resten og <b>kan kun ses af trænere</b> - ikke af spilleren selv og ikke af andre familier. Vil I vide, hvad der står om jeres barn, så skriv til adressen ovenfor; I har ret til at få det at vide.</p>
     <p><b>Om login:</b> den e-mail, der er brugt til at oprette adgangen, hvilken rolle kontoen har (spiller, træner eller admin), hvilke årgange den giver adgang til, og om den er aktiv. <b>Adgangskoden gemmer vi ikke.</b> Den håndteres af Google Firebase og kan ikke ses af trænere eller af os - heller ikke i databasen. Derfor kan en glemt kode kun nulstilles, ikke slås op.</p>
     <p><b>Om videoer:</b> selve videofilen, plus hvilken øvelse og hvilket niveau den hører til, hvornår den blev sendt, hvem der behandlede den, og hvor mange point den gav.</p>
     <p><b>Om Jongleringsstigen:</b> hvor langt barnet er nået på de to stiger, hvilke tricks der er klaret, hvilke <b>datoer</b> der er registreret på, og en log over hver registrering med tidspunkt og hvilket login der registrerede den. Registreringen sker på tillid hjemmefra - der er ingen video og ingen godkendelse - og træneren kan rette et trin efter en stikprøve til træning. Rettelser logges med trænerens e-mail. Point udregnes af tallene og gemmes ikke.</p>
     <p><b>Om Daglig fodteknik:</b> hvilke dage barnet har trænet, hvilke øvelser og hvor mange gange hver øvelse er lavet på hver dag. Også her sker registreringen på tillid hjemmefra uden video, og træneren kan rette eller nulstille en dag efter en stikprøve. Rettelser logges med trænerens e-mail. Point, kombi-bonus og streak udregnes af tallene og gemmes ikke.</p>
     <p><b>Om Månedens spiller:</b> hver måned kåres én spiller i hver årgang ud fra tallene i Daglig fodteknik. Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (træningsdage, minutter, antal øvelser og point). Kåringen - navn, årgang og tallene - kan ses af alle i klubben på tværs af årgange, ligesom klubbens top 10. Den ændres ikke bagefter - bortset fra, at et barn fjernes fra kåringen, hvis I beder om at få barnet slettet.</p>
-    <p><b>Om Månedens topscorer:</b> hver måned kåres også én spiller i hver årgang, der har fået flest point i måneden (fodteknik, Jongleringsstigen, godkendte videoer i Talentmærket og vundne dueller). Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (point, antal øvelser og hvor mange af dem der var svære, mellem, lette og starter). Kåringen - navn, årgang og tallene - kan ses af alle i klubben på tværs af årgange, ligesom klubbens top 10. Den ændres ikke bagefter - bortset fra, at et barn fjernes fra kåringen, hvis I beder om at få barnet slettet.</p>
+    <p><b>Om Månedens topscorer:</b> hver måned kåres også én spiller i hver årgang, der har fået flest point i måneden (Daglig fodteknik og Jongleringsstigen). Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (point, antal øvelser og hvor mange af dem der var svære, mellem, lette og starter). Kåringen - navn, årgang og tallene - kan ses af alle i klubben på tværs af årgange, ligesom klubbens top 10. Den ændres ikke bagefter - bortset fra, at et barn fjernes fra kåringen, hvis I beder om at få barnet slettet.</p>
     <p><b>Om jokere i Daglig fodteknik:</b> hvis I søger en joker for en dag, gemmes datoen, om træneren har godkendt eller afvist den, og <b>den korte begrundelse, I selv skriver</b>. Begrundelsen er fritekst og kan kun ses af jer selv, trænerne i årgangen og klubbens administrator. <b>Systemet sletter den automatisk 3 døgn efter, træneren har afgjort jokeren</b> - datoen og svaret bliver, fordi de skal bruges til at regne streaken ud. Er jokeren ikke afgjort endnu, bliver begrundelsen, så træneren kan læse den. Vi beder udtrykkeligt om <b>ikke</b> at skrive helbredsdetaljer; "syg" er nok.</p><p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På ranglisten:</b> for hvert barn én linje med navn, årgang, køn, point (i alt, denne uge og denne måned) og om barnet kan udfordres til en duel. Linjen regnes ud og skrives af serveren - ingen i appen kan skrive i den. <b>På klub-ranglisten</b> står klubbens top 10 med navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
     <p><b>På din egen telefon:</b> et tidsstempel for, hvornår du sidst åbnede "Duel", foruden det login, Google gemmer i browseren, så I forbliver logget ind. Tidsstemplet bruges kun til at vise det lille tal på fanen, og det forlader aldrig enheden.</p>
 
@@ -597,7 +597,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.81 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.82 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -731,8 +731,9 @@ const JUGGLE_WEAK = [2,3,5, 7,10,15, 20,30,40, 50,75,100];
 // 5, trin 4-6 10, trin 7-9 15 og trin 10-12 20 = 150. Med tricks (240) er hele stigen 590.
 //
 // Hvorfor saa lidt: trinnene registreres paa tillid, uden video og uden godkendelse. Saa
-// skal et trin vaere mindre vaerd end en medalje i Talentmaerket (25-80 point, som en
-// traener har set paa video) og hoejst omtrent en god dag med fodteknik (15-25 point).
+// skal et trin hoejst vaere omtrent en god dag med fodteknik (15-25 point). (Da tallene blev
+// sat, gav en godkendt oevelse i Talentmaerket 25-80 point; siden pointreglerne 2026-11-25
+// giver Talentmaerket ingen point - kun medaljer.)
 // Foer var point = antallet af jongleringer, og daarligt ben talte dobbelt. Det lod de
 // oeverste trin dominere, og én eftermiddag kunne veje tungere end ugers fodteknik: den
 // 2026-11-20 registrerede et barn hele stigen paa 36 minutter og fik 690 point.
@@ -1039,7 +1040,9 @@ function juggleTricks(pid){ const t = juggleFor(pid)?.tricks; return Array.isArr
 // (functions/byg.mjs haeler den ud af denne fil) og skriver udgaven paa hver linje.
 // Haev den, hver gang en pointregel aendres - saa kan admin-siden se, om serveren
 // stadig regner med de gamle regler, og funktionerne skal rulles ud igen.
-const POINTREGLER = "2026-11-24";
+// 2026-11-25: Talentmaerkets point og duelpoint taeller ikke laengere nogen steder (se
+// totalPoints).
+const POINTREGLER = "2026-11-25";
 // Point som ren funktion af fremdrift. Intet gemt tal, intet at forfalske.
 function ladderPoints(pid){
   let sum = 0;
@@ -1047,8 +1050,19 @@ function ladderPoints(pid){
   for(let i = 0; i < juggleWeakStep(pid); i++) sum += juggleWeakPoints(i);
   return sum + juggleTricks(pid).reduce((n,id)=>n + (juggleTrick(id)?.point || 0), 0);
 }
-// Samlet pointtal = det traeneren har tildelt + det stigen har givet + fodteknikken.
-function totalPoints(p){ return (p?.points || 0) + ladderPoints(p?.id) + footworkPoints(p?.id); }
+// Samlet pointtal = det stigen har givet + fodteknikken. Intet andet.
+//
+// Talentmaerkets point og duelpoint taeller IKKE (ejerens beslutning, pointreglerne
+// 2026-11-25) - hverken i alt, i uge/maaned, paa serverens linjer, i klubbens top 10, i
+// rangtrinnene eller i Maanedens topscorer. Talentmaerket beloennes med medaljer, duellerne
+// med sejre. De gamle tal staar stadig i databasen (players.points og
+// submissions.pointsAwarded, og godkendelser og dueller skriver dem stadig), saa beslutningen
+// kan vendes - men de laeses ingen steder til point. Brug totalPoints og rangPointIVindue,
+// aldrig p.points.
+function totalPoints(p){ return ladderPoints(p?.id) + footworkPoints(p?.id); }
+// Point i et vindue (fra since og frem) - de samme to dele som totalPoints. "Denne uge",
+// "Denne maaned", serverens uge/maaned og Maanedens topscorer regner alle med den.
+function rangPointIVindue(pid, since){ return ladderPointsInWindow(pid, since) + footworkPointsInWindow(pid, since); }
 // Uge/maaned: et trin taeller kun, hvis det stadig er en del af fremdriften.
 // Retter traeneren et trin ned, holder de fjernede trin op med at taelle - uden
 // at nogen behoever rydde op i loggen.
@@ -2068,11 +2082,12 @@ function maanedensSpillerRangering(spillere, maaned, forrigeVindere){
 // ---------------------------------------------------------------------------
 // MAANEDENS TOPSCORER - beregningen
 // Den anden maanedspris: den spiller i aargangen (drenge og piger sammen), der fik FLEST
-// POINT i kalendermaaneden. Alle point taeller, praecis som "Denne maaned" paa ranglisten
-// talte dem: medaljepoint i den maaned, traeneren godkendte dem (reviewedAt), stigens trin
-// efter datoen i loggen, og fodteknikkens dage med kombi og streak-milepaele. Maaneden regnes
-// som vinduet fra maanedens start minus vinduet fra naeste maaneds start - med appens egne
-// vinduesfunktioner, saa tallet er det, "Denne maaned" viste for en afsluttet maaned.
+// POINT i kalendermaaneden. Alle point fra Daglig fodteknik og Jongleringsstigen taeller,
+// praecis som "Denne maaned" paa ranglisten taeller dem: stigens trin efter datoen i loggen,
+// og fodteknikkens dage med kombi og streak-milepaele. Talentmaerkets point og duelpoint
+// taeller ikke (pointreglerne 2026-11-25, se totalPoints). Maaneden regnes som vinduet fra
+// maanedens start minus vinduet fra naeste maaneds start - med appens egen vinduesfunktion
+// (rangPointIVindue), saa tallet er det, "Denne maaned" viste for en afsluttet maaned.
 // Lige point afgoeres, hvor naeste kriterie kun bruges ved lighed, af:
 //   1. flest oevelser: fodteknik-gennemfoerelser paa dage i maaneden (ikke dage med godkendt
 //      joker) + trin paa stigen (hovedstige og daarligt ben) registreret i maaneden, som
@@ -2088,8 +2103,7 @@ const TOPSCORER_FELTER = ["svaer", "mellem", "let", "starter"];
 function maanedTopscorerStat(pid, maaned){
   const [y, m] = String(maaned).split("-").map(Number);
   const fra = startOfMonth(new Date(y, m - 1, 1)), til = startOfMonth(new Date(y, m, 1));
-  const vindue = since=>pointsInWindow(pid, since) + ladderPointsInWindow(pid, since) + footworkPointsInWindow(pid, since);
-  const st = {point: vindue(fra) - vindue(til), oevelser: ladderTrinIVindue(pid, fra) - ladderTrinIVindue(pid, til), svaer: 0, mellem: 0, let: 0, starter: 0};
+  const st = {point: rangPointIVindue(pid, fra) - rangPointIVindue(pid, til), oevelser: ladderTrinIVindue(pid, fra) - ladderTrinIVindue(pid, til), svaer: 0, mellem: 0, let: 0, starter: 0};
   footworkDays(pid).filter(d=>d.slice(0, 7) === maaned).forEach(dato=>{
     if(footworkJokerStatus(pid, dato) === "approved") return;
     footworkDayCounts(pid, dato).forEach((c, i)=>{
@@ -2127,6 +2141,9 @@ function topscorerVinder(v){
 
 const POINT_BASE = {Bronze:10, Sølv:20, Guld:35};
 const CHALLENGE_BONUS = 25;
+// Talentmaerkets og duellernes gamle point. De skrives stadig, som de altid er blevet skrevet
+// (players.points og submissions.pointsAwarded), saa beslutningen fra 2026-11-25 kan vendes -
+// men de taeller ingen steder og vises ingen steder (se totalPoints).
 function pointsForStep(step){ return step.level*15 + POINT_BASE[step.medal]; }
 // Rangstigen er spillerens LANGE bue. Den korte - dagens point, kombi-bonussen,
 // streaken - ser barnet med det samme, og det er den, der holder vanen i gang. Derfor
@@ -2138,10 +2155,11 @@ function pointsForStep(step){ return step.level*15 + POINT_BASE[step.medal]; }
 // og en dygtig 14-aarig, der lige har faaet login, skal ikke kaldes nybegynder.
 // "Debutant" betyder ny HER - ikke daarlig.
 //
-// Grænserne er regnet efter: en almindelig dag med tre oevelser giver 14 point, og
-// hele medaljeforloebet (2325) plus hele stigen (590) er 2915 - altsaa i Superliga og
-// 585 under Champions League paa 3500. Tager man hver eneste medalje og hvert eneste trin
-// paa stigen, naar man Superliga. De tre oeverste trin kraever, at man ogsaa har traenet derhjemme.
+// Graenserne er de samme som foer. Fra pointreglerne 2026-11-25 naas trinnene KUN gennem
+// Daglig fodteknik og Jongleringsstigen - medaljer og dueller giver ingen point (se
+// totalPoints). En almindelig dag med tre oevelser giver 14 point, og hele stigen giver 590 -
+// lige over Talent (400) og under Licens (800). Alt derover kraever, at man traener fodteknik
+// derhjemme dag efter dag.
 const RANK_TIERS = [
  {name:"Debutant", min:0, icon:"👟"},
  {name:"Klubspiller", min:150, icon:"⚽"},
@@ -2172,15 +2190,6 @@ function startOfMonth(d){
   date.setHours(0,0,0,0);
   date.setDate(1);
   return date;
-}
-function pointsInWindow(playerId, sinceDate){
-  return submissions
-    .filter(s=>s.playerId===playerId && s.status==="approved" && s.reviewedAt)
-    .filter(s=>{
-      const reviewedDate = s.reviewedAt.toDate ? s.reviewedAt.toDate() : new Date(s.reviewedAt);
-      return reviewedDate >= sinceDate;
-    })
-    .reduce((sum,s)=>sum+(s.pointsAwarded||0), 0);
 }
 function setLeaderboardPeriod(period){ leaderboardPeriod = period; renderLeaderboard(); }
 function setLeaderboardScope(scope){ leaderboardScope = scope; renderLeaderboard(); }
@@ -2455,7 +2464,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.81 · ikke logget ind");
+    setSyncStatus("v15.82 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2491,7 +2500,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.81 · bekræft inden I går i gang");
+    setSyncStatus("v15.82 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2499,7 +2508,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.81 · vælg din egen adgangskode");
+    setSyncStatus("v15.82 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2573,7 +2582,7 @@ function startListeners(){
         if(!ranglisteAar) lytRangliste(normalizeYearValue(currentPlayerLink.year));
       }
     }
-    setSyncStatus("v15.81 · live database aktiv");
+    setSyncStatus("v15.82 · live database aktiv");
     renderAll();
   };
   spillereHentet = false;
@@ -2582,7 +2591,7 @@ function startListeners(){
       players = snap.exists() ? [migratePlayer({id: snap.id, ...snap.data()})] : [];
       spillereHentet = true;
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.81 · databasefejl: " + e.code))] : [];
+    }, (e)=>setSyncStatus("v15.82 · databasefejl: " + e.code))] : [];
     if(!egenId){ players = []; spillereHentet = true; spillerFaaet(); }
   } else {
     unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
@@ -2590,7 +2599,7 @@ function startListeners(){
       if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
       players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.81 · databasefejl: " + e.code));
+    }, (e)=>setSyncStatus("v15.82 · databasefejl: " + e.code));
   }
   // Spillerens egen aargang kendes fra loginnet (som allowedYears); mangler den dér,
   // startes lytteren, naar spillerens eget dokument er kommet (se spillerFaaet).
@@ -3210,14 +3219,14 @@ async function deletePlayer(id){
   const skrevet = ((await indtast(`Skriv spillerens navn for at bekræfte:\n\n${navn}`, {ja: "Slet alt", farlig: true})) || "").trim();
   if(skrevet !== navn.trim()) return besked("Navnet passede ikke. Intet er slettet.");
 
-  setSyncStatus("v15.81 · sletter...");
+  setSyncStatus("v15.82 · sletter...");
   let svar;
   try{
     // Serveren tjekker navnet igen, før den sletter noget.
     svar = (await sletSpillerPaaServeren({playerId: id, navn: skrevet})).data;
   }catch(e){
     console.error(e);
-    setSyncStatus("v15.81 · live database aktiv");
+    setSyncStatus("v15.82 · live database aktiv");
     const kode = String(e?.code || "").replace(/^functions\//, "");
     const tekst = serverFejlTekst(e);
     // Afviste serveren kaldet, før den gik i gang, er intet slettet - så ingen opfordring.
@@ -3225,7 +3234,7 @@ async function deletePlayer(id){
     return besked("Kunne ikke slette: " + tekst
       + (afvist ? "" : `\n\nNåede noget at blive slettet, så tryk "Slet alt" igen - så gør serveren resten.`));
   }
-  setSyncStatus("v15.81 · live database aktiv");
+  setSyncStatus("v15.82 · live database aktiv");
 
   const fejl = Array.isArray(svar?.fejl) ? svar.fejl : [];
   if(fejl.length){
@@ -3615,8 +3624,8 @@ function ranglisteStatus(){
     if(!p){ udenSpiller.push(r); return; }
     const app = {
       total: totalPoints(p),
-      week: pointsInWindow(p.id, ugeStart) + ladderPointsInWindow(p.id, ugeStart) + footworkPointsInWindow(p.id, ugeStart),
-      month: pointsInWindow(p.id, maanedStart) + ladderPointsInWindow(p.id, maanedStart) + footworkPointsInWindow(p.id, maanedStart)
+      week: rangPointIVindue(p.id, ugeStart),
+      month: rangPointIVindue(p.id, maanedStart)
     };
     const forskelle = [["total","i alt"],["week","denne uge"],["month","denne måned"]]
       .map(([k, navn])=>({navn, server: ranglistePeriodePoint(r, k === "total" ? "all" : k, nu), app: app[k]}))
@@ -3856,11 +3865,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.81 · migrering færdig");
+    setSyncStatus("v15.82 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.81 · migrering fejlede");
+    setSyncStatus("v15.82 · migrering fejlede");
   }
 }
 
@@ -4012,7 +4021,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.81 · uploader video...");
+    setSyncStatus("v15.82 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -4056,12 +4065,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.81 · live database aktiv");
+    setSyncStatus("v15.82 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.81 · live database aktiv");
+    setSyncStatus("v15.82 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -4102,7 +4111,7 @@ function renderTraining(){
   area.innerHTML = `
     <div class="profilebox">
       <h3>${tier.icon} ${escapeHtml(p.name)} · ${tier.name}</h3>
-      <p class="small">${totalPoints(p)} point · ${atMax ? "Alle niveauer gennemført" : `Aktuelt niveau: ${s.label}`}</p>
+      <p class="small">${atMax ? "Alle niveauer gennemført" : `Aktuelt niveau: ${s.label}`}</p>
     </div>
     ${atMax ? '<p class="small">Du har gennemført alle niveauer. Tal med din træner om næste skridt!</p>' : exercises.map(ex=>{
       const d = exerciseDescriptions[ex];
@@ -4517,10 +4526,11 @@ async function judgeFreestyleChallenge(challengeId, winnerId){
   const history = [...(winnerPlayer.history||[])];
   history.unshift({
     type: "freestyle_won",
-    text: `Vandt fri udfordring "${c.title}": +${CHALLENGE_BONUS} point`,
+    text: `Vandt fri udfordring "${c.title}"`,
     by: currentUser?.email || "",
     at: new Date().toISOString()
   });
+  // points og pointsAwarded skrives som altid, men taeller ikke (se totalPoints).
   await setDoc(doc(db, "players", winnerPlayer.id), {points: (winnerPlayer.points||0)+CHALLENGE_BONUS, history: history.slice(0,100), updatedAt: serverTimestamp()}, {merge:true});
   await syncClubRanking(winnerPlayer.id, winnerPlayer.name, winnerPlayer.year, (winnerPlayer.points||0)+CHALLENGE_BONUS);
   await setDoc(doc(db, "challenges", challengeId), {status: "completed", winnerId, winnerName: winnerPlayer.name, completedAt: serverTimestamp()}, {merge:true});
@@ -4581,8 +4591,9 @@ async function reviewSubmission(id, approve){
   if(approve){
     // Niveauet på videoen er skrevet af spillerens egen browser og kan derfor ikke
     // stoles på alene. Det tjekkes her mod spillerens faktiske status, så en video
-    // hverken kan udløse point for et niveau, spilleren ikke har låst op endnu,
-    // eller point igen for en øvelse, der allerede er registreret bestået.
+    // ikke kan bestå et niveau, spilleren ikke har låst op endnu.
+    // pointsAwarded og players.points skrives som altid, men tæller ingen steder og
+    // vises ingen steder (pointreglerne 2026-11-25, se totalPoints).
     const step = steps[s.stepIndex];
     if(!step) return besked("Videoen har et ugyldigt niveau og kan ikke godkendes. Afvis den i stedet.");
     const reached = currentStepIndex(p);
@@ -4591,23 +4602,23 @@ async function reviewSubmission(id, approve){
       return besked(`Videoen er markeret som ${step.label}, men ${p.name} er kun nået til ${reachedText}.\n\nDen kan ikke godkendes på det niveau. Afvis den, og bed spilleren uploade igen fra sit aktuelle niveau.`);
     }
     const alreadyPassed = !!p.passed?.[getKey(s.stepIndex, s.exercise)];
-    if(alreadyPassed && !await spoerg(`${s.exercise} · ${step.label} er allerede registreret bestået for ${p.name}.\n\nGodkend videoen uden at give point igen?`)) return;
+    if(alreadyPassed && !await spoerg(`${s.exercise} · ${step.label} er allerede registreret bestået for ${p.name}.\n\nGodkend videoen alligevel?`)) return;
     pointsAwarded = alreadyPassed ? 0 : pointsForStep(step);
     const passed = {...(p.passed||{})};
     passed[getKey(s.stepIndex, s.exercise)] = true;
     const history = [...(p.history||[])];
-    let bonusText = "";
+    let duelText = "";
     if(s.challengeId){
       const c = challenges.find(x=>x.id===s.challengeId);
       if(c && c.status==="active" && !c.winnerId){
         pointsAwarded += CHALLENGE_BONUS;
-        bonusText = ` (+${CHALLENGE_BONUS} udfordringsbonus)`;
+        duelText = " · vandt duellen";
         await setDoc(doc(db, "challenges", c.id), {winnerId: p.id, winnerName: p.name, status: "completed", completedAt: serverTimestamp()}, {merge:true});
       }
     }
     history.unshift({
       type: "submission_approved",
-      text: `${s.exercise} · ${step.label} godkendt via video${bonusText}: ${alreadyPassed && !bonusText ? "allerede bestået, ingen nye point" : `+${pointsAwarded} point`}`,
+      text: `${s.exercise} · ${step.label} godkendt via video${duelText}${alreadyPassed ? " · allerede bestået" : ""}`,
       by: currentUser?.email || "",
       at: new Date().toISOString()
     });
@@ -4741,7 +4752,7 @@ const MAANEDENS_FORKLARING = [
 ];
 const TOPSCORER_FORKLARING = [
   "Hver måned bliver én spiller i hver årgang Månedens topscorer og får et emblem med en bold.",
-  "Det er den, der har fået flest point i måneden. Alle point tæller: fodteknik, Jongleringsstigen, godkendte videoer i Talentmærket og vundne dueller. Point for en video tæller i den måned, træneren godkender den.",
+  "Det er den, der har fået flest point i måneden. Alle point fra Daglig fodteknik og Jongleringsstigen tæller. Talentmærket og dueller tæller ikke - de belønnes med medaljer og sejre.",
   "Har I lige mange point, vinder den, der har lavet flest øvelser. Øvelser er fodteknik og trin på stigen.",
   "Er I stadig lige, vinder den med flest svære øvelser (grundtræning tæller som svær). Så flest mellem, så flest lette og til sidst flest starter.",
   "Er I helt lige, deler I prisen.",
@@ -4924,10 +4935,9 @@ function renderLeaderboard(){
 
   const now = new Date();
   const sinceDate = leaderboardPeriod==="week" ? startOfWeek(now) : leaderboardPeriod==="month" ? startOfMonth(now) : null;
-  // Stigens point regnes med - baade all-time og i uge/maaned-vinduet.
-  const pointsFor = p => sinceDate
-    ? pointsInWindow(p.id, sinceDate) + ladderPointsInWindow(p.id, sinceDate) + footworkPointsInWindow(p.id, sinceDate)
-    : totalPoints(p);
+  // Fodteknik og stige - baade all-time og i uge/maaned-vinduet. Talentmaerket og dueller
+  // taeller ikke (se totalPoints).
+  const pointsFor = p => sinceDate ? rangPointIVindue(p.id, sinceDate) : totalPoints(p);
 
   // Hvert tal regnes ud ÉN gang og sorteres derefter. Foer stod beregningen inde i
   // sammenligningen, saa den blev kaldt to gange pr. sammenligning - hundredvis af

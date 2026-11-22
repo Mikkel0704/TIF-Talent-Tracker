@@ -126,7 +126,7 @@ t("2016: p3 er den eneste med point og er Maanedens spiller i december -> ingen 
 t("vinderen: id, navn, point, oevelser, svaer, mellem, let, starter (p1 i november: 8 version 1-dage a 2 point + streak 3/5/7 = 36)",
   JSON.stringify(r[1].post.vindere[0]) === JSON.stringify({ id: "p1", navn: "Navn p1", point: 36, oevelser: 8, svaer: 0, mellem: 0, let: 8, starter: 0 }), r[1].post.vindere[0]);
 
-console.log("\nMaanedens topscorer · alle point, efter maaned");
+console.log("\nMaanedens topscorer · kun fodteknik og stige, efter maaned (pointreglerne 2026-11-25)");
 const ts = iso => ({ toDate: () => new Date(iso), seconds: Math.floor(new Date(iso) / 1000) });   // som Firestores Timestamp
 const pointData = {
   spillere: [sp("a"), sp("b", "2017", "pige"), sp("c"), sp("v")],
@@ -141,14 +141,17 @@ const pointData = {
 };
 r = alleKaar(pointData);
 const tv = id => r.find(k => k.samling === "maanedensTopscorer" && k.id === id)?.post.vindere;
-// a: 2 (starter) + 25 (medalje 30/11) = 27; b: 5 (svaer) - medaljen er godkendt i december; c: trin 2 og daarligt ben 1 (10) + Oploeft (10) = 20.
-t("v er Maanedens spiller; a vinder med 27 point: fodteknik 2 + medalje godkendt 30/11 kl. 23:59:59 dansk tid (25)",
-  JSON.stringify(tv("2026-11_2017")) === JSON.stringify([{ id: "a", navn: "Navn a", point: 27, oevelser: 1, svaer: 0, mellem: 0, let: 0, starter: 1 }]), tv("2026-11_2017"));
+// a: 2 (starter) - medaljen 30/11 (25) taeller ikke; b: 5 (svaer); c: trin 2 og daarligt ben 1 (10) + Oploeft (10) = 20.
+// Foer pointreglerne 2026-11-25 vandt a med 27 (2 + medaljen 25). Nu vinder c.
+t("v er Maanedens spiller; c vinder med 20 point fra stigen - a's medalje godkendt 30/11 (25) ville have givet a sejren, men taeller ikke",
+  JSON.stringify(tv("2026-11_2017")) === JSON.stringify([{ id: "c", navn: "Navn c", point: 20, oevelser: 2, svaer: 0, mellem: 0, let: 0, starter: 0 }]), tv("2026-11_2017"));
 const tal = topscorereAtOprette(pointData, DEC5);
 {
   // Barnet alene med v, som er Maanedens spiller (og derfor ikke kan vinde topscorer).
   const kun = id => alleKaaringerAtOprette({ ...pointData, spillere: pointData.spillere.filter(p => p.id === id || p.id === "v") }, DEC5).find(k => k.samling === "maanedensTopscorer").post.vindere[0];
-  t("b: kun svaer-oevelsen (5) - medaljen er godkendt 1/12 kl. 00:00 dansk tid og hoerer til december", JSON.stringify(kun("b")) === JSON.stringify({ id: "b", navn: "Navn b", point: 5, oevelser: 1, svaer: 1, mellem: 0, let: 0, starter: 0 }), kun("b"));
+  t("a: kun starter-oevelsen (2) - medaljen godkendt 30/11 kl. 23:59:59 dansk tid taeller ikke",
+    JSON.stringify(kun("a")) === JSON.stringify({ id: "a", navn: "Navn a", point: 2, oevelser: 1, svaer: 0, mellem: 0, let: 0, starter: 1 }), kun("a"));
+  t("b: kun svaer-oevelsen (5) - medaljen (godkendt 1/12) taeller hverken i november eller december", JSON.stringify(kun("b")) === JSON.stringify({ id: "b", navn: "Navn b", point: 5, oevelser: 1, svaer: 1, mellem: 0, let: 0, starter: 0 }), kun("b"));
   t("c: hovedtrin 2 og daarligt ben 1 i november (5 + 5) + Oploeft (10) = 20 point, 2 oevelser (trick er ingen oevelse, oktobers trin taeller ikke, den ventende medalje heller ikke)",
     JSON.stringify(kun("c")) === JSON.stringify({ id: "c", navn: "Navn c", point: 20, oevelser: 2, svaer: 0, mellem: 0, let: 0, starter: 0 }), kun("c"));
 }
@@ -258,9 +261,10 @@ t("svaret holder de to slags hver for sig", JSON.stringify(s.oprettet) === '["20
 const tpost = fdb.data.maanedensTopscorer["2026-11_2017"];
 t("topscorer-posten har maaned, aargang, vindere og et servertidsstempel i beregnet",
   JSON.stringify(Object.keys(tpost)) === '["maaned","aargang","vindere","beregnet"]' && /ServerTimestamp/.test(tpost.beregnet?.constructor?.name), Object.keys(tpost));
-// p1 i november: 8 version 1-dage a 2 + streak 3/5/7 (5 + 5 + 10) + medaljen 30/11 (25) = 61. Trinnet er fra december.
-t("november 2017: Ida (p2) er Maanedens spiller, saa Oscar (p1) er topscorer med fodteknik, streak og medalje",
-  JSON.stringify(tpost.vindere) === JSON.stringify([{ id: "p1", navn: "Oscar Hemmelig", point: 61, oevelser: 8, svaer: 0, mellem: 0, let: 8, starter: 0 }]), tpost.vindere);
+// p1 i november: 8 version 1-dage a 2 + streak 3/5/7 (5 + 5 + 10) = 36. Medaljen 30/11 (25) taeller ikke
+// (pointreglerne 2026-11-25 - foer 61). Trinnet er fra december.
+t("november 2017: Ida (p2) er Maanedens spiller, saa Oscar (p1) er topscorer med fodteknik og streak - ikke medaljen",
+  JSON.stringify(tpost.vindere) === JSON.stringify([{ id: "p1", navn: "Oscar Hemmelig", point: 36, oevelser: 8, svaer: 0, mellem: 0, let: 8, starter: 0 }]), tpost.vindere);
 // december: Maanedens spiller er tom (p2 vandt november). p2: 1/12 (v2) + 2/12, starter 2 + 2 = 4; p1: trinnet 3/12 (5).
 t("december 2017: ingen Maanedens spiller, og p1's trin (5 point) slaar p2's to dage (4)",
   JSON.stringify(fdb.data.maanedensTopscorer["2026-12_2017"].vindere.map(v => [v.id, v.point, v.oevelser])) === '[["p1",5,1]]', fdb.data.maanedensTopscorer["2026-12_2017"].vindere);

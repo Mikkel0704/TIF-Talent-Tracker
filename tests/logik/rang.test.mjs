@@ -28,11 +28,13 @@ t("nul point er Debutant", K.tierForPoints(0).name, "Debutant");
 t("negative point falder ikke igennem", K.tierForPoints(-50).name, "Debutant");
 t("149 er stadig Debutant", K.tierForPoints(149).name, "Debutant");
 t("150 er Klubspiller", K.tierForPoints(150).name, "Klubspiller");
-t("hele medaljeforløbet (2325) er Superliga", K.tierForPoints(2325).name, "Superliga");
-// Hele medaljeforløbet + hele stigen = 2325 + 425 = 2750, midt i Superliga (2200-3499).
-// De tre øverste trin kan ikke nås uden også at have trænet hjemme.
-t("medaljer + hele stigen (2750) er Superliga", K.tierForPoints(2325 + 425).name, "Superliga");
-t("og der mangler 750 point til Champions League", 3500 - (2325 + 425), 750);
+// Pointreglerne 2026-11-25: medaljer og dueller giver ingen point - trinnene naas kun gennem
+// fodteknik og stigen (graenserne er de samme). Hele stigen giver 590: Talent, og 210 point
+// fra Licens. Alt derover kraever fodteknik. (Se ogsaa point.test.mjs: rangtrinnet foelger
+// det nye pointtal.)
+t("hele stigen (590) er Talent", K.tierForPoints(590).name, "Talent");
+t("og der mangler 210 point til Licens", K.nextTier(590).min - 590, 210);
+t("2200 er Superliga", K.tierForPoints(2200).name, "Superliga");
 t("8000 er Verdensstjerne", K.tierForPoints(8000).name, "Verdensstjerne");
 t("over toppen bliver man på toppen", K.tierForPoints(999999).name, "Verdensstjerne");
 t("manglende pointtal regnes som nul", K.tierForPoints(undefined).name, "Debutant");

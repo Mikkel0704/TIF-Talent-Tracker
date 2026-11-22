@@ -121,11 +121,15 @@ t("ingen JS-fejl", a.fejl.length === 0, a.fejl);
 await a.luk();
 
 console.log("\nTræner og admin");
+// Pointreglerne 2026-11-25: Bo har 450 Talentmærke-point paa spilleren og Oscar 40 - de
+// taeller ikke. Paa fodteknik har Oscar 11 (3 x toe-taps med kombi) og Bo 5 (én svær).
 const ALLE = { p1: OSCAR.p1,
-  p2: { name: "Bo Test", year: "2017", gender: "dreng", points: 10, passed: {}, history: [], hasActiveLogin: true },
+  p2: { name: "Bo Test", year: "2017", gender: "dreng", points: 450, passed: {}, history: [], hasActiveLogin: true },
   p3: { name: "Carl Test", year: "2016", gender: "dreng", points: 0, passed: {}, history: [] } };
+const FODTEKNIK = { p1: { year: "2017", gender: "dreng", days: { "2026-11-17": { t: 3 } } },
+  p2: { year: "2017", gender: "dreng", days: { "2026-11-16": { k: 1 } } } };
 const GAMMEL_KLUB = { p1: { name: "Oscar Test", year: "2017", points: 9999 } };   // den gamle spejl-tabel - maa ikke bruges
-a = await aabn("tr", { players: ALLE, clubRanking: GAMMEL_KLUB, klubRangliste: { top: TOP } });
+a = await aabn("tr", { players: ALLE, footwork: FODTEKNIK, clubRanking: GAMMEL_KLUB, klubRangliste: { top: TOP } });
 lyt = await a.lyt();
 t("træneren lytter på footwork for sin årgang", lyt.includes("footwork|col||year==2017") && !lyt.includes("footwork|col||"), lyt.filter(x => x.startsWith("footwork|")));
 t("og på juggleLadder for sin årgang", lyt.includes("juggleLadder|col||year==2017") && !lyt.includes("juggleLadder|col||"), lyt.filter(x => x.startsWith("juggleLadder|")));
@@ -134,7 +138,13 @@ t("klubbens top 10 kommer fra klubRangliste/top", lyt.includes("klubRangliste|do
 t("træneren henter ikke linjerne - årgangslisten regnes ud lokalt", !lyt.some(x => x.startsWith("rangliste|")));
 await a.gaaTil("leaderboard");
 let r = await a.raekker();
-t("trænerens årgangsliste er stadig regnet ud af de rå data", JSON.stringify(r.map(x => x.navn + " " + x.point)) === JSON.stringify(["Oscar Test 40 point", "Bo Test 10 point"]), r);
+t("trænerens årgangsliste er stadig regnet ud af de rå data - kun fodteknik og stige, ikke Talentmærkets point på spilleren",
+  JSON.stringify(r.map(x => x.navn + " " + x.point)) === JSON.stringify(["Oscar Test 11 point", "Bo Test 5 point"]), r);
+t("og rangen følger det nye tal: Bo er Debutant, ikke Talent (450)", r.every(x => /Debutant/.test(x.info)), r);
+await a.klik("Denne uge");
+r = await a.raekker();
+t("trænerens uge: kun fodteknik og stige", JSON.stringify(r.map(x => x.navn + " " + x.point)) === JSON.stringify(["Oscar Test 11 point", "Bo Test 5 point"]), r);
+await a.klik("All-time");
 await a.klik("Hele klubben");
 r = await a.raekker();
 t("trænerens klub-top-10 er serverens - ikke den gamle tabel",
@@ -149,7 +159,7 @@ t("en træner, der kun ser drengene, får også kønnet med i forespørgslen",
   lyt.includes("footwork|col||year==2017&gender==dreng") && lyt.includes("juggleLadder|col||year==2017&gender==dreng"), lyt.filter(x => /^(footwork|juggleLadder)\|/.test(x)));
 await a.luk();
 
-a = await aabn("admin", { players: ALLE, clubRanking: GAMMEL_KLUB, klubRangliste: { top: TOP } });
+a = await aabn("admin", { players: ALLE, footwork: FODTEKNIK, clubRanking: GAMMEL_KLUB, klubRangliste: { top: TOP } });
 lyt = await a.lyt();
 t("admin lytter på hele rangliste og på klubRangliste/top", lyt.includes("rangliste|col||") && lyt.includes("klubRangliste|doc|top|"));
 t("og på de hele samlinger som før", ["players", "submissions", "challenges", "footwork", "juggleLadder", "clubRanking"].every(n => lyt.includes(n + "|col||")));
@@ -214,6 +224,7 @@ t("klubbens top 10: bolden ved Bo, ingen ved de andre (Ida er ikke i top 10)", J
 t("ingen JS-fejl", a.fejl.length === 0, a.fejl);
 await a.luk();
 a = await aabn("tr", { players: { p1: { ...OSCAR.p1 }, p2: { name: "Bo Test", year: "2017", gender: "dreng", points: 450, passed: {}, history: [] } }, klubRangliste: { top: TOP },
+  footwork: { p2: { year: "2017", gender: "dreng", days: { "2026-11-16": { k: 1 } } } },   // Bo foerst paa listen
   maanedensSpiller: { "2026-11_2017": { maaned: "2026-11", aargang: "2017", vindere: [{ id: "p1", navn: "Oscar Test", dage: 9, minutter: 13.5, oevelser: 9, point: 18 }] } },
   maanedensTopscorer: TOPSCORER_NOV }, "2026-12-10T12:00:00+01:00");
 await a.gaaTil("leaderboard");
@@ -273,14 +284,18 @@ await a.luk();
 
 // ------------------------------------------------------------------ tomme tilstande
 console.log("\nFør serveren har regnet");
-a = await aabn("sp", { players: OSCAR });
+a = await aabn("sp", { players: OSCAR, footwork: { p1: FODTEKNIK.p1 } });
 await a.gaaTil("leaderboard");
 t("årgangslisten siger venligt, at den ikke er klar endnu", /ikke klar endnu/.test(await a.tekst("#leaderboardArea")), await a.tekst("#leaderboardArea"));
 await a.klik("Hele klubben");
 t("og det samme gør klubbens top 10", /Klubbens top 10 er ikke klar endnu/.test(await a.tekst("#leaderboardArea")), await a.tekst("#leaderboardArea"));
 await a.gaaTil("challenges");
 t("uden linjer er der ingen at udfordre - og det siges", /Ingen andre spillere i din årgang kan udfordres endnu/.test(await a.tekst("#challengesArea")) && !(await a.page.$("#challengeOpponent")));
-t("profilen virker stadig - point regnes af egne data", /40 point/.test(await (async () => { await a.gaaTil("profile"); return a.tekst("#profileArea"); })()));
+{
+  const profil = await (async () => { await a.gaaTil("profile"); return a.tekst("#profileArea"); })();
+  t("profilen virker stadig - point regnes af egne data: fodteknik (11), ikke Talentmærkets 40 på spilleren",
+    /(^|\s)11 point · 139 point til/.test(profil) && !/(^|\s)(40|51) point/.test(profil), profil);
+}
 t("ingen JS-fejl", a.fejl.length === 0, a.fejl);
 await a.luk();
 a = await aabn("tr", { players: ALLE });
@@ -290,20 +305,23 @@ await a.luk();
 
 // ------------------------------------------------------------------ admin-status
 console.log("\nAdmin: Ranglisten på serveren");
-// Rå data, som appen selv kan regne paa: p1 har 40 point og en godkendt video paa 25 point i
-// dag (taeller i uge og maaned, men ikke i det samlede tal, som staar paa spilleren).
+// Rå data, som appen selv kan regne paa: p1 har 11 point fra fodteknik i denne uge, 40
+// Talentmærke-point paa spilleren og en godkendt video paa 25 point i dag; p2 har 5 point fra
+// fodteknik i sidste uge og 10 paa spilleren. Pointreglerne 2026-11-25: spillerens point og
+// videoens point taeller ingen steder - de rigtige linjer har kun fodteknikken.
 const ADMIN_SPILLERE = { p1: OSCAR.p1,
   p2: { name: "Bo Test", year: "2017", gender: "dreng", points: 10, passed: {}, history: [] },
   p3: { name: "Carl Test", year: "2016", gender: "dreng", points: 0, passed: {}, history: [] } };
+const ADMIN_FODTEKNIK = { p1: FODTEKNIK.p1, p2: { year: "2017", gender: "dreng", days: { "2026-11-15": { k: 1 } } } };
 const GODKENDT = { "s1": { playerId: "p1", playerName: "Oscar Test", year: "2017", gender: "dreng", status: "approved", reviewedAt: "2026-11-18T09:00:00Z", pointsAwarded: 25 } };
 const rigtige = () => ({
-  p1: linje("Oscar Test", "2017", "dreng", true, 40, [UGE, 25], [MAANED, 25]),
-  p2: linje("Bo Test", "2017", "dreng", false, 10, ["2026-11-09", 7], [MAANED, 0]),   // gammel uge-start, appen har 0 i ugen: stemmer
+  p1: linje("Oscar Test", "2017", "dreng", true, 11, [UGE, 11], [MAANED, 11]),
+  p2: linje("Bo Test", "2017", "dreng", false, 5, ["2026-11-09", 7], [MAANED, 5]),   // gammel uge-start, appen har 0 i ugen: stemmer
   p3: linje("Carl Test", "2016", "dreng", false, 0, [UGE, 0], [MAANED, 0])
 });
-const RIGTIG_TOP = { top: [{ id: "p1", name: "Oscar Test", year: "2017", total: 40 }, { id: "p2", name: "Bo Test", year: "2017", total: 10 }, { id: "p3", name: "Carl Test", year: "2016", total: 0 }], regler: REGLER };
+const RIGTIG_TOP = { top: [{ id: "p1", name: "Oscar Test", year: "2017", total: 11 }, { id: "p2", name: "Bo Test", year: "2017", total: 5 }, { id: "p3", name: "Carl Test", year: "2016", total: 0 }], regler: REGLER };
 async function status(linjer, top = RIGTIG_TOP){
-  const a = await aabn("admin", { players: ADMIN_SPILLERE, submissions: GODKENDT, rangliste: linjer, klubRangliste: { top } });
+  const a = await aabn("admin", { players: ADMIN_SPILLERE, footwork: ADMIN_FODTEKNIK, submissions: GODKENDT, rangliste: linjer, klubRangliste: { top } });
   await a.gaaTil("admin");
   await a.page.evaluate(() => { document.getElementById("adminRangliste").open = true; });
   const s = (await a.tekst("#ranglisteStatusArea")).replace(/\s+/g, " ");
@@ -320,13 +338,20 @@ t("ingen JS-fejl", st.fejl.length === 0, st.fejl);
 
 let l = rigtige(); l.p2.total = 11;
 st = await status(l);
-t("én linje afviger: tallet og hvem", /1 linje afviger fra appens egen udregning/.test(st.s) && /Bo Test: i alt 11 på serveren, 10 i appen/.test(st.s) && st.maerke, st.s);
+t("én linje afviger: tallet og hvem", /1 linje afviger fra appens egen udregning/.test(st.s) && /Bo Test: i alt 11 på serveren, 5 i appen/.test(st.s) && st.maerke, st.s);
+// En linje regnet med de gamle regler (Talentmærkets 40 og videoens 25 talte med) afviger.
+l = rigtige(); l.p1.total = 51; l.p1.uge.point = 36; l.p1.maaned.point = 36;
+st = await status(l);
+t("en linje med Talentmærkets og videoens point (de gamle regler) afviger i alt, uge og måned",
+  /Oscar Test: i alt 51 på serveren, 11 i appen · denne uge 36 på serveren, 11 i appen · denne måned 36 på serveren, 11 i appen/.test(st.s), st.s);
+st = await status(rigtige(), { top: [{ ...RIGTIG_TOP.top[0], total: 51 }, { ...RIGTIG_TOP.top[1], total: 15 }, RIGTIG_TOP.top[2]], regler: REGLER });
+t("og en top 10 med de gamle tal (51, 15) opdages", /Klubbens top 10 afviger/.test(st.s), st.s);
 l = rigtige(); l.p1.uge.point = 20;
 st = await status(l);
-t("en afvigelse i ugens point tæller også", /1 linje afviger/.test(st.s) && /Oscar Test: denne uge 20 på serveren, 25 i appen/.test(st.s), st.s);
+t("en afvigelse i ugens point tæller også", /1 linje afviger/.test(st.s) && /Oscar Test: denne uge 20 på serveren, 11 i appen/.test(st.s), st.s);
 l = rigtige(); l.p1.uge.fra = "2026-11-09";
 st = await status(l);
-t("en gammel uge-start, mens appen har point i ugen, er en afvigelse - spilleren ville se 0", /Oscar Test: denne uge 0 på serveren, 25 i appen/.test(st.s), st.s);
+t("en gammel uge-start, mens appen har point i ugen, er en afvigelse - spilleren ville se 0", /Oscar Test: denne uge 0 på serveren, 11 i appen/.test(st.s), st.s);
 l = rigtige(); delete l.p3;
 st = await status(l);
 t("et barn mangler en linje: tallet og navnet", /1 barn mangler en linje: Carl Test/.test(st.s) && /2 linjer på serveren for 3 spillere/.test(st.s) && st.maerke, st.s);

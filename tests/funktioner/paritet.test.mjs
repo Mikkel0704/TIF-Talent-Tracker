@@ -8,11 +8,15 @@
 // med serverens linje (functions/rangliste.js) for de SAMME data og det SAMME tidspunkt.
 // Data er tilfaeldige med fast fro, saa en fejl kan genskabes.
 //
+// Pointreglerne 2026-11-25: Talentmaerkets point og duelpoint taeller ikke. Dataene har med
+// vilje boern med players.points > 0 og godkendte indsendelser med pointsAwarded i ugen og
+// maaneden - og testen viser, at linjerne er de samme som uden dem.
+//
 // Den eneste aendring af siden er én linje, der stilles foran den sidste Object.assign(window, ...)
 // i den kopi, browseren faar, saa testen kan spoerge siden selv om totalPoints - filen roeres ikke.
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { beregnLinje } from "../../functions/rangliste.js";
+import { beregnLinje, linjerEns } from "../../functions/rangliste.js";
 const { chromium } = createRequire(import.meta.url)("playwright");
 
 const raa = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
@@ -167,6 +171,18 @@ for(const [i, [navn, iso]] of TIDER.entries()){
   t("Denne maaned paa ranglisten == serverens maaned.point", !a.length, a);
   t("ugen og maaneden starter samme dag paa siden og paa serveren",
     ider.every(id => server[id].uge.fra === krog.uge && server[id].maaned.fra === krog.maaned), { side: [krog.uge, krog.maaned], server: [server[ider[0]].uge.fra, server[ider[0]].maaned.fra] });
+  // De samme data uden Talentmaerkets point og uden indsendelser: linjerne skal vaere ens.
+  const uden = serverLinjer({ ...db, players: Object.fromEntries(Object.entries(db.players).map(([id, p]) => [id, { ...p, points: 0 }])), submissions: {} }, nu);
+  a = ider.filter(id => !linjerEns(server[id], uden[id])).map(id => ({ id, med: server[id], uden: uden[id] }));
+  t("players.points og indsendelsernes pointsAwarded taeller ikke: hver linje er den samme uden dem", !a.length, a);
+  a = ider.filter(id => vist.all[navn_(id)] !== uden[id].total || vist.week[navn_(id)] !== uden[id].uge.point || vist.month[navn_(id)] !== uden[id].maaned.point);
+  t("og siden viser de samme tal som uden dem", !a.length, a);
+  const maanedStart = new Date(nu.getFullYear(), nu.getMonth(), 1).getTime();
+  const reviewMs = s => s.reviewedAt == null ? null : typeof s.reviewedAt === "object" ? s.reviewedAt.__tid * 1000 : Date.parse(s.reviewedAt);
+  const medPoint = ider.filter(id => db.players[id].points > 0).length;
+  const godkendtIMaaneden = Object.values(db.submissions).filter(s => s.status === "approved" && s.pointsAwarded > 0 && reviewMs(s) >= maanedStart).length;
+  t(`dataene har Talentmaerke-point, der ikke maa taelle (${medPoint} boern med points > 0, ${godkendtIMaaneden} godkendte indsendelser med point i maaneden)`,
+    medPoint >= 5 && godkendtIMaaneden >= 2);
   const ikkeNul = ider.filter(id => server[id].uge.point > 0).length, maanedNul = ider.filter(id => server[id].maaned.point > 0).length;
   t(`dataene rammer noget i begge vinduer (${ikkeNul} boern med ugepoint, ${maanedNul} med maanedspoint)`, ikkeNul >= 2 && maanedNul >= 3);
 }

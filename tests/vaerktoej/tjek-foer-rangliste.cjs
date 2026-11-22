@@ -37,7 +37,8 @@ const aar = v => { const s = String(v ?? ''); return /^\d{4}$/.test(s) ? s : nul
   const duelSubs = subs.filter(s => s.challengeId);
   vis('duel-indsendelse uden challengerId/opponentId (modparten ville ikke se den)', duelSubs.filter(s => !s.challengerId || !s.opponentId).map(s => s.id));
   vis('duel uden challengerId/opponentId', chs.filter(c => !c.challengerId || !c.opponentId).map(c => c.id));
-  // 4. Klubbens top 10 regnes nu af players.points; foer af spejlet clubRanking.points.
+  // 4. Klubbens top 10 regnedes engang af players.points (foer af spejlet clubRanking.points).
+  //    Fra pointreglerne 2026-11-25 taeller players.points slet ikke - kun til orientering.
   vis('boern, hvor det gamle spejl (clubRanking.points) afviger fra players.points', mirror.filter(m => sp.has(m.id) && (m.points || 0) !== (sp.get(m.id).points || 0)).map(m => `${m.id}:${m.points || 0}≠${sp.get(m.id).points || 0}`), false);
   // 5. Linjer, der allerede findes.
   vis('spillere uden ranglistelinje (forventet, foer genberegningen er koert)', players.filter(p => !linjer.some(l => l.id === p.id)).map(p => p.id), false);

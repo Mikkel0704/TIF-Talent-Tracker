@@ -119,10 +119,12 @@ const FUNKTIONER = [
   "normalizeYearValue",
   "juggleMainPoints", "juggleWeakPoints", "juggleTrick",
   "juggleFor", "juggleLogFor", "juggleMainStep", "juggleWeakStep", "juggleTricks",
-  "ladderPoints", "totalPoints", "ladderPointsInWindow", "ladderFoersteGang",
+  // totalPoints og rangPointIVindue: kun fodteknik og stige (pointreglerne 2026-11-25 -
+  // Talentmaerket og dueller giver ingen point, se proeven nedenfor).
+  "ladderPoints", "totalPoints", "rangPointIVindue", "ladderPointsInWindow", "ladderFoersteGang",
   // Maanedens topscorer: trinnene paa stigen i et vindue (til "flest oevelser").
   "ladderTrinIVindue",
-  "startOfWeek", "startOfMonth", "pointsInWindow",
+  "startOfWeek", "startOfMonth",
   // Maanedens spiller: spillerne goeres klar, som appen goer det, naar de hentes.
   "migratePlayer", "inferYearFromNote",
   // Logins (logins.js): aargangslisten paa et nyt traenerlogin, som appen regner den ud.
@@ -211,9 +213,9 @@ export function saetBarn({ spiller = null, stige = null, stigelog = null, fodtek
 }
 // Saet ALLE boerns data paa én gang - til Maanedens spiller og Maanedens topscorer, som
 // sammenligner en hel aargang. maanedStat laeser kun fodteknik-dokumenterne (dagene og
-// jokerafgoerelserne ligger paa dem) og spillerne; maanedTopscorerStat ogsaa indsendelserne,
-// stigen og stigens log. Det, der ikke gives med, toemmes, saa intet fra et tidligere kald
-// kan snige sig med.
+// jokerafgoerelserne ligger paa dem) og spillerne; maanedTopscorerStat ogsaa stigen og
+// stigens log (indsendelserne taeller ikke laengere, men saettes stadig). Det, der ikke gives
+// med, toemmes, saa intet fra et tidligere kald kan snige sig med.
 export function saetAlleBoern({ spillere = [], fodteknik = [], indsendelser = [], stiger = [], stigelogge = [] } = {}){
   const liste = x => (Array.isArray(x) ? x : []);
   players = liste(spillere);
@@ -227,7 +229,7 @@ export function saetAlleBoern({ spillere = [], fodteknik = [], indsendelser = []
 export {
   POINTREGLER, CLUB_TOP_N, normalizeYearValue, dagsISO, iDagISO,
   totalPoints, ladderPoints, ladderPointsInWindow, footworkPoints, footworkPointsInWindow,
-  pointsInWindow, startOfWeek, startOfMonth, FOOTWORK_V2_FRA,
+  rangPointIVindue, startOfWeek, startOfMonth, FOOTWORK_V2_FRA,
   migratePlayer, normalizeYearsList, MAANEDENS_FOERSTE, MAANEDENS_AFGOERES_DAG, maanedPlus, forrigeMaaned, maanedAfgoeres,
   maanederTilKaaring, maanedStat, maanedensSpillerRangering,
   ladderTrinIVindue, maanedTopscorerStat, maanedensTopscorerRangering, topscorerVinder,
@@ -249,10 +251,24 @@ try{
     stige: { id: "x", mainStep: 2, tricks: ["oploft"], days: ["2026-01-05"] },
     fodteknik: { id: "x", days: { "2026-01-05": { t: 3 } } } });
   const total = m.totalPoints({ id: "x", points: 5 });
-  if(!Number.isFinite(total) || total <= 5) fejl("proeveberegningen gav " + total);
+  if(!Number.isFinite(total) || total <= 0) fejl("proeveberegningen gav " + total);
+  // Pointreglerne 2026-11-25: i alt = stige + fodteknik. Talentmaerkets point (players.points)
+  // taeller ikke - heller ikke 500 af dem.
+  if(total !== m.ladderPoints("x") + m.footworkPoints("x") || m.totalPoints({ id: "x", points: 500 }) !== total)
+    fejl("totalPoints taeller Talentmaerkets point (players.points) med - det maa den ikke");
   if(m.normalizeYearValue("U9") !== "2017") fejl("normalizeYearValue virker ikke som ventet");
   m.footworkPointsInWindow("x", m.startOfWeek(new Date()));
-  m.pointsInWindow("x", m.startOfMonth(new Date()));
+  // ... og point for godkendte videoer og vundne dueller (submissions.pointsAwarded) taeller
+  // heller ikke i uge og maaned.
+  const fra = new Date(2026, 0, 1);
+  const udenIndsendelser = m.rangPointIVindue("x", fra);
+  m.saetBarn({ spiller: { id: "x", name: "x", year: "U9", points: 500 },
+    stige: { id: "x", mainStep: 2, tricks: ["oploft"], days: ["2026-01-05"] },
+    fodteknik: { id: "x", days: { "2026-01-05": { t: 3 } } },
+    indsendelser: [{ playerId: "x", status: "approved", reviewedAt: "2026-01-06T12:00:00Z", pointsAwarded: 80 }] });
+  if(!Number.isFinite(udenIndsendelser) || m.rangPointIVindue("x", fra) !== udenIndsendelser
+    || udenIndsendelser !== m.ladderPointsInWindow("x", fra) + m.footworkPointsInWindow("x", fra))
+    fejl("rangPointIVindue taeller Talentmaerkets eller duellernes point (submissions.pointsAwarded) med - det maa den ikke");
   // Maanedens spiller paa et lille, haandregnet eksempel: to dage i november, ét barn.
   m.saetAlleBoern({ spillere: [m.migratePlayer({ id: "x", name: "x", year: "U9" })],
     fodteknik: [{ id: "x", days: { "2026-11-16": { t: 1 }, "2026-11-17": { t: 1 } } }] });
@@ -260,14 +276,16 @@ try{
   if(k.vindere.length !== 1 || k.vindere[0].dage !== 2) fejl("proevekaaringen gav " + JSON.stringify(k.vindere));
   if(m.maanederTilKaaring("2026-12-05").join() !== m.MAANEDENS_FOERSTE) fejl("maanederTilKaaring virker ikke som ventet");
   // Maanedens topscorer paa et lille, haandregnet eksempel: x har en Starter-dag (2 point),
-  // et trin paa stigen (5) og en medalje godkendt i november (25); y vandt Maanedens spiller
-  // og kan ikke ogsaa vinde; z har kun én Starter-dag (2) og skal tabe til x.
+  // et trin paa stigen (5) og en medalje godkendt i november (25 - taeller ikke, pointreglerne
+  // 2026-11-25); y vandt Maanedens spiller og kan ikke ogsaa vinde; z har kun én Starter-dag
+  // (2) men en duel og en medalje paa 100 i november, som ikke taeller - z skal tabe til x.
   m.saetAlleBoern({ spillere: ["x", "y", "z"].map(id => m.migratePlayer({ id, name: id, year: "U9" })),
     fodteknik: [{ id: "x", days: { "2026-11-16": { t: 1 } } }, { id: "y", days: { "2026-11-16": { k: 9 } } }, { id: "z", days: { "2026-11-18": { t: 1 } } }],
     stiger: [{ id: "x", mainStep: 1 }], stigelogge: [{ id: "x", entries: [{ t: "main", v: 0, at: "2026-11-20T10:00:00Z" }] }],
-    indsendelser: [{ playerId: "x", status: "approved", reviewedAt: "2026-11-30T12:00:00Z", pointsAwarded: 25 }] });
+    indsendelser: [{ playerId: "x", status: "approved", reviewedAt: "2026-11-30T12:00:00Z", pointsAwarded: 25 },
+      { playerId: "z", status: "approved", reviewedAt: "2026-11-20T12:00:00Z", pointsAwarded: 100 }] });
   const ts = m.maanedensTopscorerRangering([{ id: "x", name: "x" }, { id: "y", name: "y" }, { id: "z", name: "z" }], "2026-11", ["y"]);
-  if(ts.vindere.length !== 1 || JSON.stringify(m.topscorerVinder(ts.vindere[0])) !== JSON.stringify({ id: "x", navn: "x", point: 32, oevelser: 2, svaer: 0, mellem: 0, let: 0, starter: 1 }))
+  if(ts.vindere.length !== 1 || JSON.stringify(m.topscorerVinder(ts.vindere[0])) !== JSON.stringify({ id: "x", navn: "x", point: 7, oevelser: 2, svaer: 0, mellem: 0, let: 0, starter: 1 }))
     fejl("proeven paa Maanedens topscorer gav " + JSON.stringify(ts.vindere));
   // Morgenoprydningen paa haandregnede eksempler: en joker afgjort for 3 doegn + 1 minut siden
   // skal ryddes, én for 2 doegn og 23 timer siden og en ubehandlet skal ikke.

@@ -38,7 +38,10 @@ const tal = s => [s.point, s.oevelser, s.svaer, s.mellem, s.let, s.starter];
 const medalje = (point, godkendt, status) => ({ point, godkendt, status });
 
 // -------------------------------------------------------------------------------------
-afsnit("Point i måneden: medaljer efter godkendelsesdatoen");
+// Pointreglerne 2026-11-25: Talentmærkets point og duelpoint (submissions.pointsAwarded)
+// tæller ikke - de står stadig i databasen, men giver 0 i måneden. Før gav de første tre
+// tests her 60, 40 og 10.
+afsnit("Point i måneden: Talentmærket og dueller giver ingen point");
 const tidsstempel = iso => ({ toDate: () => new Date(iso) });
 let s = stat([{ id: "A", medaljer: [
   medalje(25, kl("2026-12-01", "00:00:00")),          // første sekund i december
@@ -47,11 +50,11 @@ let s = stat([{ id: "A", medaljer: [
   medalje(80, kl("2027-01-01", "00:00:00")),          // januar
   medalje(50, kl("2026-12-10"), "pending")            // ikke godkendt
 ] }, { id: "B", medaljer: [medalje(70, kl("2026-12-10"))] }], "A");
-t("december: 25 + 35 - ikke november, januar eller en medalje, der venter", s.point, 60);
+t("december: godkendte medaljer (25 + 35) giver 0 point", s.point, 0);
 t("en medalje er ingen øvelse", s.oevelser, 0);
-t("november får den, der blev godkendt 30/11 kl. 23:59:59", K.maanedTopscorerStat("A", NOV).point, 40);
-t("dansk tid: 1/12 kl. 00:00 dansk tid er 30/11 kl. 23:00 UTC - og tæller i december",
-  stat([{ id: "A", medaljer: [medalje(10, "2026-11-30T23:00:00Z"), medalje(1, "2026-11-30T22:59:59Z")] }], "A").point, 10);
+t("november: heller ikke den, der blev godkendt 30/11 kl. 23:59:59", K.maanedTopscorerStat("A", NOV).point, 0);
+t("et barn med kun medaljer og dueller er ingen kandidat",
+  kaar([{ id: "A", medaljer: [medalje(80, kl(dag(9))), medalje(25, kl(dag(10)))] }]).res.rangliste, []);
 
 afsnit("Point i måneden: Jongleringsstigen efter loggens dato");
 const stigebarn = { id: "A", stige: { mainStep: 3, weakStep: 1, tricks: ["oploft"] }, log: [
@@ -94,9 +97,11 @@ afsnit("Det er det tal, \"Denne måned\" viste for en afsluttet måned");
     medaljer: [medalje(25, kl(dag(20))), medalje(40, kl("2026-11-20"))] }];
   saet(boern);
   const slut = new Date(2026, 11, 31, 23, 59, 59);
-  const denneMaaned = K.pointsInWindow("A", K.startOfMonth(slut)) + K.ladderPointsInWindow("A", K.startOfMonth(slut)) + K.footworkPointsInWindow("A", K.startOfMonth(slut));
+  const denneMaaned = K.rangPointIVindue("A", K.startOfMonth(slut));
   t("31/12 kl. 23:59: \"Denne måned\" = topscorerens december", K.maanedTopscorerStat("A", DEC).point, denneMaaned);
-  t("og tallet er lagt sammen af medalje (25), stige (25) og fodteknik (35 med kombi og streak)", denneMaaned, 85);
+  t("og tallet er lagt sammen af stige (25) og fodteknik (35 med kombi og streak) - medaljen (25) tæller ikke", denneMaaned, 60);
+  t("\"Denne måned\" er kun stige og fodteknik",
+    denneMaaned, K.ladderPointsInWindow("A", K.startOfMonth(slut)) + K.footworkPointsInWindow("A", K.startOfMonth(slut)));
 }
 
 afsnit("Godkendte jokere");
@@ -120,24 +125,34 @@ t("flest point vinder", kaar([{ id: "A", dage: { [dag(1)]: { k: 1 } } }, { id: "
 let r = kaar([{ id: "A", dage: { [dag(1)]: { t: 1, s: 1, d: 1 } } }, { id: "B", dage: { [dag(1)]: { p: 2 } } }]);
 t("1: lige point (6), flest øvelser vinder: A med 3 starter mod B med 2 lette", r.vindere, ["A"]);
 t("1: tallene", r.res.rangliste.map(x => [x.id, x.point, x.oevelser]), [["A", 6, 3], ["B", 6, 2]]);
-r = kaar([{ id: "A", dage: { [dag(1)]: { t: 1 } }, stige: { mainStep: 1 }, log: [{ t: "main", v: 0, at: kl(dag(9)) }] },
-          { id: "B", dage: { [dag(1)]: { t: 1 } }, medaljer: [medalje(5, kl(dag(9)))] }]);
-t("1: et trin på stigen er en øvelse - A (starter + trin = 7) mod B (starter + medalje 5 = 7): A vinder på øvelser", r.vindere, ["A"]);
+// (Før pointreglerne 2026-11-25 brugte flere af disse medaljepoint til at gøre pointene lige.
+// Nu giver en medalje ingen point, så pointene gøres lige med tricks og kombier.)
+r = kaar([{ id: "A", stige: { mainStep: 2 }, log: [{ t: "main", v: 1, at: kl(dag(9)) }, { t: "main", v: 0, at: kl(dag(9)) }] },
+          { id: "B", stige: { tricks: ["skiftefod"] }, log: [{ t: "trick", v: "skiftefod", at: kl(dag(9)) }] }]);
+t("1: et trin på stigen er en øvelse - A (to trin = 10) mod B (tricket Skiftefod = 10, ingen øvelse): A vinder på øvelser", r.vindere, ["A"]);
+t("1: tallene", r.res.rangliste.map(x => [x.id, x.point, x.oevelser]), [["A", 10, 2], ["B", 10, 0]]);
 r = kaar([{ id: "A", dage: { [dag(1)]: { k: 1, t: 1 } } }, { id: "B", dage: { [dag(1)]: { v: 1, p: 1 } } }]);
 t("2: lige point (7) og øvelser (2), flest svære vinder", r.vindere, ["A"]);
-r = kaar([{ id: "A", dage: { [dag(1)]: { v: 1 } }, medaljer: [medalje(1, kl(dag(9)))] }, { id: "B", dage: { [dag(1)]: { p: 1 } }, medaljer: [medalje(2, kl(dag(9)))] }]);
-t("3: lige point (5), øvelser (1) og svære (0), flest mellem vinder", r.vindere, ["A"]);
-r = kaar([{ id: "A", dage: { [dag(1)]: { t: 1 } }, medaljer: [medalje(3, kl(dag(9)))] }, { id: "B", dage: { [dag(1)]: { p: 1 } }, medaljer: [medalje(2, kl(dag(9)))] }]);
-t("4: lige på point, øvelser, svære og mellem, flest lette vinder", r.vindere, ["B"]);
-r = kaar([{ id: "A", stige: { mainStep: 1 }, log: [{ t: "main", v: 0, at: kl(dag(9)) }] }, { id: "B", dage: { [dag(1)]: { t: 1 } }, medaljer: [medalje(3, kl(dag(9)))] }]);
+r = kaar([{ id: "A", dage: { [dag(1)]: { v: 1, t: 1 } } }, { id: "B", dage: { [dag(1)]: { p: 2 } } }]);
+t("3: lige point (6), øvelser (2) og svære (0), flest mellem vinder: A (mellem + starter) mod B (2 lette)", r.vindere, ["A"]);
+t("3: tallene", r.res.rangliste.map(x => [x.id, ...tal(x)]), [["A", 6, 2, 0, 1, 0, 1], ["B", 6, 2, 0, 0, 2, 0]]);
+// A: 5 starter = 10 + "samme øvelse 3 gange" (5) = 15. B: 5 lette = 15 uden kombi.
+r = kaar([{ id: "A", dage: { [dag(1)]: { t: 3, s: 1, d: 1 } } }, { id: "B", dage: { [dag(1)]: { p: 2, y: 1, x: 1, r: 1 } } }]);
+t("4: lige på point (15), øvelser (5), svære og mellem, flest lette vinder", r.vindere, ["B"]);
+t("4: tallene", r.res.rangliste.map(x => [x.id, ...tal(x)]), [["B", 15, 5, 0, 0, 5, 0], ["A", 15, 5, 0, 0, 0, 5]]);
+// A: 5 trin på stigen (3 på hovedstigen, 2 på dårligt ben) = 25. B: 5 starter (10) + kombi (5)
+// + tricket Skiftefod (10) = 25. Alt på samme dag, så ingen får streak-bonus.
+r = kaar([{ id: "A", stige: { mainStep: 3, weakStep: 2 }, log: [0, 1, 2].map(v => ({ t: "main", v, at: kl(dag(9)) })).concat([0, 1].map(v => ({ t: "weak", v, at: kl(dag(9)) }))) },
+          { id: "B", dage: { [dag(9)]: { t: 3, s: 1, d: 1 } }, stige: { tricks: ["skiftefod"] }, log: [{ t: "trick", v: "skiftefod", at: kl(dag(9)) }] }]);
 t("5: lige på alt til og med lette, flest starter vinder (et trin er hverken svær, mellem, let eller starter)", r.vindere, ["B"]);
+t("5: tallene", r.res.rangliste.map(x => [x.id, ...tal(x)]), [["B", 25, 5, 0, 0, 0, 5], ["A", 25, 5, 0, 0, 0, 0]]);
 r = kaar([{ id: "zz", dage: { [dag(1)]: { k: 2, t: 1 } } }, { id: "bb", dage: { [dag(2)]: { k: 2, t: 1 } } }, { id: "mm", dage: { [dag(1)]: { k: 2 } } }]);
 t("6: helt lige - prisen deles, ordnet efter id", r.vindere, ["bb", "zz"]);
 t("tre lige deler", kaar([{ id: "A", dage: { [dag(1)]: { t: 1 } } }, { id: "B", dage: { [dag(2)]: { t: 1 } } }, { id: "C", dage: { [dag(3)]: { t: 1 } } }]).vindere, ["A", "B", "C"]);
 
 afsnit("Grundtræning og version 1's jongleringstræning tæller som svær");
-r = kaar([{ id: "A", dage: { [dag(1)]: { j: 1 } } }, { id: "B", dage: { [dag(1)]: { k: 1 } } }, { id: "C", dage: { [dag(1)]: { v: 1 } }, medaljer: [medalje(1, kl(dag(9)))] }]);
-t("grundtræning (5 point) og en svær (5 point) er helt lige - og foran en mellem med samme point", r.vindere, ["A", "B"]);
+r = kaar([{ id: "A", dage: { [dag(1)]: { j: 1 } } }, { id: "B", dage: { [dag(1)]: { k: 1 } } }, { id: "C", stige: { mainStep: 1 }, log: [{ t: "main", v: 0, at: kl(dag(1)) }] }]);
+t("grundtræning (5 point) og en svær (5 point) er helt lige - og foran et trin på stigen med samme point og øvelser", r.vindere, ["A", "B"]);
 t("grundtræning står som svær", tal(r.res.rangliste.find(x => x.id === "A")), [5, 1, 1, 0, 0, 0]);
 t("alle fire grundtræninger tæller som svær", tal(stat([{ id: "A", dage: { [dag(1)]: { j: 1, m: 1, n: 1, g: 1 } } }], "A")).slice(1), [4, 4, 0, 0, 0]);
 t("jongleringstræning på en version 1-dag tæller som svær (ikke mellem, som dens grad var)",
@@ -169,6 +184,25 @@ r = kaar([{ id: "A", gender: "dreng", dage: { [dag(1)]: { t: 1 } } }, { id: "B",
 t("pigen B vinder over drengen A i samme årgang", r.vindere, ["B"]);
 t("den gemte vinder har netop id, navn, point, øvelser, svær, mellem, let og starter - i den orden",
   K.topscorerVinder(r.vindere.length ? r.res.vindere[0] : {}), { id: "B", navn: "Navn B", point: 5, oevelser: 1, svaer: 1, mellem: 0, let: 0, starter: 0 });
+
+afsnit("Talentmærket og dueller ændrer ikke topscoreren (pointreglerne 2026-11-25)");
+{
+  // B har færre point fra fodteknik end A, men en medalje (80) og en vundet duel (25) i
+  // måneden - og 500 point på spillerdokumentet. Før havde B vundet med 107 mod 5.
+  const boern = [{ id: "A", dage: { [dag(1)]: { k: 1 } } },
+                 { id: "B", dage: { [dag(1)]: { t: 1 } }, medaljer: [medalje(80, kl(dag(5))), medalje(25, kl(dag(6)))] }];
+  saet(boern);
+  K.saetAlleBoern({
+    spillere: boern.map(b => ({ id: b.id, name: "Navn " + b.id, year: "2017", gender: "dreng", points: b.id === "B" ? 500 : 0 })),
+    fodteknik: boern.map(b => ({ id: b.id, days: b.dage })),
+    indsendelser: boern.flatMap(b => (b.medaljer || []).map(m => ({ playerId: b.id, status: "approved", reviewedAt: m.godkendt, pointsAwarded: m.point })))
+  });
+  const res = K.maanedensTopscorerRangering(boern.map(b => ({ id: b.id, name: "Navn " + b.id })), DEC, []);
+  t("A (svær, 5 point) vinder over B (starter, 2 point + medalje 80 + duel 25 + 500 på spilleren)", res.vindere.map(v => v.id), ["A"]);
+  t("B's point er kun fodteknikkens 2", res.rangliste.map(x => [x.id, x.point]), [["A", 5], ["B", 2]]);
+  t("med A som Månedens spiller vinder B med sine 2 point - ikke 107",
+    K.maanedensTopscorerRangering(boern.map(b => ({ id: b.id, name: "Navn " + b.id })), DEC, ["A"]).vindere.map(v => [v.id, v.point]), [["B", 2]]);
+}
 
 console.log(`\n${ok} ok, ${fejl} fejl`);
 process.exit(fejl ? 1 : 0);
