@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.82</title>
+  <title>TIF Talent Tracker v15.83</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -136,6 +136,15 @@
     .videofejl{color:#fff;font-size:14px;line-height:1.4}
     .videokort .btn{margin:0}
     .demobanner{margin:0;padding:10px 14px;background:#fff4d6;border-bottom:1px solid #f0d99a;color:#6b4d00;font-size:14px;line-height:1.45}
+    /* Se som spiller: banneret sidder i den klistrede header, saa det altid kan ses, og kun
+       Fodteknik, Jonglering og Rangliste vises. Admins egne faner roeres ikke - de skjules
+       af klassen paa body, og naar den fjernes, staar de, som de stod. */
+    .somspillerbanner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:10px -16px -10px;padding:9px 16px;background:#fff4d6;border-top:1px solid #f0d99a;color:#6b4d00;font-size:14px;line-height:1.4}
+    .somspillerbanner span{flex:1 1 200px;min-width:0;overflow-wrap:anywhere}
+    .somspillerbanner .btn{margin:0;flex:0 0 auto}
+    body.somspiller #mainNav > button:not(#tab-footwork):not(#tab-juggle):not(#tab-leaderboard){display:none!important}
+    body.somspiller #tab-footwork, body.somspiller #tab-juggle, body.somspiller #tab-leaderboard{display:inline-block!important}
+    button.kunvisning{opacity:.45;cursor:not-allowed}
     .checkrow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
     .checkrow:last-child{border-bottom:0}
     .toggle{border:0;border-radius:999px;padding:9px 13px;font-weight:800;background:var(--not);color:#333;min-width:92px}
@@ -171,9 +180,10 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.82 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.83 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
+  <div id="seSomSpillerBanner" class="somspillerbanner hidden" role="status"></div>
 </header>
 
 <div id="demoBanner" class="demobanner hidden">👀 <b>Demo-login</b> - her kan I se, hvordan appen fungerer. Knapperne er der, men videoer og udfordringer bliver ikke sendt ind.</div>
@@ -416,6 +426,15 @@
       </div>
     </details>
 
+    <details class="accordion" id="adminSeSomSpiller">
+      <summary><span>Se som spiller</span></summary>
+      <div class="accordion-body">
+        <p class="small">Se Daglig fodteknik, Jongleringsstigen og Ranglisten præcis, som et barn ser dem - med barnets egne registreringer og den rangliste, barnets login får (egen årgang, og kun eget køn, hvis login'et er begrænset til det). Det er kun en visning: intet kan registreres, fortrydes eller ændres, mens du ser.</p>
+        <label for="seSomSpillerValg">Vælg barn</label><select id="seSomSpillerValg"></select>
+        <button class="btn" onclick="startSeSomSpiller()">Vis som spiller</button>
+      </div>
+    </details>
+
     <details class="accordion">
       <summary><span>Opret spillerlogin</span></summary>
       <div class="accordion-body">
@@ -597,7 +616,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.82 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.83 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -835,6 +854,7 @@ function juggleGateOpen(pid){ return juggleTricks(pid).includes("oploft"); }
 function juggleMainBlocked(pid){ return juggleMainStep(pid) >= JUGGLE_GATE_AFTER && !juggleGateOpen(pid); }
 
 async function writeJuggle(pid, p, progress, logEntry){
+  if(seSomSpiller) throw new Error(SE_SOM_SPILLER_BESKED);   // sidste vaern: visningen skriver aldrig
   // Datoerne ligger paa det klub-laesbare dokument, fordi en registrering paa stigen
   // ogsaa taeller som en aktiv dag i fodteknik-streaken - og den skal kunne regnes ud
   // paa tvaers af aargange. Kun datoer: ingen navne, intet bruger-id, intet om hvad.
@@ -857,6 +877,7 @@ async function writeJuggle(pid, p, progress, logEntry){
 
 // Registrering sker fra spillerens eget login, paa tillid. Ingen video, ingen godkendelse.
 async function registerJuggle(kind, value){
+  if(seSomSpillerSpaerret()) return;
   if(!isPlayer() || !currentPlayerLink) return besked("Kun spilleren selv kan registrere trin.");
   if(demoBlocked("Trinnet bliver ikke registreret herfra.")) return;
   const p = currentPlayerLink, pid = p.id;
@@ -908,6 +929,7 @@ async function registerJuggle(kind, value){
 // at tage trinnet igen, giver det ikke point to gange i uge/maaned - se noten i
 // ladderPointsInWindow.
 async function undoJuggle(kind){
+  if(seSomSpillerSpaerret()) return;
   if(!isPlayer() || !currentPlayerLink) return besked("Kun spilleren selv kan fortryde her.");
   if(demoBlocked("Der sker ikke noget herfra.")) return;
   const p = currentPlayerLink, pid = p.id;
@@ -923,6 +945,7 @@ async function undoJuggle(kind){
   }catch(e){ console.error(e); besked("Kunne ikke fortryde: " + (e.message || "ukendt fejl")); }
 }
 async function undoJuggleTrick(trickId){
+  if(seSomSpillerSpaerret()) return;
   if(!isPlayer() || !currentPlayerLink) return besked("Kun spilleren selv kan fortryde her.");
   if(demoBlocked("Der sker ikke noget herfra.")) return;
   const p = currentPlayerLink, pid = p.id;
@@ -958,6 +981,7 @@ async function undoJuggleTrick(trickId){
 // genberegnes af sig selv, fordi de aldrig blev gemt - og de fjernede trin holder op
 // med at taelle med i uge/maaned, uden at loggen skal ryddes.
 async function correctJuggle(pid, kind){
+  if(seSomSpillerSpaerret()) return;
   if(isPlayer()) return besked("Kun trænere kan rette registreringer.");
   const p = players.find(x=>x.id===pid);
   if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
@@ -982,6 +1006,7 @@ async function correctJuggle(pid, kind){
   }catch(e){ console.error(e); besked("Kunne ikke rette: " + (e.message || "ukendt fejl")); }
 }
 async function correctJuggleTrick(pid, trickId){
+  if(seSomSpillerSpaerret()) return;
   if(isPlayer()) return besked("Kun trænere kan rette registreringer.");
   const p = players.find(x=>x.id===pid);
   if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
@@ -1789,6 +1814,7 @@ function footworkPointsInWindow(pid, since){
 
 // --- Skrivning ------------------------------------------------------------
 async function writeFootwork(pid, p, patch, logEntry, reasonPatch){
+  if(seSomSpiller) throw new Error(SE_SOM_SPILLER_BESKED);   // sidste vaern: visningen skriver aldrig
   await setDoc(doc(db, "footwork", pid), Object.assign({
     year: normalizeYearValue(p.year), gender: p.gender || null, updatedAt: serverTimestamp()
   }, patch), {merge:true});
@@ -1805,6 +1831,7 @@ async function writeFootwork(pid, p, patch, logEntry, reasonPatch){
 
 // Familien taeller op og ned paa den valgte dag. Ingen video, ingen godkendelse.
 async function registerFootwork(kode, delta){
+  if(seSomSpillerSpaerret()) return;
   if(!isPlayer() || !currentPlayerLink) return besked("Kun spilleren selv kan registrere fodteknik.");
   if(demoBlocked("Gennemførelsen bliver ikke registreret herfra.")) return;
   const ex = footworkEx(kode); if(!ex) return;
@@ -1839,6 +1866,7 @@ function footworkDayPatch(pid, dato, kode, ny){
 }
 
 async function requestFootworkJoker(){
+  if(seSomSpillerSpaerret()) return;
   if(!isPlayer() || !currentPlayerLink) return;
   if(demoBlocked("Jokeren bliver ikke sendt herfra.")) return;
   const p = currentPlayerLink, pid = p.id, dato = footworkSelectedDay();
@@ -1863,6 +1891,7 @@ async function requestFootworkJoker(){
   }catch(e){ console.error(e); besked("Kunne ikke sende jokeren: " + (e.message || "ukendt fejl")); }
 }
 async function cancelFootworkJoker(){
+  if(seSomSpillerSpaerret()) return;
   if(!isPlayer() || !currentPlayerLink) return;
   if(demoBlocked("Der sker ikke noget herfra.")) return;
   const p = currentPlayerLink, pid = p.id, dato = footworkSelectedDay();
@@ -1877,6 +1906,7 @@ async function cancelFootworkJoker(){
 
 // Traenerens afgoerelse. Den ligger i Godkendelser ved siden af videoerne.
 async function decideFootworkJoker(pid, dato, approve){
+  if(seSomSpillerSpaerret()) return;
   if(isPlayer()) return besked("Kun trænere kan afgøre jokere.");
   const p = players.find(x=>x.id===pid);
   if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
@@ -1895,6 +1925,7 @@ async function decideFootworkJoker(pid, dato, approve){
   }catch(e){ console.error(e); besked("Kunne ikke afgøre jokeren: " + (e.message || "ukendt fejl")); }
 }
 async function clearFootworkJoker(pid, dato){
+  if(seSomSpillerSpaerret()) return;
   if(isPlayer()) return besked("Kun trænere kan fjerne jokere.");
   const p = players.find(x=>x.id===pid);
   if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
@@ -1908,6 +1939,7 @@ async function clearFootworkJoker(pid, dato){
 
 // Traenerens stikproeve: ret en enkelt oevelse paa en enkelt dag, eller nulstil dagen.
 async function correctFootwork(pid, dato, kode){
+  if(seSomSpillerSpaerret()) return;
   if(isPlayer()) return besked("Kun trænere kan rette registreringer.");
   const p = players.find(x=>x.id===pid);
   if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
@@ -1926,6 +1958,7 @@ async function correctFootwork(pid, dato, kode){
 }
 // To trin, fordi en dag kan have flere oevelser: vaelg oevelsen, ret saa tallet.
 async function correctFootworkDay(pid, dato){
+  if(seSomSpillerSpaerret()) return;
   if(isPlayer()) return besked("Kun trænere kan rette registreringer.");
   const brugt = FOOTWORK.filter(ex=>footworkCount(pid, dato, ex.kode) > 0);
   if(!brugt.length) return besked("Der er ikke registreret noget den dag.");
@@ -1939,6 +1972,7 @@ async function correctFootworkDay(pid, dato){
   return correctFootwork(pid, dato, valg.kode);
 }
 async function resetFootworkDay(pid, dato){
+  if(seSomSpillerSpaerret()) return;
   if(isPlayer()) return besked("Kun trænere kan nulstille en dag.");
   const p = players.find(x=>x.id===pid);
   if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
@@ -2268,6 +2302,121 @@ function isPlayer(){ return currentUserDoc?.role === "player"; }
 function isDemoUser(){ return currentUserDoc?.demo === true; }
 
 // ---------------------------------------------------------------------------
+// SE SOM SPILLER (kun admin)
+// Admin vaelger et barn under Admin og ser Daglig fodteknik, Jongleringsstigen og
+// Ranglisten, som barnet ser dem. Siderne er ikke kopieret: de rigtige tegnefunktioner
+// koeres med barnet sat ind i de globale, de laeser (somSpiller):
+//  - currentUserDoc: barnets login, som admin kan se det i users (rolle, aargange, koen) -
+//    saa isPlayer(), allowedYears() og genderRestrictionFor() svarer som for barnet;
+//  - currentPlayerLink og players: barnet selv, som et spillerlogin henter det;
+//  - rangliste: de linjer, barnets lytter ville faa (egen aargang, og kun eget koen, hvis
+//    loginnet er begraenset til det - se lytRangliste i startListeners).
+// Alt saettes tilbage, saa snart tegningen er faerdig. Det sker synkront, saa ingen lytter,
+// intet klik og ingen anden kode ser de udskiftede vaerdier, og lytterne roeres ikke: admin
+// har i forvejen alt hentet. Uge, maaned og "i dag" regnes af datoen, som for barnet.
+//
+// INTET SKRIVES. Tre lag: knapperne, der ville skrive, slaas fra, naar siderne tegnes;
+// hver funktion, der skriver fra de tre sider (og spillerens og traenerens oevrige
+// skrivninger paa fodteknik, stige, dueller, Talentmaerket og sletning), starter med
+// seSomSpillerSpaerret(); og writeJuggle/writeFootwork, som al skrivning paa stigen og
+// fodteknikken gaar igennem, kaster, hvis de alligevel naas.
+let seSomSpiller = null;          // {pid, foer} mens admin ser appen som et barn
+let tegnerSomSpiller = false;     // sand, mens somSpiller() tegner
+const SE_SOM_SPILLER_SIDER = ["footwork", "juggle", "leaderboard"];
+const SE_SOM_SPILLER_BESKED = "Det her er kun en visning af, hvad barnet ser - intet kan ændres her.\n\nTryk \"Tilbage til admin\" for at komme tilbage.";
+// Knapper paa de tre sider, der kun viser noget andet frem - alt andet slaas fra.
+const SE_SOM_SPILLER_TILLADT = /^\s*(setFootworkDay|visGuideVideo|setLeaderboardPeriod|setLeaderboardScope)\(/;
+function seSomSpillerSpaerret(){
+  if(!seSomSpiller) return false;
+  besked(SE_SOM_SPILLER_BESKED);
+  return true;
+}
+// Barnets login, som admin ser det i users: et aktivt, rigtigt login foerst.
+function seSomSpillerLogin(pid){
+  const logins = users.filter(u=>u.role === "player" && u.playerId === pid);
+  return logins.find(u=>u.active !== false && u.demo !== true) || logins.find(u=>u.active !== false) || logins[0] || null;
+}
+// Kun det, der styrer visningen: rolle, barnet, aargange og koen - aldrig e-mail, demo
+// eller samtykke. Har barnet intet login, regnes med et spillerlogin som dem, serveren
+// opretter: barnets aargang, begraenset til barnets koen, hvis det er sat.
+function seSomSpillerDoc(p, login){
+  const y = normalizeYearValue(p.year);
+  if(login) return {role: "player", playerId: p.id, active: true, years: login.years || [], yearGenders: login.yearGenders || {}};
+  return {role: "player", playerId: p.id, active: true, years: [y], yearGenders: (p.gender === "dreng" || p.gender === "pige") ? {[y]: p.gender} : {}};
+}
+function somSpiller(tegn){
+  const p = players.find(x=>x.id === seSomSpiller.pid);
+  if(!p){
+    // Barnet er slettet, mens admin kiggede. Ud af visningen - efter denne tegning.
+    setTimeout(()=>{ if(seSomSpiller && !players.some(x=>x.id === seSomSpiller.pid)){ stopSeSomSpiller(); besked("Barnet findes ikke længere."); } }, 0);
+    return;
+  }
+  const gemt = {currentUserDoc, currentPlayerLink, players, rangliste};
+  try{
+    currentUserDoc = seSomSpillerDoc(p, seSomSpillerLogin(p.id));
+    currentPlayerLink = p;
+    players = [p];
+    // Som lytRangliste: loginnets foerste aargang, ellers barnets egen - og koennet, hvis
+    // loginnet er begraenset. Feltet sammenlignes, som forespoergslen goer (==).
+    const aar = allowedYears()[0] || normalizeYearValue(p.year), koen = genderRestrictionFor(aar);
+    rangliste = gemt.rangliste.filter(r=>r.year === aar && (!koen || r.gender === koen));
+    tegnerSomSpiller = true;
+    tegn();
+  } finally {
+    tegnerSomSpiller = false;
+    currentUserDoc = gemt.currentUserDoc; currentPlayerLink = gemt.currentPlayerLink; players = gemt.players; rangliste = gemt.rangliste;
+  }
+  SE_SOM_SPILLER_SIDER.forEach(id=>document.querySelectorAll("#" + id + " button").forEach(b=>{
+    if(SE_SOM_SPILLER_TILLADT.test(b.getAttribute("onclick") || "")) return;
+    b.disabled = true;
+    b.classList.add("kunvisning");
+    b.title = "Kun en visning - intet kan ændres her";
+  }));
+}
+function seSomSpillerBanner(){
+  const el = document.getElementById("seSomSpillerBanner");
+  if(!el) return;
+  const p = seSomSpiller && players.find(x=>x.id === seSomSpiller.pid);
+  if(!p){ el.classList.add("hidden"); el.innerHTML = ""; return; }
+  const note = seSomSpillerLogin(p.id) ? ""
+    : (p.gender === "dreng" || p.gender === "pige") ? " (barnet har intet login - vist som en spiller med samme køn)"
+    : " (barnet har intet login - vist med hele årgangen)";
+  el.innerHTML = `<span>👀 Du ser appen som <b>${escapeHtml(p.name || "Uden navn")}</b> (${escapeHtml(yearLabel(p.year))}) – intet kan ændres her${note}</span>
+    <button type="button" class="btn secondary smallbtn" onclick="stopSeSomSpiller()">Tilbage til admin</button>`;
+  el.classList.remove("hidden");
+}
+function startSeSomSpiller(pid){
+  if(!isAdmin()) return besked("Kun admin kan se appen som en spiller.");
+  if(seSomSpiller) return;
+  const valgt = typeof pid === "string" ? pid : document.getElementById("seSomSpillerValg")?.value;
+  const p = players.find(x=>x.id === valgt);
+  if(!p) return besked("Vælg et barn først.");
+  // Admins egne valg gemmes og saettes tilbage bagefter; barnet starter, som det selv ville:
+  // i dag, egen aargang, all-time.
+  seSomSpiller = {pid: p.id, foer: {periode: leaderboardPeriod, omfang: leaderboardScope, dag: footworkDaySelected,
+    aar: document.getElementById("leaderboardYear")?.value || null, scroll: window.scrollY}};
+  leaderboardPeriod = "all"; leaderboardScope = "own"; footworkDaySelected = null;
+  document.body.classList.add("somspiller");
+  seSomSpillerBanner();
+  showPage("footwork");
+  window.scrollTo(0, 0);
+}
+function stopSeSomSpiller(){
+  if(!seSomSpiller) return;
+  const f = seSomSpiller.foer;
+  seSomSpiller = null;
+  document.body.classList.remove("somspiller");
+  seSomSpillerBanner();
+  leaderboardPeriod = f.periode; leaderboardScope = f.omfang; footworkDaySelected = f.dag;
+  // Admins aargangsvalg paa ranglisten bor i selve feltet, som barnets visning ikke har.
+  // Det saettes ind igen, saa ranglisten finder det, naar den tegnes som admins.
+  const filter = document.getElementById("leaderboardFilter");
+  if(filter && f.aar) filter.innerHTML = `<select id="leaderboardYear"><option value="${escapeHtml(f.aar)}" selected>${escapeHtml(f.aar)}</option></select>`;
+  showPage("admin");
+  window.scrollTo(0, f.scroll);
+}
+
+// ---------------------------------------------------------------------------
 // TALENTMAERKET PR. AARGANG
 // Hjemmetraeningen (Fodteknik, Jonglering) kan rulles ud til en aargang uden videre -
 // familierne klarer den selv. Medaljeforloebet kan ikke: det kraever en traener, der
@@ -2464,7 +2613,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.82 · ikke logget ind");
+    setSyncStatus("v15.83 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2500,7 +2649,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.82 · bekræft inden I går i gang");
+    setSyncStatus("v15.83 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2508,7 +2657,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.82 · vælg din egen adgangskode");
+    setSyncStatus("v15.83 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2582,7 +2731,7 @@ function startListeners(){
         if(!ranglisteAar) lytRangliste(normalizeYearValue(currentPlayerLink.year));
       }
     }
-    setSyncStatus("v15.82 · live database aktiv");
+    setSyncStatus("v15.83 · live database aktiv");
     renderAll();
   };
   spillereHentet = false;
@@ -2591,7 +2740,7 @@ function startListeners(){
       players = snap.exists() ? [migratePlayer({id: snap.id, ...snap.data()})] : [];
       spillereHentet = true;
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.82 · databasefejl: " + e.code))] : [];
+    }, (e)=>setSyncStatus("v15.83 · databasefejl: " + e.code))] : [];
     if(!egenId){ players = []; spillereHentet = true; spillerFaaet(); }
   } else {
     unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
@@ -2599,7 +2748,7 @@ function startListeners(){
       if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
       players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.82 · databasefejl: " + e.code));
+    }, (e)=>setSyncStatus("v15.83 · databasefejl: " + e.code));
   }
   // Spillerens egen aargang kendes fra loginnet (som allowedYears); mangler den dér,
   // startes lytteren, naar spillerens eget dokument er kommet (se spillerFaaet).
@@ -3110,6 +3259,7 @@ function myDeletionRequest(){
   return deletionRequests.find(r=>r.id===currentPlayerLink.id) || null;
 }
 async function requestOwnDeletion(){
+  if(seSomSpillerSpaerret()) return;
   if(!isPlayer() || !currentPlayerLink) return;
   if(demoBlocked("Anmodningen bliver ikke sendt herfra.")) return;
   const p = currentPlayerLink;
@@ -3129,6 +3279,7 @@ async function requestOwnDeletion(){
   }
 }
 async function cancelOwnDeletionRequest(){
+  if(seSomSpillerSpaerret()) return;
   const r = myDeletionRequest();
   if(!r) return;
   if(!await spoerg("Fortryd anmodningen om sletning?\n\nAlt bliver, som det er, og du kan altid anmode igen senere.")) return;
@@ -3219,14 +3370,14 @@ async function deletePlayer(id){
   const skrevet = ((await indtast(`Skriv spillerens navn for at bekræfte:\n\n${navn}`, {ja: "Slet alt", farlig: true})) || "").trim();
   if(skrevet !== navn.trim()) return besked("Navnet passede ikke. Intet er slettet.");
 
-  setSyncStatus("v15.82 · sletter...");
+  setSyncStatus("v15.83 · sletter...");
   let svar;
   try{
     // Serveren tjekker navnet igen, før den sletter noget.
     svar = (await sletSpillerPaaServeren({playerId: id, navn: skrevet})).data;
   }catch(e){
     console.error(e);
-    setSyncStatus("v15.82 · live database aktiv");
+    setSyncStatus("v15.83 · live database aktiv");
     const kode = String(e?.code || "").replace(/^functions\//, "");
     const tekst = serverFejlTekst(e);
     // Afviste serveren kaldet, før den gik i gang, er intet slettet - så ingen opfordring.
@@ -3234,7 +3385,7 @@ async function deletePlayer(id){
     return besked("Kunne ikke slette: " + tekst
       + (afvist ? "" : `\n\nNåede noget at blive slettet, så tryk "Slet alt" igen - så gør serveren resten.`));
   }
-  setSyncStatus("v15.82 · live database aktiv");
+  setSyncStatus("v15.83 · live database aktiv");
 
   const fejl = Array.isArray(svar?.fejl) ? svar.fejl : [];
   if(fejl.length){
@@ -3676,6 +3827,18 @@ function renderAdmin(){
   if(newYears && isAdmin()){
     newYears.innerHTML = allKnownYears().map(y=>`<label class="checkpill"><input type="checkbox" class="newCoachYear" value="${y}"> ${y}<select class="newCoachYearGender" data-year="${y}">${yearGenderOptions("begge")}</select></label>`).join("");
   }
+  // Se som spiller: alle boern, grupperet efter aargang (nyeste foerst), navn · aargang · koen.
+  const seValg = document.getElementById("seSomSpillerValg");
+  if(seValg && isAdmin()){
+    const foer = seValg.value;
+    const aargange = [...new Set(players.map(p=>normalizeYearValue(p.year)))].sort((a,b)=>Number(b)-Number(a));
+    const koen = g=>g === "dreng" ? "dreng" : g === "pige" ? "pige" : "køn ikke sat";
+    seValg.innerHTML = aargange.length ? aargange.map(y=>`<optgroup label="${escapeHtml(yearLabel(y) || "Uden årgang")}">${
+      players.filter(p=>normalizeYearValue(p.year) === y).sort((a,b)=>String(a.name || "").localeCompare(String(b.name || ""), "da"))
+        .map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.name || "Uden navn")} · ${escapeHtml(yearLabel(p.year) || "uden årgang")} · ${koen(p.gender)}</option>`).join("")
+    }</optgroup>`).join("") : '<option value="">Ingen spillere endnu</option>';
+    if(foer && players.some(p=>p.id === foer)) seValg.value = foer;
+  }
   const playerLoginSelect = document.getElementById("newPlayerLoginPlayer");
   if(playerLoginSelect && isAdmin()){
     const linkedPlayerIds = new Set(users.filter(u=>u.role==="player" && u.playerId).map(u=>u.playerId));
@@ -3865,11 +4028,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.82 · migrering færdig");
+    setSyncStatus("v15.83 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.82 · migrering fejlede");
+    setSyncStatus("v15.83 · migrering fejlede");
   }
 }
 
@@ -4021,7 +4184,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.82 · uploader video...");
+    setSyncStatus("v15.83 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -4065,12 +4228,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.82 · live database aktiv");
+    setSyncStatus("v15.83 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.82 · live database aktiv");
+    setSyncStatus("v15.83 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -4087,6 +4250,7 @@ function uploadErrorText(stage, e){
 }
 
 async function submitTraining(playerId, stepIndex, exercise){
+  if(seSomSpillerSpaerret()) return;
   if(demoBlocked("Videoen bliver ikke sendt til træneren herfra.")) return;
   const input = document.getElementById(`upload_${stepIndex}_${exercise}`);
   const file = input?.files?.[0];
@@ -4252,6 +4416,7 @@ function fillFreestylePreset(text){
 }
 
 async function createChallenge(playerId){
+  if(seSomSpillerSpaerret()) return;
   if(demoBlocked("Udfordringen bliver ikke sendt til nogen herfra.")) return;
   const p = currentPlayerLink;
   const opponentId = document.getElementById("challengeOpponent").value;
@@ -4297,6 +4462,7 @@ async function createChallenge(playerId){
 }
 
 async function respondChallenge(challengeId, accept){
+  if(seSomSpillerSpaerret()) return;
   if(demoBlocked("Svaret bliver ikke gemt herfra.")) return;
   try{
     await setDoc(doc(db, "challenges", challengeId), {status: accept?"active":"declined", respondedAt: serverTimestamp()}, {merge:true});
@@ -4307,6 +4473,7 @@ async function respondChallenge(challengeId, accept){
 }
 
 async function submitChallengeVideo(challengeId){
+  if(seSomSpillerSpaerret()) return;
   if(demoBlocked("Videoen bliver ikke sendt ind herfra.")) return;
   const c = challenges.find(x=>x.id===challengeId);
   if(!c || !currentPlayerLink) return;
@@ -4854,6 +5021,7 @@ function ranglistePeriodePoint(r, periode, nu){
   return Number(r?.total) || 0;
 }
 function renderLeaderboard(){
+  if(seSomSpiller && !tegnerSomSpiller) return somSpiller(renderLeaderboard);   // Se som spiller: tegnes som barnet
   const maanedensEl = document.getElementById("maanedensArea");
   if(maanedensEl){
     // Foldes en forklaring ud, skal den blive aaben, naar kortet tegnes igen.
@@ -5196,6 +5364,7 @@ function renderChallengeBadge(){
   badge.classList.toggle("hidden", count === 0);
 }
 function renderJuggle(){
+  if(seSomSpiller && !tegnerSomSpiller) return somSpiller(renderJuggle);   // Se som spiller: tegnes som barnet
   const area = document.getElementById("juggleArea");
   if(!area) return;
   const rules = document.getElementById("juggleRulesArea");
@@ -5300,6 +5469,7 @@ function renderJuggle(){
 }
 
 function renderFootwork(){
+  if(seSomSpiller && !tegnerSomSpiller) return somSpiller(renderFootwork);   // Se som spiller: tegnes som barnet
   const area = document.getElementById("footworkArea");
   if(!area) return;
 
@@ -5931,7 +6101,7 @@ setInterval(()=>{ if(renderVenter && !uiOptaget() && Date.now() - sidsteBeroerin
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{visGuideVideo,lukGuideVideo,vaelgGuideVideo,uploadGuideVideo,deleteGuideVideo,login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,undoJuggle,undoJuggleTrick,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderGuideLevels,toggleYearTalentmaerke,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,downloadBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{startSeSomSpiller,stopSeSomSpiller,visGuideVideo,lukGuideVideo,vaelgGuideVideo,uploadGuideVideo,deleteGuideVideo,login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,undoJuggle,undoJuggleTrick,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderGuideLevels,toggleYearTalentmaerke,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,downloadBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>

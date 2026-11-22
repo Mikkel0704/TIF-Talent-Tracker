@@ -26,7 +26,7 @@ const currentUser={uid:"u1",email:"t@x.invalid"}; const currentPlayerLink=null;
 window.__dialoger=[]; window.__skrevet=[];
 async function spoerg(m){ window.__dialoger.push(String(m)); return true; }
 function besked(m){ window.__dialoger.push(String(m)); }
-function isPlayer(){return false;} function isDemoUser(){return false;} function demoBlocked(){return false;}
+function isPlayer(){return false;} function isDemoUser(){return false;} function demoBlocked(){return false;} const seSomSpiller = null; function seSomSpillerSpaerret(){ return false; }
 function canAccessPlayer(){return true;} function normalizeYearValue(v){return String(v);}
 function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
 function dagsISO(d){const x=new Date(d);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");}

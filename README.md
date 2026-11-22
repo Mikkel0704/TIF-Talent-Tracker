@@ -143,6 +143,26 @@ Spillerne får en "Se video"-knap på øvelsen under Fodteknik, Jonglering og Gu
 - **Forældreløse filer.** Slår sletningen af en udskiftet fil fejl, bliver filen liggende
   i `guides/` uden at blive vist nogen steder. Appen siger det, når det sker.
 
+## Se som spiller
+
+Under Admin → Se som spiller vælger en administrator et barn og trykker "Vis som spiller"
+(fra v15.83). Appen viser så Daglig fodteknik, Jongleringsstigen og Ranglisten præcis, som
+barnet ser dem, med et banner øverst ("Du ser appen som ... – intet kan ændres her") og kun
+de tre faner. "Tilbage til admin" giver admin sine faner og sin side tilbage.
+
+- **De rigtige sider, ikke en kopi.** Tegnefunktionerne køres med barnet sat ind i stedet for
+  den, der er logget ind (`somSpiller` i `index.html`): barnets login fra `users` (årgange og
+  køn), barnet selv og de ranglistelinjer, barnets login ville hente - egen årgang, og kun eget
+  køn, hvis login'et er begrænset til det. Har barnet intet login, vises det som et spillerlogin
+  begrænset til barnets køn, og banneret siger det. Admin har i forvejen alle data hentet, så
+  der startes ingen nye lyttere, og intet hentes.
+- **Intet kan skrives.** Knapperne, der ville skrive, er slået fra, hver skrivende funktion
+  på de tre sider (og spillerens og trænerens øvrige) siger "Det her er kun en visning ..."
+  og stopper, og stigens og fodteknikkens fælles skrivefunktioner kaster, hvis de alligevel
+  nås. Der er ingen regelændring - visningen læser kun det, admin allerede må læse.
+- `tests/visning/sesomspiller.mjs` åbner appen som barnet selv og kræver, at admins visning
+  af samme barn siger ordret det samme - og at intet tryk skriver.
+
 ## Adgangsreglerne i korte træk
 
 - **Et login uden for klubben kan ingenting.** Logins oprettes af serveren, og

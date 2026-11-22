@@ -34,6 +34,7 @@ let currentPlayerLink = null;
 async function setDoc(ref, data){ skrivninger.push({ref, data}); } function doc(_db, samling, id){ return samling + "/" + id; }
 function serverTimestamp(){ return null; } function normalizeYearValue(v){ return String(v); }
 function isPlayer(){ return rolle === "spiller"; } function demoBlocked(){ return false; }
+const seSomSpiller = null; function seSomSpillerSpaerret(){ return false; }
 function canAccessPlayer(){ return true; }
 function besked(m){ beskeder.push(String(m)); }
 async function spoerg(m){ beskeder.push(String(m)); return ja; }

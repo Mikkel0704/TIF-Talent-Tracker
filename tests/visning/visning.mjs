@@ -39,7 +39,7 @@ const currentUser = {uid:"u1", email:"t@x.invalid"};
 const currentUserDoc = {role:"player", playerId:"p1"};
 function isPlayer(){ return true; }
 function isDemoUser(){ return false; }
-function demoBlocked(){ return false; }
+function demoBlocked(){ return false; } const seSomSpiller = null; function seSomSpillerSpaerret(){ return false; }
 function canAccessPlayer(){ return true; }
 function normalizeYearValue(v){ return String(v); }
 function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#039;"}[s])); }

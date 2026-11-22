@@ -21,7 +21,7 @@ const footworkLogs=[{id:"p1",entries:[],reasons:{},year:"2016",gender:"dreng"}];
 const juggleLadder=[],juggleLog=[];
 const players=[{id:"p1",name:"Test Testesen",year:"2016",gender:"dreng"}];
 const p=players[0]; const currentUser={uid:"u1",email:"t@x.invalid"}; const currentPlayerLink=null;
-function isPlayer(){return false;} function isDemoUser(){return false;} function demoBlocked(){return false;}
+function isPlayer(){return false;} function isDemoUser(){return false;} function demoBlocked(){return false;} const seSomSpiller = null; function seSomSpillerSpaerret(){ return false; }
 function canAccessPlayer(){return true;} function normalizeYearValue(v){return String(v);}
 function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
 function juggleFor(){return null;} function juggleLogFor(){return [];}

@@ -22,7 +22,7 @@ const steps=[{level:1,medal:"Bronze",label:"N1 B"},{level:1,medal:"Sølv",label:
 const criteria={"Jonglering":{1:{Bronze:["10 jongleringer"],"Sølv":["20 jongleringer"],Guld:["35 jongleringer"]},
 2:{Bronze:["40 jongleringer"],"Sølv":["55 jongleringer","+ mindst 5 med andet ben"],Guld:["75 jongleringer","+ mindst 10 med andet ben"]},
 3:{Bronze:["80 jongleringer","+ mindst 15 med andet ben"],"Sølv":["100 jongleringer","+ mindst 20 med andet ben"],Guld:["150 jongleringer","+ mindst 30 med andet ben"]}}};
-function isPlayer(){return true;} function isDemoUser(){return true;} function demoBlocked(){return false;}
+function isPlayer(){return true;} function isDemoUser(){return true;} function demoBlocked(){return false;} const seSomSpiller = null; function seSomSpillerSpaerret(){ return false; }
 function canAccessPlayer(){return true;} function normalizeYearValue(v){return String(v);}
 function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
 function dagsISO(d){const x=new Date(d);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");}

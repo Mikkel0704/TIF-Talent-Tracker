@@ -35,6 +35,8 @@ function normalizeYearValue(v){ return String(v); }
 function isPlayer(){ return false; }
 function isDemoUser(){ return false; }
 function demoBlocked(){ return false; }
+const seSomSpiller = null;
+function seSomSpillerSpaerret(){ return false; }
 function canAccessPlayer(){ return true; }
 function besked(){ return Promise.resolve(); }
 function indtast(){ return Promise.resolve(null); }
