@@ -32,6 +32,9 @@ await env.withSecurityRulesDisabled(async c => {
   for(const pid of ['p1','p2','p3','p9']) await setDoc(doc(db,'players',pid), {name:'TEST '+pid, year:'2017', gender:'dreng', points:0});
 });
 const db = k => env.authenticatedContext(BRUGERE[k].uid).firestore();
+// Alle trick-id'er, som de staar i index.html - saa testen foelger listen, hvis den vokser.
+const TRICK_IDER = [...(/\nconst JUGGLE_TRICKS = \[([\s\S]*?)\n\];/.exec(fs.readFileSync(new URL("../../index.html", import.meta.url),'utf8'))?.[1] || "").matchAll(/id:"([^"]+)"/g)].map(m=>m[1]);
+if(TRICK_IDER.length !== 16) throw new Error("ventede 16 tricks i index.html, fandt " + TRICK_IDER.length);
 const FREM = {mainStep:1, weakStep:0, tricks:[], year:'2017', gender:'dreng', updatedAt:new Date()};
 
 // ---------- fremdrift ----------
@@ -51,7 +54,14 @@ await proev('det øverste trin for dårligt ben (12 = 100 berøringer) kan regis
 await proev('weakStep over 12 afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, weakStep:13}, {merge:true}));
 await proev('weakStep langt over afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, weakStep:99}, {merge:true}));
 await proev('negativt trin afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, mainStep:-5}, {merge:true}));
-await proev('mere end 6 tricks afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, tricks:['a','b','c','d','e','f','g']}, {merge:true}));
+await proev('alle 16 tricks kan gemmes','ALLOW',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, tricks:TRICK_IDER}, {merge:true}));
+await proev('et 7. trick kan gemmes (loftet var 6 før 2026-11-23)','ALLOW',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, tricks:TRICK_IDER.slice(0,7)}, {merge:true}));
+await proev('alle 16 igen, nu med kun de felter appen sender ved et trick','ALLOW',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {tricks:TRICK_IDER, year:'2017', gender:'dreng', updatedAt:new Date()}, {merge:true}));
+ok('og de 16 tricks står der bagefter', JSON.stringify((await getDoc(doc(db('spiller'),'juggleLadder','p1'))).data()?.tricks) === JSON.stringify(TRICK_IDER));
+await proev('mere end 16 tricks afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, tricks:[...TRICK_IDER, 'ekstra']}, {merge:true}));
+await proev('32 tricks (alle to gange) afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, tricks:[...TRICK_IDER, ...TRICK_IDER]}, {merge:true}));
+await proev('tricks som tekst afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, tricks:'inderside5'}, {merge:true}));
+await proev('træneren kan give alle 16 tricks','ALLOW',()=>setDoc(doc(db('traener'),'juggleLadder','p1'), {...FREM, tricks:TRICK_IDER}, {merge:true}));
 await proev('et point-felt kan IKKE smugles med','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, points:99999}, {merge:true}));
 await proev('trin som tekst i stedet for tal afvises','DENY',()=>setDoc(doc(db('spiller'),'juggleLadder','p1'), {...FREM, mainStep:'15'}, {merge:true}));
 

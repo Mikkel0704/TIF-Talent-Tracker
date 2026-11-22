@@ -277,10 +277,142 @@ t("17 trin afvises - stigen har 16", sidste(), "Skriv et tal mellem 0 og 16.");
 await K.correctJuggleTrick(PID, "oploft");
 t("træneren fjerner opløft: -10 point (trickets egne)", pointI(sidste()), "-10");
 
+console.log("\n16 tricks i tre grupper (pointreglerne 2026-11-23)");
+const trickPoint = Object.fromEntries(K.JUGGLE_TRICKS.map(x=>[x.id, x.point]));
+t("hvert tricks point (godkendt liste)", trickPoint, {
+  oploft:10, vrist:10, skiftefod:10, inderside5:10, yderside5:10,
+  laarfod:15, hoved:15, gribfod:15, inderside10:15, yderside10:15, haelbagom3:15,
+  jordenrundt:20, hoved10:20, inderside20:20, yderside20:20, haelbagom5:20});
+t("navnene i rækkefølge", K.JUGGLE_TRICKS.map(x=>x.navn), ["Opløft","Stop på vristen","Skiftefod","Inderside 5","Yderside 5",
+  "Lår-fod-lår-fod","3 hovedstød","Grib bolden på foden","Inderside 10","Yderside 10","Hælen bagom 3",
+  "Jorden rundt","10 hovedstød","Inderside 20","Yderside 20","Hælen bagom 5"]);
+t("16 tricks med hver sit id", [K.JUGGLE_TRICKS.length, new Set(K.JUGGLE_TRICKS.map(x=>x.id)).size], [16, 16]);
+t("grupperne: Let 10, Mellem 15, Svær 20", K.JUGGLE_TRICK_NIVEAUER.map(n=>n.navn + " " + n.point), ["Let 10","Mellem 15","Svær 20"]);
+t("hvert tricks point passer til dets gruppe",
+  K.JUGGLE_TRICKS.every(x=>x.point === K.JUGGLE_TRICK_NIVEAUER.find(n=>n.id === x.niveau)?.point), true);
+t("5 lette (50), 6 mellem (90), 5 svære (100)", K.JUGGLE_TRICK_NIVEAUER.map(n=>{
+  const xs = K.JUGGLE_TRICKS.filter(x=>x.niveau === n.id); return [xs.length, sum(xs.map(x=>x.point))]; }), [[5,50],[6,90],[5,100]]);
+t("de seks gamle id'er findes stadig og betyder det samme",
+  ["oploft","vrist","skiftefod","laarfod","hoved","jordenrundt"].map(id=>K.juggleTrick(id)?.navn),
+  ["Opløft","Stop på vristen","Skiftefod","Lår-fod-lår-fod","3 hovedstød","Jorden rundt"]);
+saet(0,0,["jordenrundt"]);
+t("Jorden rundt giver nu 20 (også for et barn, der allerede havde den)", K.ladderPoints(PID), 20);
+saet(0,0,["oploft","vrist","skiftefod","laarfod","hoved","jordenrundt"]);
+t("de seks gamle tricks = 30 + 30 + 20 = 80 (før 75)", K.ladderPoints(PID), 80);
+saet(0,0,["hoved10","gribfod","inderside5","ukendt","hoved10"]);
+t("nye tricks tæller, ukendte og dubletter ikke: 20 + 15 + 10", K.ladderPoints(PID), 45);
+t("serierne: hvem kræver hvem", K.JUGGLE_TRICKS.filter(x=>x.kraever).map(x=>x.kraever + ">" + x.id),
+  ["inderside5>inderside10","yderside5>yderside10","inderside10>inderside20","yderside10>yderside20","haelbagom3>haelbagom5"]);
+t("et krævet trick står altid før i listen og i en lettere gruppe",
+  K.JUGGLE_TRICKS.filter(x=>x.kraever).every(x=>{
+    const f = K.juggleTrick(x.kraever), niv = id=>K.JUGGLE_TRICK_NIVEAUER.findIndex(n=>n.id===id);
+    return f && K.JUGGLE_TRICKS.indexOf(f) < K.JUGGLE_TRICKS.indexOf(x) && niv(f.niveau) < niv(x.niveau); }), true);
+t("10 hovedstød kræver ikke 3 hovedstød", K.juggleTrick("hoved10").kraever, undefined);
+t("efterfølgerne i en serie", ["inderside5","inderside10","inderside20","yderside5","haelbagom3","hoved"].map(id=>K.juggleTrickEfterfoelgere(id).map(x=>x.id)),
+  [["inderside10","inderside20"],["inderside20"],[],["yderside10","yderside20"],["haelbagom5"],[]]);
+
+console.log("\nSerierne tages i rækkefølge");
+K.saetRolle("spiller");
+K.skrivninger.length = 0;
+const laast = async (tricks, id) => { saet(0,0,tricks); await K.registerJuggle("trick", id); return sidste(); };
+t("Inderside 10 uden Inderside 5 er låst", await laast([], "inderside10"), '"Inderside 10" er låst.\n\nTag Inderside 5 først - serien tages i rækkefølge.');
+t("Inderside 20 med kun Inderside 5 er låst - tag 10 først", /Tag Inderside 10 først/.test(await laast(["inderside5"], "inderside20")), true);
+t("Yderside 10 åbnes ikke af Inderside 5", /Tag Yderside 5 først/.test(await laast(["inderside5"], "yderside10")), true);
+t("Yderside 20 med kun Yderside 5 er låst", /Tag Yderside 10 først/.test(await laast(["yderside5"], "yderside20")), true);
+t("Hælen bagom 5 uden 3 er låst", /Tag Hælen bagom 3 først/.test(await laast([], "haelbagom5")), true);
+t("et låst trick skrives ikke", K.skrivninger.length, 0);
+t("Inderside 10 efter Inderside 5: giver 15 point", pointI(await laast(["inderside5"], "inderside10")), "15");
+t("Inderside 20 efter 5 og 10: giver 20 point", pointI(await laast(["inderside5","inderside10"], "inderside20")), "20");
+t("Hælen bagom 5 efter 3: giver 20 point", pointI(await laast(["haelbagom3"], "haelbagom5")), "20");
+t("10 hovedstød kan tages uden 3 hovedstød: giver 20 point", pointI(await laast([], "hoved10")), "20");
+t("Grib bolden på foden: giver 15 point", pointI(await laast([], "gribfod")), "15");
+t("Inderside 5 kan altid tages: giver 10 point", pointI(await laast([], "inderside5")), "10");
+t("spærringen spørges direkte", [K.juggleTrickSpaerret(PID, "inderside5"), K.juggleTrickSpaerret(PID, "inderside10")?.id], [null, "inderside5"]);
+K.saetJa(true);
+await laast(["inderside5"], "inderside10");
+const [stigeSkriv, logSkriv] = K.skrivninger;
+t("registreringen i rækkefølge skriver begge tricks", [stigeSkriv?.ref, stigeSkriv?.data.tricks], ["juggleLadder/p1", ["inderside5","inderside10"]]);
+t("og logger tricket", [logSkriv?.ref, logSkriv?.data.entries[0].t, logSkriv?.data.entries[0].v], ["juggleLog/p1", "trick", "inderside10"]);
+K.saetJa(false);
+
+console.log("\nFortryd ruller serien med tilbage");
+const fortrydTrick = async (tricks, id) => { saet(0,0,tricks); K.skrivninger.length = 0; await K.undoJuggleTrick(id); return sidste(); };
+t("fortryd Inderside 5 med 10 og 20: dialogen nævner dem og 45 point",
+  await fortrydTrick(["inderside5","inderside10","inderside20","hoved"], "inderside5"),
+  'Fortryd "Inderside 5"?\n\nInderside 10 og Inderside 20 bygger på Inderside 5 og bliver også fortrudt. Du mister 45 point i alt.');
+t("fortryd Inderside 10 med 20: 35 point i alt",
+  /^Fortryd "Inderside 10"\?\n\nInderside 20 bygger på Inderside 10 og bliver også fortrudt\. Du mister 35 point i alt\.$/.test(await fortrydTrick(["inderside5","inderside10","inderside20"], "inderside10")), true);
+t("fortryd det sidste i serien: kun dets egne 20", (await fortrydTrick(["inderside5","inderside10","inderside20"], "inderside20")).endsWith("Du mister 20 point."), true);
+t("fortryd Inderside 5 alene: kun 10", (await fortrydTrick(["inderside5","yderside5","yderside10"], "inderside5")).endsWith("Du mister 10 point."), true);
+t("fortryd Hælen bagom 3 med 5: 35 point i alt", /Hælen bagom 5 bygger på Hælen bagom 3 og bliver også fortrudt\. Du mister 35 point i alt\./.test(await fortrydTrick(["haelbagom3","haelbagom5"], "haelbagom3")), true);
+t("fortryd 3 hovedstød rører ikke 10 hovedstød", (await fortrydTrick(["hoved","hoved10"], "hoved")).endsWith("Du mister 15 point."), true);
+t("selv et hul i serien (5 og 20, ikke 10) ruller 20 med (10 + 20)", /Inderside 20 bygger på Inderside 5.*30 point i alt/s.test(await fortrydTrick(["inderside5","inderside20"], "inderside5")), true);
+t("nej skriver ingenting", K.skrivninger.length, 0);
+K.saetJa(true);
+await fortrydTrick(["inderside5","inderside10","inderside20","hoved"], "inderside5");
+t("ja: kun 3 hovedstød er tilbage", K.skrivninger[0]?.data.tricks, ["hoved"]);
+t("loggen siger hvad der rullede med", (({t: a, stige, trick, ogsaa})=>({a, stige, trick, ogsaa}))(K.skrivninger[1]?.data.entries[0] || {}),
+  {a:"undo", stige:"trick", trick:"inderside5", ogsaa:["inderside10","inderside20"]});
+await fortrydTrick(["yderside5","yderside10","yderside20","inderside5"], "yderside10");
+t("fortryd Yderside 10: Yderside 5 og Inderside 5 bliver", K.skrivninger[0]?.data.tricks, ["yderside5","inderside5"]);
+await fortrydTrick(["vrist"], "vrist");
+t("et trick uden serie logges uden ogsaa", "ogsaa" in (K.skrivninger[1]?.data.entries[0] || {}), false);
+K.saetJa(false);
+saet(0, 0, ["hoved"], [
+  {t:"trick", v:"inderside5", at: iso(-1)}, {t:"trick", v:"inderside10", at: iso(-1)}, {t:"trick", v:"inderside20", at: iso(-1)},
+  {t:"trick", v:"hoved", at: iso(-1)}, {t:"undo", stige:"trick", trick:"inderside5", ogsaa:["inderside10","inderside20"], at: iso(-1)}]);
+t("efter fortrydelsen tæller de fortrudte heller ikke i ugen", [K.ladderPointsInWindow(PID, siden), K.ladderPoints(PID)], [15, 15]);
+
+console.log("\nTrænerens rettelse holder serien hel");
+K.saetRolle("traener");
+const ret = async (tricks, id) => { saet(0,0,tricks); K.skrivninger.length = 0; await K.correctJuggleTrick(PID, id); return sidste(); };
+t("fjern Inderside 10: Inderside 20 ryger med, -35",
+  await ret(["inderside5","inderside10","inderside20"], "inderside10"),
+  'Fjern "Inderside 10" for Testbarn?\n\nInderside 20 bygger på Inderside 10 og bliver også fjernet.\n\n-35 point. Rettelsen bliver logget med dit navn.');
+t("giv Inderside 20 til et barn uden serien: 5 og 10 gives med, +45",
+  await ret([], "inderside20"),
+  'Giv "Inderside 20" for Testbarn?\n\nInderside 5 og Inderside 10 kommer før i serien og bliver også givet.\n\n+45 point. Rettelsen bliver logget med dit navn.');
+t("giv Yderside 20 med Yderside 5: kun 10 gives med, +35", /Yderside 10 kommer før i serien og bliver også givet\.\n\n\+35 point/.test(await ret(["yderside5"], "yderside20")), true);
+t("giv 10 hovedstød: kun det, +20", /^Giv "10 hovedstød" for Testbarn\?\n\n\+20 point/.test(await ret([], "hoved10")), true);
+t("fjern Jorden rundt: -20", pointI(await ret(["jordenrundt"], "jordenrundt")), "-20");
+K.saetJa(true);
+await ret([], "inderside20");
+t("ja: hele serien gemmes i rækkefølge", K.skrivninger[0]?.data.tricks, ["inderside5","inderside10","inderside20"]);
+t("og logges som én rettelse med de andre i ogsaa", (({til, trick, ogsaa})=>({til, trick, ogsaa}))(K.skrivninger[1]?.data.entries[0] || {}),
+  {til:"givet", trick:"inderside20", ogsaa:["inderside5","inderside10"]});
+await ret(["inderside5","inderside10","inderside20","haelbagom3","haelbagom5"], "inderside5");
+t("fjern Inderside 5: kun Hælen bagom bliver", K.skrivninger[0]?.data.tricks, ["haelbagom3","haelbagom5"]);
+// Uanset udgangspunkt og hvilket trick træneren trykker på, står serierne hele bagefter.
+const hel = xs => xs.every(id=>{ const k = K.juggleTrick(id)?.kraever; return !k || xs.includes(k); });
+const udgangspunkter = [[], K.JUGGLE_TRICKS.map(x=>x.id), ["inderside5","yderside5","haelbagom3"], ["inderside5","inderside10","yderside5","hoved"], ["yderside5","yderside10","yderside20"]];
+let alleHele = true, alleVendt = true;
+for(const start of udgangspunkter) for(const x of K.JUGGLE_TRICKS){
+  await ret(start, x.id);
+  const efter = K.skrivninger[0]?.data.tricks || [];
+  if(!hel(efter)) alleHele = false;
+  if(efter.includes(x.id) === start.includes(x.id)) alleVendt = false;
+}
+t("hver rettelse fra fem udgangspunkter efterlader hele serier", alleHele, true);
+t("og vender altid det trick, træneren trykkede på", alleVendt, true);
+K.saetJa(false);
+
+console.log("\nTricks i vinduet og i Månedens topscorer");
+saet(3, 0, K.JUGGLE_TRICKS.map(x=>x.id), [
+  {t:"trick", v:"inderside5", at: iso(-10)}, {t:"trick", v:"inderside10", at: iso(-1)},
+  {t:"trick", v:"jordenrundt", at: iso(-1)}, {t:"trick", v:"hoved10", at: iso(-1)}, {t:"trick", v:"hoved10", at: iso(-1)},
+  {t:"main", v:0, at: iso(-1)}, {t:"main", v:1, at: iso(-1)}, {t:"main", v:2, at: iso(-10)}
+]);
+t("tricks tæller efter loggens dato med deres egne point: 15 + 20 + 20 (+ 2 trin à 5)", K.ladderPointsInWindow(PID, siden), 15 + 20 + 20 + 5 + 5);
+t("topscorerens øvelser tæller kun trin, ikke tricks", K.ladderTrinIVindue(PID, siden), 2);
+saet(0, 0, ["inderside5","inderside10","hoved10"], [{t:"trick", v:"inderside5", at: iso(-1)}, {t:"trick", v:"inderside10", at: iso(-1)}, {t:"trick", v:"hoved10", at: iso(-1)}]);
+t("kun tricks i måneden: 45 point, 0 øvelser", [K.ladderPointsInWindow(PID, siden), K.ladderTrinIVindue(PID, siden)], [45, 0]);
+
 console.log("\nReglerne, børnene læser");
 const regler = K.JUGGLE_RULES.join(" ");
 t("reglerne nævner 5, 10, 15 og 20 point pr. trin",
   /5 point pr\. trin i Find kontakten, 10 i Rytme, 15 i Kontrol og 20 i Udholdenhed/.test(regler), true);
+t("reglerne nævner tricksenes point og serierne",
+  /Tricks: Let giver 10 point, Mellem 15 og Svær 20\. Inderside, Yderside og Hælen bagom er serier, der tages i rækkefølge/.test(regler), true);
 t("og intet om at point = antal jongleringer eller dobbelt", /lige så mange point|dobbelt/.test(regler), false);
 t("guiden til forældre siger det samme", /Hvert trin giver 5, 10, 15 eller 20 point/.test(html) && !/40 jongleringer giver 40 point/.test(html), true);
 

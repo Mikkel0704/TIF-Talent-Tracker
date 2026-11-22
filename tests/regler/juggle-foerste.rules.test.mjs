@@ -56,7 +56,8 @@ await proev('mainStep over 15 afvises','DENY', ()=>L({mainStep:99}));
 await proev('negativt mainStep afvises','DENY', ()=>L({mainStep:-1}));
 await proev('mainStep som tekst afvises','DENY', ()=>L({mainStep:'3'}));
 await proev('weakStep over 10 afvises','DENY', ()=>L({weakStep:99}));
-await proev('mere end 6 tricks afvises','DENY', ()=>L({tricks:['a','b','c','d','e','f','g']}));
+await proev('mere end 16 tricks afvises','DENY', ()=>L({tricks:Array.from({length:17},(_,i)=>'t'+i)}));
+await proev('16 tricks er loftet og går igennem','ALLOW', ()=>L({tricks:Array.from({length:16},(_,i)=>'t'+i)}));
 await proev('tricks som tekst afvises','DENY', ()=>L({tricks:'oploft'}));
 await proev('mere end 400 datoer afvises','DENY',
   ()=>setDoc(doc(db('hoved'),'juggleLadder','p-hoved'),

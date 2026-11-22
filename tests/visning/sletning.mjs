@@ -181,7 +181,7 @@ await klikSletAlt(); await svar(true); await skriv("Ida Test");
 t("forbindelsen svigter midt i: admin faar at vide, at en ny 'Slet alt' goer resten",
   (await dialogTekst()) === "Kunne ikke slette: Ingen forbindelse til serveren. Tjek internetforbindelsen, og prøv igen.\n\nNåede noget at blive slettet, så tryk \"Slet alt\" igen - så gør serveren resten.", await dialogTekst());
 await svar(true);
-t("statuslinjen er tilbage paa v15.80 · live database aktiv", await page.evaluate(() => document.getElementById("syncStatus").textContent) === "v15.80 · live database aktiv");
+t("statuslinjen er tilbage paa v15.81 · live database aktiv", await page.evaluate(() => document.getElementById("syncStatus").textContent) === "v15.81 · live database aktiv");
 
 console.log("\nSlet spiller · Godkend og slet alt");
 await nulstil([{ data: OPGOER }, { data: ALT_SLETTET }]);

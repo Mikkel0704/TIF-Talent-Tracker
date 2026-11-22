@@ -30,7 +30,9 @@ const t = (n, b, ekstra) => { b ? (ok++, console.log("  ok   " + n)) : (fejlet++
 // --- tilfaeldige, men genskabelige data -------------------------------------------------
 function fro(s){ return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let x = Math.imul(s ^ s >>> 15, 1 | s); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; }; }
 const KODER = ["t", "s", "d", "v", "p", "o", "y", "j", "l", "k", "c", "q", "x", "r", "i", "e", "w", "m", "n", "g"];
-const TRICKS = ["oploft", "vrist", "skiftefod", "laarfod", "hoved", "jordenrundt"];
+// Alle 16 tricks (pointreglerne 2026-11-23): de seks gamle og de ti nye.
+const TRICKS = ["oploft", "vrist", "skiftefod", "laarfod", "hoved", "jordenrundt",
+  "inderside5", "yderside5", "gribfod", "inderside10", "yderside10", "haelbagom3", "hoved10", "inderside20", "yderside20", "haelbagom5"];
 const dag = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;  // TZ er dansk (rangliste.js)
 const ugestart = nu => { const d = new Date(nu); d.setHours(0, 0, 0, 0); const w = d.getDay(); d.setDate(d.getDate() + (w === 0 ? -6 : 1 - w)); return d; };
 

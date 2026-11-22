@@ -84,7 +84,7 @@ function lavData(nu, seed, { kaaringer = {}, topscorere = {} } = {}){
     }
     if(r() < 0.25) continue;
     const mainStep = heltal(0, 16), weakStep = heltal(0, 12);
-    const tricks = ["oploft", "vrist", "skiftefod"].filter(() => r() < 0.4);
+    const tricks = ["oploft", "vrist", "skiftefod", "inderside5", "inderside10", "gribfod", "jordenrundt", "hoved10"].filter(() => r() < 0.4);
     const entries = [];
     for(let v = 0; v < mainStep; v++) entries.push({ t: "main", v, at: tidspunkt() });
     for(let v = 0; v < weakStep; v++) entries.push({ t: "weak", v, at: tidspunkt() });

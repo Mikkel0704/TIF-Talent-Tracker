@@ -71,6 +71,22 @@ t("ugen: trin 1 og 2 og oploeft én gang hver = 20", l.uge.point === 20, l.uge);
 t("maaneden: + daarligt ben trin 2 (5) = 25", l.maaned.point === 25, l.maaned);
 t("tildelte point og stigen laegges sammen", linje({ player: spiller({ points: 10 }), juggleLadderDoc: stige, juggleLogDoc: stigelog }).total === 45);
 
+console.log("\nDe 16 tricks (pointreglerne 2026-11-23)");
+const ALLE_TRICKS = ["oploft", "vrist", "skiftefod", "inderside5", "yderside5", "laarfod", "hoved", "gribfod", "inderside10", "yderside10",
+  "haelbagom3", "jordenrundt", "hoved10", "inderside20", "yderside20", "haelbagom5"];
+t("Jorden rundt giver 20 paa serveren (foer 15)", linje({ player: spiller(), juggleLadderDoc: { tricks: ["jordenrundt"] } }).total === 20);
+t("de seks gamle tricks = 80 (foer 75)", linje({ player: spiller(), juggleLadderDoc: { tricks: ALLE_TRICKS.filter(x => ["oploft", "vrist", "skiftefod", "laarfod", "hoved", "jordenrundt"].includes(x)) } }).total === 80);
+t("alle 16 tricks = 50 + 90 + 100 = 240", linje({ player: spiller(), juggleLadderDoc: { tricks: ALLE_TRICKS } }).total === 240);
+t("hele stigen = 200 + 150 + 240 = 590", linje({ player: spiller(), juggleLadderDoc: { mainStep: 16, weakStep: 12, tricks: ALLE_TRICKS } }).total === 590);
+l = linje({ player: spiller(), juggleLadderDoc: { mainStep: 1, tricks: ["inderside5", "inderside10", "hoved10"] }, juggleLogDoc: { entries: [
+  { t: "trick", v: "inderside5", at: "2026-11-10T09:00:00Z" },    // forrige uge
+  { t: "trick", v: "inderside10", at: "2026-11-17T09:00:00Z" },   // denne uge
+  { t: "trick", v: "hoved10", at: "2026-11-17T10:00:00Z" },
+  { t: "trick", v: "inderside20", at: "2026-11-17T11:00:00Z" },   // fortrudt igen: ikke i tricks, taeller ikke
+  { t: "main", v: 0, at: "2026-11-17T09:00:00Z" }
+] } });
+t("nye tricks i vinduet efter loggens dato: uge 15 + 20 + trin 5 = 40, maaned + 10 = 50", l.uge.point === 40 && l.maaned.point === 50, [l.uge, l.maaned]);
+
 console.log("\nDaglig fodteknik");
 l = linje({ player: spiller(), footworkDoc: { days: { "2026-11-10": { t: 3, x: 2 } } } });
 t("version 1-dag (foer FOOTWORK_V2_FRA): 3 toe-taps a 2 + kombi 2 = 8; en ny oevelse taeller ikke", l.total === 8, l);
