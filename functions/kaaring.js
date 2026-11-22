@@ -44,6 +44,12 @@ export function alleKaaringerAtOprette({ spillere = [], fodteknik = [], indsende
   if(process.env.TZ !== "Europe/Copenhagen") throw new Error("TZ er ikke Europe/Copenhagen - den 5. ville begynde paa det forkerte tidspunkt");
   const maaneder = kode.maanederTilKaaring(kode.dagsISO(nu));
   if(!maaneder.length) return [];
+  // Appens kode regner "i dag" ud fra nu - ikke maskinens ur (fx dage efter i dag).
+  kode.saetNu(nu);
+  try{ return beregnKaaringer({ spillere, fodteknik, indsendelser, stiger, stigelogge, kaaringer, topscorere }, maaneder); }
+  finally{ kode.saetNu(null); }
+}
+function beregnKaaringer({ spillere, fodteknik, indsendelser, stiger, stigelogge, kaaringer, topscorere }, maaneder){
 
   // Som appen, naar spillerne hentes: migratePlayer giver en spiller uden aargang den
   // aargang, noten peger paa, og normaliserer den. Kopier, saa kalderens data ikke roeres.

@@ -347,7 +347,8 @@ const priv = (await a.tekst("#privacy")).replace(/\s+/g, " ");
 t("spillerens række siger, at andre børn kun ses på ranglisten", /Om de andre på sit eget hold \(samme årgang - og samme køn, når login'et er oprettet til drenge eller piger\): kun ranglisten/.test(priv), priv.slice(0, 200));
 t("og at træningsdage, øvelser, Talentmærket, medaljer og logge ikke kan hentes", /Ikke andre børns træningsdage, øvelser, fremdrift i Talentmærket/.test(priv) && /medaljer, logge/.test(priv));
 t("den gamle 'kendte svaghed' er væk", !/Skærmen viser mindre, end der hentes/.test(priv) && !/kendt svaghed/.test(priv));
-t("serverfunktionen og dens placering er nævnt", /serverfunktion hos Google.*Belgien \(europe-west1\)/.test(priv));
+t("serverfunktionerne og deres placering er nævnt - også oprydningen", /serverfunktioner hos Google \(Cloud Functions\) i Belgien \(europe-west1\) regner ranglisten ud/i.test(priv)
+  && /rydder op i videoer og joker-begrundelser/.test(priv));
 await a.luk();
 
 await browser.close();

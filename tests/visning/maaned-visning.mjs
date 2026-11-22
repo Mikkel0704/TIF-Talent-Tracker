@@ -73,17 +73,20 @@ await a.page.click("#maanedensArea .maanedforklaring summary"); await a.page.wai
 kort = await a.tekst("#maanedensArea");
 t("forklaringen nævner flest dage, tid, øvelser, point, deling og 'ikke to i træk'",
   /flest dage/.test(kort) && /længst tid/.test(kort) && /flest øvelser/.test(kort) && /flest point/.test(kort) && /deler I prisen/.test(kort) && /to måneder i træk/.test(kort), kort);
+t("og at kun Daglig fodteknik tæller, og at en øvelse er halvandet minut (3 × 30 sekunder)",
+  /Kun Daglig fodteknik tæller - ikke Jongleringsstigen\./.test(kort) && /En øvelse tæller som halvandet minut \(3 × 30 sekunder\)\. En grundtræning tæller 5 minutter\./.test(kort), kort);
 t("topscorerens forklaring ligger ved siden af, foldet sammen", await a.page.evaluate(() => {
   const d = document.querySelector('#maanedensArea details.maanedforklaring[data-forklaring="topscorer"]');
   return !!d && !d.open && d.querySelector("summary").textContent === "Sådan bliver man Månedens topscorer"; }));
 await a.page.click('#maanedensArea .maanedforklaring[data-forklaring="topscorer"] summary'); await a.page.waitForTimeout(100);
 const forkl = (await a.tekst('#maanedensArea .maanedforklaring[data-forklaring="topscorer"]')).replace(/\n/g, " ");
-t("topscorer: flest point i måneden - alle point, fodteknik, stigen og medaljer i den måned, træneren godkender dem",
-  /flest point i måneden/.test(forkl) && /Alle point tæller: fodteknik, Jongleringsstigen og medaljer/.test(forkl) && /i den måned, træneren godkender den/.test(forkl), forkl);
+t("topscorer: flest point i måneden - alle point: fodteknik, stigen, godkendte videoer og vundne dueller, en video i den måned, træneren godkender den",
+  /flest point i måneden/.test(forkl) && /Alle point tæller: fodteknik, Jongleringsstigen, godkendte videoer i Talentmærket og vundne dueller\./.test(forkl)
+  && /Point for en video tæller i den måned, træneren godkender den/.test(forkl) && !/medalje/.test(forkl), forkl);
 t("topscorer: ved lige point flest øvelser, så flest svære, mellem, lette og starter",
   /lige mange point, vinder den, der har lavet flest øvelser/.test(forkl) && /flest svære øvelser \(grundtræning tæller som svær\)\. Så flest mellem, så flest lette og til sidst flest starter/.test(forkl), forkl);
-t("topscorer: ikke både Månedens spiller og topscorer - nr. 1 i begge bliver Månedens spiller",
-  /ikke både være Månedens spiller og topscorer/.test(forkl) && /nr\. 1 i begge, bliver du Månedens spiller/.test(forkl), forkl);
+t("topscorer: den, der bliver Månedens spiller, kan ikke også blive topscorer samme måned",
+  /Den, der bliver Månedens spiller, kan ikke også blive topscorer samme måned\. Så går topscorer til den næste\./.test(forkl) && !/nr\. 1 i begge/.test(forkl), forkl);
 t("topscorer: godt flere måneder i træk, og findes den 5. i næste måned",
   /godt være topscorer flere måneder i træk/.test(forkl) && /findes den 5\. i den næste måned/.test(forkl) && /deler I prisen/.test(forkl), forkl);
 await a.page.evaluate(() => renderLeaderboard()); await a.page.waitForTimeout(100);
@@ -180,7 +183,8 @@ t("træneren ser emblemerne på en spillers profil", await (async () => {
 await a.luk();
 a = await aabn("dr", "2027-01-10T12:00:00+01:00", { "2026-11_2017": KAARINGER["2026-11_2017"] });
 await a.gaaTil("leaderboard");
-t("mangler en kåring, siger kortet hvem der kårer", /Kåres af admin eller en træner, der ser hele årgangen/.test(await a.tekst("#maanedensArea")));
+t("mangler en kåring, siger kortet, at den kåres automatisk kl. 5 den 5. - for alle roller",
+  /Kåres automatisk kl\. 5 om morgenen den 5\./.test(await a.tekst("#maanedensArea")) && !/Kåres af admin|Kåres om lidt/.test(await a.tekst("#maanedensArea")));
 await a.luk();
 a = await aabn("ida", "2026-12-10T12:00:00+01:00", KAARINGER, {});
 await a.gaaTil("leaderboard");

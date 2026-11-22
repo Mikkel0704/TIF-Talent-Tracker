@@ -100,9 +100,16 @@ t("og hans tal: 71 point (fodteknik med streak 36, medalje 25, to trin 10), 10 �
 t("topscorer-posten har præcis de felter, reglerne tillader", Object.keys(t2017?.data || {}).sort().join() === "aargang,beregnet,maaned,vindere");
 t("2016: Carl er Månedens spiller og den eneste med point -> ingen topscorer", JSON.stringify(a.top.find(g => g.id === "2026-11_2016")?.vindere) === "[]");
 
-console.log("\nMidnat før den 5. december, dansk tid");
+console.log("\nReserven venter på serveren: tidligst kl. 05:30 dansk tid den 5. - og 04:00 UTC");
 t("4. december kl. 23:59: intet kåres", (await aabn("admin", "2026-12-04T23:59:00+01:00")).gemt.length === 0);
-t("5. december kl. 00:01: november kåres", (await aabn("admin", "2026-12-05T00:01:00+01:00")).gemt.some(g => g.id === "2026-11_2017"));
+t("5. december kl. 00:01: intet kåres endnu - serveren kårer kl. 05", (await aabn("admin", "2026-12-05T00:01:00+01:00")).gemt.length === 0);
+t("5. december kl. 05:29: intet kåres endnu", (await aabn("admin", "2026-12-05T05:29:00+01:00")).gemt.length === 0);
+t("5. december kl. 05:30: november kåres", (await aabn("admin", "2026-12-05T05:30:00+01:00")).gemt.some(g => g.id === "2026-11_2017"));
+// Om sommeren er 05:30 dansk tid 03:30 UTC, og reglerne tillader ingen klient før 04:00 UTC.
+a = await aabn("admin", "2027-07-05T05:45:00+02:00");
+t("5. juli kl. 05:45 sommertid (03:45 UTC): maj er kåret, juni venter", a.gemt.some(g => g.id === "2027-05_2017") && !a.gemt.some(g => g.id.startsWith("2027-06")), a.gemt.map(g => g.id));
+a = await aabn("admin", "2027-07-05T06:00:00+02:00");
+t("5. juli kl. 06:00 sommertid (04:00 UTC): juni kåres", a.gemt.some(g => g.id === "2027-06_2017") && a.top.some(g => g.id === "2027-06_2017"), a.gemt.map(g => g.id));
 
 console.log("\nHvem må ikke, og hvornår ikke");
 t("4. december kåres intet", (await aabn("admin", "2026-12-04T22:00:00+01:00")).gemt.length === 0);

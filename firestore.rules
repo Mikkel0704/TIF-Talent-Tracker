@@ -83,9 +83,10 @@ service cloud.firestore {
       return hasYearAccess(year) && genderAllowed(year, gender);
     }
 
-    // HAERDNING: et login uden users-dokument ("fremmed" - alle kan oprette en Auth-konto
-    // i projektet) og et deaktiveret login maa INTET, bortset fra at laese sit eget
-    // users-dokument. signedIn() alene er derfor aldrig nok til at give adgang; alle
+    // HAERDNING: et login uden users-dokument ("fremmed" - en Auth-konto fra foer
+    // selvoprettelsen blev lukket, eller et login efter et barn, der blev slettet i appen foer
+    // v15.78) og et deaktiveret login maa INTET, bortset fra at laese sit eget users-dokument.
+    // Logins oprettes nu kun af serveren (functions/logins.js). signedIn() alene er derfor aldrig nok til at give adgang; alle
     // regler nedenfor kraever isActive(), enten direkte eller gennem hasFullAccess(),
     // isAdmin() eller isPlayerRole(), som alle kraever et aktivt users-dokument.
     // OBS: !isPlayerRole() er SAND for et deaktiveret login og for en fremmed - det
@@ -132,6 +133,26 @@ service cloud.firestore {
     // Gamle dokumenter kan mangle gender (og maaske year), derfor .get().
     function traenerTilEksisterende() {
       return traenerAdgang(resource.data.get("year", null), resource.data.get("gender", null));
+    }
+
+    // Traener/admin med adgang til BARNET i stien (players/{playerId}) - ikke kun til den
+    // aargang, der staar i det, traeneren skriver. Uden det kunne en traener med kun 2017
+    // oprette juggleLadder/{et 2012-barn} med year 2017 og give barnet trin og point paa
+    // ranglisten. Barnets aargang og koen laeses paa spillerdokumentet (ét opslag); findes
+    // spilleren ikke, kan kun admin skrive. Kaldes kun efter isActive().
+    function traenerTilBarn(playerId) {
+      let d = userDoc().data;
+      let sti = /databases/$(database)/documents/players/$(playerId);
+      return d.role == "admin"
+        || (d.role != "player" && exists(sti) && traenerAdgangAktiv(get(sti).data.get("year", null), get(sti).data.get("gender", null)));
+    }
+    // Det fulde krav til en traeners skrivning paa et barns dokument (stige, log, fodteknik,
+    // note): det nye indhold, det eksisterende dokument (ved update) og barnet i stien.
+    function traenerOpretterPaaBarn(playerId) {
+      return traenerTilNyt() && traenerTilBarn(playerId);
+    }
+    function traenerRetterPaaBarn(playerId) {
+      return traenerTilNyt() && traenerTilEksisterende() && traenerTilBarn(playerId);
     }
 
     // Sletning. Findes dokumentet ikke, er sletningen en no-op, og saa er der intet at
@@ -319,8 +340,10 @@ service cloud.firestore {
     // maa fjerne en vinder, naar en familie beder om at faa barnet slettet (se update).
     //  - Kun admin eller en traener, der ser HELE aargangen (begge koen), maa oprette den.
     //    En traener, der kun ser drengene, ville ellers kunne kaare uden at se pigerne.
-    //  - Ikke foer maaneden er afgjort (den 5. i maaneden efter; her fra den 4. kl. 00 UTC,
-    //    fordi dansk midnat er 23 UTC).
+    //  - Ikke foer maaneden er afgjort: den 5. i maaneden efter kl. 04:00 UTC. Serveren kaarer
+    //    kl. 05:00 dansk tid - 04:00 UTC om vinteren, 03:00 UTC om sommeren - saa en klient
+    //    kan aldrig komme foer serveren. Appens reserve venter selv til kl. 05:30 dansk tid
+    //    og 04:00 UTC (kaaringsDag i index.html).
     //  - Alle aktive logins maa laese den: den staar paa ranglisten og profilen.
     match /maanedensSpiller/{postId} {
       allow read: if isActive();
@@ -341,8 +364,32 @@ service cloud.firestore {
     // af admin. En forkert post rettes kun ved at fjerne vindere.
     match /maanedensTopscorer/{postId} {
       allow read: if isActive();
-      allow create: if isActive() && !isPlayerRole() && nyKaaring(postId);
+      // Kun lige efter Maanedens spiller for samme maaned og aargang, og ingen af dens vindere
+      // maa ogsaa vaere topscorer (se topscorerUdenMaanedensSpiller).
+      allow create: if isActive() && !isPlayerRole() && nyKaaring(postId) && topscorerUdenMaanedensSpiller(postId);
       allow update: if isAdmin() && kaaringKortere();
+    }
+
+    // En topscorer kan kun oprettes, naar Maanedens spiller for samme maaned og aargang findes
+    // (getAfter: ogsaa hvis de skrives i samme batch), og ingen af topscorerens vindere staar
+    // blandt dens vindere. Reglerne kan ikke loebe en liste igennem, saa en klient maa hoejst
+    // gemme 10 topscorere mod hoejst 3 Maanedens spillere - hvert par sammenlignes. Stoerre
+    // delte priser (i praksis aldrig) kaarer serveren, som ikke er bundet af reglerne.
+    function topscorerUdenMaanedensSpiller(postId) {
+      let sti = /databases/$(database)/documents/maanedensSpiller/$(postId);
+      let t = request.resource.data.vindere;
+      return existsAfter(sti) && t.size() <= 10 && ikkeBlandt(t, getAfter(sti).data.get("vindere", []));
+    }
+    function ikkeBlandt(t, s) {
+      return s is list && s.size() <= 3
+        && (t.size() < 1 || ikkeVinder(t[0].id, s)) && (t.size() < 2 || ikkeVinder(t[1].id, s))
+        && (t.size() < 3 || ikkeVinder(t[2].id, s)) && (t.size() < 4 || ikkeVinder(t[3].id, s))
+        && (t.size() < 5 || ikkeVinder(t[4].id, s)) && (t.size() < 6 || ikkeVinder(t[5].id, s))
+        && (t.size() < 7 || ikkeVinder(t[6].id, s)) && (t.size() < 8 || ikkeVinder(t[7].id, s))
+        && (t.size() < 9 || ikkeVinder(t[8].id, s)) && (t.size() < 10 || ikkeVinder(t[9].id, s));
+    }
+    function ikkeVinder(id, s) {
+      return (s.size() < 1 || s[0].id != id) && (s.size() < 2 || s[1].id != id) && (s.size() < 3 || s[2].id != id);
     }
 
     // Formen paa en ny kaaring (begge priser): kun de fire felter, id = maaned_aargang,
@@ -379,7 +426,7 @@ service cloud.firestore {
     function maanedErAfgjort(maaned) {
       let aar = int(maaned[0:4]);
       let md = int(maaned[5:7]);
-      return request.time >= timestamp.date(md == 12 ? aar + 1 : aar, md == 12 ? 1 : md + 1, 4);
+      return request.time >= timestamp.date(md == 12 ? aar + 1 : aar, md == 12 ? 1 : md + 1, 5) + duration.value(4, 'h');
     }
 
     match /clubConfig/{docId} {
@@ -423,8 +470,12 @@ service cloud.firestore {
       // that belongs to their opponent (not their own), once it has been reviewed -
       // this lets them watch their opponent's video and have it delete itself
       // afterwards (see markSubmissionViewed/deleteViewedSubmissionVideo in index.html).
+      // Traeneren: baade den indsendelse, der ligger der, og det nye indhold skal ligge i
+      // traenerens aargang/koen, og barnet (playerId) kan ikke skiftes ud. Ellers kunne en
+      // traener med kun 2017 flytte en 2017-indsendelse over paa et 2012-barn med 999 point.
       allow update: if isActive() && (
-        (!isPlayerRole() && hasFullAccess(resource.data.year, resource.data.gender))
+        (!isPlayerRole() && traenerTilEksisterende() && traenerTilNyt()
+          && request.resource.data.get("playerId", null) == resource.data.get("playerId", null))
         || (
           isPlayerRole()
           && hasFullAccess(resource.data.year, resource.data.gender)
@@ -517,8 +568,8 @@ service cloud.firestore {
 
       // Oprettelse og rettelse staar hver for sig: ved en rettelse skal traeneren ogsaa
       // have adgang til den note, der ligger der i forvejen (se traenerTilEksisterende).
-      allow create: if traenerTilNyt();
-      allow update: if traenerTilNyt() && traenerTilEksisterende();
+      allow create: if traenerOpretterPaaBarn(playerId);
+      allow update: if traenerRetterPaaBarn(playerId);
 
       // Foer: signedIn() && !isPlayerRole() - det lod en fremmed og et deaktiveret login
       // slette enhver note.
@@ -563,10 +614,11 @@ service cloud.firestore {
       allow read: if egetEllerTraener(playerId);
 
       // Spilleren selv: se stigeSpiller() lige under denne blok.
-      allow create: if isActive() && (stigeSpiller(playerId) || traenerTilNyt());
+      allow create: if isActive() && (stigeSpiller(playerId) || traenerOpretterPaaBarn(playerId));
       // Traenere og admin retter frit inden for deres aargang - men kun et dokument, der
-      // ALLEREDE ligger i deres aargang/koen, og kun til en aargang/koen, de selv ser.
-      allow update: if isActive() && (stigeSpiller(playerId) || (traenerTilNyt() && traenerTilEksisterende()));
+      // ALLEREDE ligger i deres aargang/koen, kun til en aargang/koen, de selv ser, og kun
+      // for et barn i deres aargang (traenerTilBarn).
+      allow update: if isActive() && (stigeSpiller(playerId) || traenerRetterPaaBarn(playerId));
 
       allow delete: if traenerSletter();
     }
@@ -608,8 +660,8 @@ service cloud.firestore {
     match /juggleLog/{playerId} {
       allow read: if logLaeser(playerId);
 
-      allow create: if isActive() && (logSpiller(playerId) || traenerTilNyt());
-      allow update: if isActive() && (logSpiller(playerId) || (traenerTilNyt() && traenerTilEksisterende()));
+      allow create: if isActive() && (logSpiller(playerId) || traenerOpretterPaaBarn(playerId));
+      allow update: if isActive() && (logSpiller(playerId) || traenerRetterPaaBarn(playerId));
 
       allow delete: if traenerSletter();
     }
@@ -667,7 +719,7 @@ service cloud.firestore {
           // ikke kan rette det.
           && hasFullAccess(request.resource.data.year, request.resource.data.gender)
         )
-        || traenerTilNyt()
+        || traenerOpretterPaaBarn(playerId)
       );
 
       // Traeneren: baade det eksisterende dokument og det nye skal ligge i traenerens
@@ -682,7 +734,7 @@ service cloud.firestore {
           && (!("jokerRequests" in request.resource.data) || (request.resource.data.jokerRequests is map && request.resource.data.jokerRequests.size() <= 1500))
           && hasFullAccess(request.resource.data.year, request.resource.data.gender)
         )
-        || (traenerTilNyt() && traenerTilEksisterende())
+        || traenerRetterPaaBarn(playerId)
       );
 
       allow delete: if traenerSletter();
@@ -694,8 +746,8 @@ service cloud.firestore {
     match /footworkLog/{playerId} {
       allow read: if logLaeser(playerId);
 
-      allow create: if isActive() && (logSpiller(playerId) || traenerTilNyt());
-      allow update: if isActive() && (logSpiller(playerId) || (traenerTilNyt() && traenerTilEksisterende()));
+      allow create: if isActive() && (logSpiller(playerId) || traenerOpretterPaaBarn(playerId));
+      allow update: if isActive() && (logSpiller(playerId) || traenerRetterPaaBarn(playerId));
 
       allow delete: if traenerSletter();
     }

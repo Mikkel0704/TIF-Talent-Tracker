@@ -21,9 +21,19 @@ export function beregnLinje({ player, juggleLadderDoc = null, juggleLogDoc = nul
   if(process.env.TZ !== "Europe/Copenhagen") throw new Error("TZ er ikke Europe/Copenhagen - pointene ville havne i forkerte uger");
   if(!player || !player.id) return null;
   const id = player.id;
+  // Som appen, naar spillerne hentes (og som kaaringen, kaaring.js): migratePlayer giver en
+  // gammel spiller uden aargang den aargang, noten peger paa, og normaliserer den. Kopi, saa
+  // kalderens data ikke roeres.
+  const p = kode.migratePlayer({ ...player });
   const medId = d => (d ? { ...d, id } : null);
+  // Appens kode regner "i dag" ud fra nu - ikke maskinens ur (fx dage efter i dag).
+  kode.saetNu(nu);
+  try{ return linje(p, id, medId, { juggleLadderDoc, juggleLogDoc, footworkDoc, submissions }, nu); }
+  finally{ kode.saetNu(null); }
+}
+function linje(p, id, medId, { juggleLadderDoc, juggleLogDoc, footworkDoc, submissions }, nu){
   kode.saetBarn({
-    spiller: player,
+    spiller: p,
     stige: medId(juggleLadderDoc),
     stigelog: medId(juggleLogDoc),
     fodteknik: medId(footworkDoc),
@@ -33,11 +43,11 @@ export function beregnLinje({ player, juggleLadderDoc = null, juggleLogDoc = nul
   // Praecis som renderLeaderboard's pointsFor() for en traener, der har alle data.
   const vindue = since => kode.pointsInWindow(id, since) + kode.ladderPointsInWindow(id, since) + kode.footworkPointsInWindow(id, since);
   return {
-    name: String(player.name ?? ""),
-    year: kode.normalizeYearValue(player.year),
-    gender: player.gender || null,
-    kanUdfordres: player.hasActiveLogin === true,
-    total: kode.totalPoints(player),
+    name: String(p.name ?? ""),
+    year: kode.normalizeYearValue(p.year),
+    gender: p.gender || null,
+    kanUdfordres: p.hasActiveLogin === true,
+    total: kode.totalPoints(p),
     uge: { fra: kode.dagsISO(uge), point: vindue(uge) },
     maaned: { fra: kode.dagsISO(maaned), point: vindue(maaned) },
     regler: POINTREGLER

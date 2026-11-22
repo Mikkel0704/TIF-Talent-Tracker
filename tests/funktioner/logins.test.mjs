@@ -157,7 +157,7 @@ const fejlsager = [
   ["en ugyldig e-mail", { rolle: "coach", email: "ikke-en-email", kode: KODE, years: ["2017"] }, "INVALID_ARGUMENT", "E-mailadressen ser ikke rigtig ud. Tjek om den er stavet korrekt."],
   ["et password paa 5 tegn", { rolle: "coach", email: "kort@eksempel.invalid", kode: "12345", years: ["2017"] }, "INVALID_ARGUMENT", "Password skal være mindst 6 tegn."],
   ["en træner uden aargange", { rolle: "coach", email: "ingen@eksempel.invalid", kode: KODE, years: [] }, "INVALID_ARGUMENT", "Vælg mindst én årgang."],
-  ["en træner uden e-mail", { rolle: "coach", email: "  ", kode: KODE, years: ["2017"] }, "INVALID_ARGUMENT", "Skriv trænerens email."],
+  ["en træner uden e-mail", { rolle: "coach", email: "  ", kode: KODE, years: ["2017"] }, "INVALID_ARGUMENT", "Skriv trænerens e-mail."],
   ["et ukendt valg af koen", { rolle: "coach", email: "koen@eksempel.invalid", kode: KODE, years: ["2017"], yearGenders: { "2017": "alle" } }, "INVALID_ARGUMENT", "Ukendt valg af køn for årgang 2017."],
   ["en spiller, der ikke findes", { rolle: "player", email: "ingen.spiller@eksempel.invalid", kode: KODE, playerId: "findes-ikke" }, "NOT_FOUND", "Spilleren findes ikke længere. Genindlæs siden, og vælg igen."],
   ["et spillerlogin uden spiller", { rolle: "player", email: "x@eksempel.invalid", kode: KODE }, "INVALID_ARGUMENT", "Vælg en spiller."],

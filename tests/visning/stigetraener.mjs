@@ -7,7 +7,10 @@ const { chromium } = createRequire(import.meta.url)("playwright");
 const html = readFileSync(new URL("../../index.html", import.meta.url),"utf8");
 const ud=(a,b)=>{const i=html.indexOf(a),j=html.indexOf(b,i);if(i<0||j<0)throw new Error("mangler "+a);return html.slice(i,j);};
 const stil  = ud("<style>","</style>")+"</style>";
-const logik = ud("// JONGLERINGSSTIGEN","// DAGLIG FODTEKNIK");
+// Hvad der er en registrering (og loggens laengde) staar i fodteknik-blokken ved
+// juggleActiveDays; writeJuggle i stige-blokken bruger det ogsaa.
+const fremdrift = ["JUGGLE_FREMDRIFT", "JUGGLE_LOG_MAX"].map(n=>{ const m = new RegExp("\\nconst " + n + " = [^\\n]*;").exec(html); if(!m) throw new Error("mangler " + n); return m[0]; }).join("\n");
+const logik = ud("// JONGLERINGSSTIGEN","// DAGLIG FODTEKNIK") + fremdrift + "\n";
 // Selve blokken klippes ud af renderTracking og koeres for sig.
 const blok  = ud("  // Traenerens stikproeve paa stigen.","  // Fodteknikken: samme tanke som stigen");
 
@@ -75,11 +78,11 @@ const dialog = () => page.evaluate(()=>window.__dialoger[window.__dialoger.lengt
 const gemt = () => page.evaluate(()=>window.__skrevet.filter(x=>x.ref==="juggleLadder").pop()?.data.tricks);
 await klik("Yderside 20");
 t("giv Yderside 20: dialogen nævner Yderside 10 og +35",
-  await dialog() === 'Giv "Yderside 20" for Test Testesen?\n\nYderside 10 kommer før i serien og bliver også givet.\n\n+35 point. Rettelsen bliver logget med dit navn.');
+  await dialog() === 'Giv "Yderside 20" for Test Testesen?\n\nYderside 10 kommer før i serien og bliver også givet.\n\n+35 point. Rettelsen bliver logget med din e-mail.');
 t("og gemmer hele serien", JSON.stringify(await gemt()) === JSON.stringify(["oploft","inderside5","inderside10","yderside5","yderside10","yderside20"]));
 await klik("Inderside 5");
 t("fjern Inderside 5: dialogen nævner Inderside 10 og -25",
-  await dialog() === 'Fjern "Inderside 5" for Test Testesen?\n\nInderside 10 bygger på Inderside 5 og bliver også fjernet.\n\n-25 point. Rettelsen bliver logget med dit navn.');
+  await dialog() === 'Fjern "Inderside 5" for Test Testesen?\n\nInderside 10 bygger på Inderside 5 og bliver også fjernet.\n\n-25 point. Rettelsen bliver logget med din e-mail.');
 t("og fjerner begge", JSON.stringify(await gemt()) === JSON.stringify(["oploft","yderside5","yderside10","yderside20"]));
 r = await laes();
 t("bagefter står Inderside 10 som låst igen", raekke("Inderside 10").linje === "15 point · låst: kræver Inderside 5" && raekke("Inderside 10").knap === "Ikke endnu");

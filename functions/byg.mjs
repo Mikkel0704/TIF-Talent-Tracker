@@ -112,27 +112,35 @@ if(blokStart < 0 || blokSlut < 0 || blokSlut < blokStart) fejl("kunne ikke finde
 const blok = html.slice(blokStart + 1, blokSlut);
 
 // 2) Jongleringsstigen og resten, enkeltvis efter navn.
-const KONSTANTER = ["POINTREGLER", "CLUB_TOP_N", "JUGGLE_MAIN", "JUGGLE_WEAK", "JUGGLE_MAIN_POINT", "JUGGLE_WEAK_POINT", "JUGGLE_GATE_AFTER", "JUGGLE_TRICKS"];
+const KONSTANTER = ["POINTREGLER", "CLUB_TOP_N", "JUGGLE_MAIN", "JUGGLE_WEAK", "JUGGLE_MAIN_POINT", "JUGGLE_WEAK_POINT", "JUGGLE_GATE_AFTER", "JUGGLE_TRICKS",
+  // Morgenoprydningen (oprydning.js): videoernes frister.
+  "CHALLENGE_VIDEO_MAX_AGE_MS", "VIDEO_MAX_AGE_MS", "VIDEO_SET_RYDDES_EFTER_MS"];
 const FUNKTIONER = [
   "normalizeYearValue",
   "juggleMainPoints", "juggleWeakPoints", "juggleTrick",
   "juggleFor", "juggleLogFor", "juggleMainStep", "juggleWeakStep", "juggleTricks",
-  "ladderPoints", "totalPoints", "ladderPointsInWindow",
+  "ladderPoints", "totalPoints", "ladderPointsInWindow", "ladderFoersteGang",
   // Maanedens topscorer: trinnene paa stigen i et vindue (til "flest oevelser").
   "ladderTrinIVindue",
   "startOfWeek", "startOfMonth", "pointsInWindow",
   // Maanedens spiller: spillerne goeres klar, som appen goer det, naar de hentes.
   "migratePlayer", "inferYearFromNote",
   // Logins (logins.js): aargangslisten paa et nyt traenerlogin, som appen regner den ud.
-  "normalizeYearsList"
+  "normalizeYearsList",
+  // Morgenoprydningen (oprydning.js): hvornaar en video slettes - samme regler som
+  // sweepExpiredVideos i appen.
+  "tidspunktMs", "videoSkalSlettes"
 ];
 // Det, blokken SKAL indeholde (ellers er den flyttet, og serveren ville regne forkert).
 const I_BLOKKEN = ["dagsISO", "iDagISO", "juggleActiveDays", "footworkHusk", "footworkPoints", "footworkPointsInWindow",
   // Maanedens spiller (kaaring.js): de samme funktioner, som kaarMaanedensSpiller() i appen bruger.
   "maanedPlus", "forrigeMaaned", "maanedAfgoeres", "maanederTilKaaring", "maanedStat", "maanedSammenlign", "maanedensSpillerRangering",
   // Maanedens topscorer (kaaring.js): de samme funktioner, som kaarMaanedensSpiller() bruger.
-  "maanedTopscorerStat", "maanedTopscorerSammenlign", "maanedensTopscorerRangering", "topscorerVinder"];
-const KONSTANTER_I_BLOKKEN = ["FOOTWORK_V2_FRA", "MAANEDENS_FOERSTE", "MAANEDENS_AFGOERES_DAG", "TOPSCORER_FELTER"];
+  "maanedTopscorerStat", "maanedTopscorerSammenlign", "maanedensTopscorerRangering", "topscorerVinder",
+  // Morgenoprydningen (oprydning.js): hvilke joker-begrundelser der skal slettes.
+  "jokerBegrundelserAtSlette"];
+const KONSTANTER_I_BLOKKEN = ["FOOTWORK_V2_FRA", "MAANEDENS_FOERSTE", "MAANEDENS_AFGOERES_DAG", "TOPSCORER_FELTER",
+  "FOOTWORK_REASON_MAX_AGE_MS", "JUGGLE_FREMDRIFT", "JUGGLE_LOG_MAX"];
 for(const navn of I_BLOKKEN){
   if(!new RegExp("(^|\\n)function " + navn + "\\(").test(blok)) fejl(navn + " ligger ikke i fodteknik-blokken");
 }
@@ -159,6 +167,17 @@ const forspil = `// GENERERET af functions/byg.mjs ud fra ../index.html - RET IK
 // bagefter. Der er intet await imellem, saa to kald i samme instans kan ikke flette sig ind
 // i hinanden.
 process.env.TZ = "Europe/Copenhagen";   // appen regner i lokal tid - det er dansk tid
+// "Hvad er klokken?" Appens kode spoerger med new Date() og Date.now() - fx er en dag efter
+// i dag ikke med i footworkDays. Paa serveren skal svaret vaere det tidspunkt, beregningen
+// gaelder (nu), ikke maskinens ur, saa en linje eller en kaaring regnet "pr. nu" er den samme,
+// uanset hvornaar den regnes. saetNu(nu) saetter uret for modulet; saetNu(null) = maskinens ur.
+// Kun herinde: Date er skygget i dette modul og ingen andre steder.
+const EgentligDate = globalThis.Date;
+let fastNu = null;
+const Date = class extends EgentligDate {
+  constructor(...a){ if(a.length) super(...a); else super(fastNu === null ? EgentligDate.now() : fastNu); }
+  static now(){ return fastNu === null ? EgentligDate.now() : fastNu; }
+};
 let players = [], submissions = [], footwork = [], footworkLogs = [], juggleLadder = [], juggleLog = [];
 // Stubbe for det, fodteknik-blokken naevner, men som pointene aldrig kalder.
 const db = null, currentUser = null, currentPlayerLink = null, currentUserDoc = null;
@@ -176,6 +195,11 @@ function escapeHtml(s){ return String(s); }
 const efterspil = `
 // Saet et enkelt barns data. footworkStamp haeves, saa appens huskeliste (footworkHusk) aldrig
 // giver et svar, der blev regnet ud for et andet barn eller andre data.
+export function saetNu(nu){
+  fastNu = nu == null ? null : new EgentligDate(nu).getTime();
+  if(fastNu !== null && !Number.isFinite(fastNu)) throw new Error("saetNu: ugyldigt tidspunkt");
+  footworkStamp++;
+}
 export function saetBarn({ spiller = null, stige = null, stigelog = null, fodteknik = null, indsendelser = [] } = {}){
   players = spiller ? [spiller] : [];
   juggleLadder = stige ? [stige] : [];
@@ -206,7 +230,10 @@ export {
   pointsInWindow, startOfWeek, startOfMonth, FOOTWORK_V2_FRA,
   migratePlayer, normalizeYearsList, MAANEDENS_FOERSTE, MAANEDENS_AFGOERES_DAG, maanedPlus, forrigeMaaned, maanedAfgoeres,
   maanederTilKaaring, maanedStat, maanedensSpillerRangering,
-  ladderTrinIVindue, maanedTopscorerStat, maanedensTopscorerRangering, topscorerVinder
+  ladderTrinIVindue, maanedTopscorerStat, maanedensTopscorerRangering, topscorerVinder,
+  juggleActiveDays, footworkDays,
+  jokerBegrundelserAtSlette, FOOTWORK_REASON_MAX_AGE_MS, videoSkalSlettes, tidspunktMs,
+  VIDEO_MAX_AGE_MS, CHALLENGE_VIDEO_MAX_AGE_MS, VIDEO_SET_RYDDES_EFTER_MS
 };
 `;
 // Skrives foerst ved siden af og proeves; foerst naar den kan regne, erstatter den den gamle.
@@ -242,6 +269,17 @@ try{
   const ts = m.maanedensTopscorerRangering([{ id: "x", name: "x" }, { id: "y", name: "y" }, { id: "z", name: "z" }], "2026-11", ["y"]);
   if(ts.vindere.length !== 1 || JSON.stringify(m.topscorerVinder(ts.vindere[0])) !== JSON.stringify({ id: "x", navn: "x", point: 32, oevelser: 2, svaer: 0, mellem: 0, let: 0, starter: 1 }))
     fejl("proeven paa Maanedens topscorer gav " + JSON.stringify(ts.vindere));
+  // Morgenoprydningen paa haandregnede eksempler: en joker afgjort for 3 doegn + 1 minut siden
+  // skal ryddes, én for 2 doegn og 23 timer siden og en ubehandlet skal ikke.
+  const NU = Date.parse("2026-11-22T05:00:00+01:00"), H = 3600 * 1000;
+  const jb = m.jokerBegrundelserAtSlette({ "2026-11-01": { tekst: "syg", afgjortAt: new Date(NU - 72 * H - 60000).toISOString() },
+    "2026-11-02": { tekst: "syg", afgjortAt: new Date(NU - 71 * H).toISOString() }, "2026-11-03": { tekst: "syg" } }, NU);
+  if(jb.join() !== "2026-11-01") fejl("proeven paa jokerBegrundelserAtSlette gav " + JSON.stringify(jb));
+  const vid = { url: "https://x", path: "submissions/u/1.mp4", ny: true };
+  if(m.videoSkalSlettes({ status: "approved" }, vid, NU)?.grund !== "behandlet"
+    || m.videoSkalSlettes({ status: "pending", submittedAt: new Date(NU - 6 * 24 * H).toISOString() }, vid, NU) !== null
+    || m.videoSkalSlettes({ status: "pending", submittedAt: new Date(NU - 7 * 24 * H - 60000).toISOString() }, vid, NU)?.grund !== "udloebet")
+    fejl("proeven paa videoSkalSlettes gik galt");
 }catch(e){
   rmSync(NY, { force: true });
   throw e;

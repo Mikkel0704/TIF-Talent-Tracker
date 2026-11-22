@@ -285,6 +285,31 @@ t("en streak kan bæres af stigen alene", K.footworkCurrentStreak(PID).laengde, 
 t("men stigens dage giver ingen fodteknik-dagspoint", K.footworkPoints(PID), 5);
 saet({dage: dageMedTraening([0,-2]), stigeLog: [{t:"correct", stige:"main", fra:3, til:2, at: new Date(K.isoPlus(iDag,-1) + "T18:30:00").toISOString()}]});
 t("en trænerrettelse på stigen er ikke en aktiv dag", K.footworkRuns(PID, false).map(r=>r.laengde), [1,1]);
+const kl = (n, tid = "18:30:00") => new Date(K.isoPlus(iDag, n) + "T" + tid).toISOString();
+saet({dage: dageMedTraening([0,-2]), stigeLog: [{t:"undo", stige:"main", fra:3, til:2, at: kl(-1)}]});
+t("et fortryd på stigen er ikke en aktiv dag", K.footworkRuns(PID, false).map(r=>r.laengde), [1,1]);
+// Foer v15.81 skrev et fortryd dagen i stigens datoliste. Loggen beviser, at der kun blev
+// fortrudt den dag - saa taeller dagen ikke.
+saet({dage: dageMedTraening([0,-2]), stigeDage: [d(-3), d(-1)],
+  stigeLog: [{t:"undo", stige:"main", fra:3, til:2, at: kl(-1)}, {t:"main", v:2, at: kl(-3)}]});
+t("en gammel dato fra et fortryd tæller ikke, når loggen viser, at der kun blev fortrudt", K.footworkRuns(PID, false).map(r=>r.laengde), [2,1]);
+t("og der kommer ingen streak-bonus af den", K.footworkPoints(PID), 2*2);
+saet({dage: dageMedTraening([0,-2]), stigeDage: [d(-1)], stigeLog: Array.from({length: 200}, () => ({t:"undo", stige:"main", fra:1, til:0, at: kl(0, "10:00:00")}))});
+t("men en dato fra før en afkortet log tæller som før (loggen kan ikke bevise noget)", K.footworkRuns(PID, false).map(r=>r.laengde), [3]);
+saet({dage: dageMedTraening([0,-2]), stigeDage: [d(-1)], stigeLog: [{t:"main", v:2, at: kl(-1)}]});
+t("en dato med en registrering tæller stadig", K.footworkRuns(PID, false).map(r=>r.laengde), [3]);
+
+// ---------------------------------------------------------------------------
+afsnit("Dage efter i dag findes ikke endnu");
+saet({dage: {...dageMedTraening([0,-1]), [d(1)]: {[kode("toetaps")]: 3}, [d(30)]: {[kode("toetaps")]: 10}}});
+t("fremtidige dage er ikke med i dagene", K.footworkDays(PID), [d(-1), d(0)]);
+t("de giver ingen point", K.footworkPoints(PID), 2*2);
+t("og forlænger ikke streaken", K.footworkCurrentStreak(PID).laengde, 2);
+t("og tæller ikke i ugen", K.footworkPointsInWindow(PID, new Date(2000,0,1)), 2*2);
+saet({dage: {}, stigeDage: [d(1), d(2), d(3), d(0)]});
+t("stigens datoer efter i dag tæller heller ikke som aktive dage", [K.juggleActiveDays(PID), K.footworkPoints(PID)], [[d(0)], 0]);
+saet({dage: dageMedTraening([0,-1,-2]), jokers: {[d(1)]: "approved"}, anmodninger: {[d(1)]: true}});
+t("en joker for i morgen slår ikke en levende streak ihjel", [K.footworkCurrentStreak(PID).lever, K.footworkCurrentStreak(PID).laengde], [true, 3]);
 
 // ---------------------------------------------------------------------------
 afsnit("Uge- og månedsvindue");

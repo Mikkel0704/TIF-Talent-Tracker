@@ -3,7 +3,10 @@ import { createRequire } from "node:module";
 const { chromium } = createRequire(import.meta.url)("playwright");
 const html = readFileSync(new URL("../../index.html", import.meta.url),"utf8");
 const ud = (a,b)=>{ const i=html.indexOf(a), j=html.indexOf(b,i); if(i<0||j<0) throw new Error("mangler "+a); return html.slice(i,j); };
-const logik = ud("// JONGLERINGSSTIGEN","// DAGLIG FODTEKNIK");
+// Hvad der er en registrering (og loggens laengde) staar i fodteknik-blokken ved
+// juggleActiveDays; writeJuggle i stige-blokken bruger det ogsaa.
+const fremdrift = ["JUGGLE_FREMDRIFT", "JUGGLE_LOG_MAX"].map(n=>{ const m = new RegExp("\\nconst " + n + " = [^\\n]*;").exec(html); if(!m) throw new Error("mangler " + n); return m[0]; }).join("\n");
+const logik = ud("// JONGLERINGSSTIGEN","// DAGLIG FODTEKNIK") + fremdrift + "\n";
 const render = ud("function renderJuggle(){","\nfunction renderFootwork()");
 const stil = ud("<style>","</style>")+"</style>";
 // Videoknappen paa oevelserne: de rigtige funktioner fra appen, uden nogen videoer lagt op.

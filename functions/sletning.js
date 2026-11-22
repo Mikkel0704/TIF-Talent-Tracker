@@ -59,7 +59,8 @@ const IKKE_ADMIN = "Kun en administrator kan slette en spiller.";
 
 // Kun stier i spillernes videomappe. En sti fra databasen, der peger andre steder hen
 // (fx guides/), roeres aldrig - Admin SDK'et ville ellers slette den uden at spoerge.
-const gyldigSti = s => typeof s === "string" && s.startsWith("submissions/") && s.split("/").length >= 3
+// Bruges ogsaa af morgenoprydningen (oprydning.js).
+export const gyldigSti = s => typeof s === "string" && s.startsWith("submissions/") && s.split("/").length >= 3
   && !s.split("/").some(del => del === "" || del === "." || del === "..");
 
 export function formSlet(data){

@@ -10,6 +10,10 @@ if(a < 0 || b < 0 || b < a) throw new Error("kunne ikke finde stige-blokken");
 const stepsKode = /\nconst steps = \[[\s\S]*?\n\];/.exec(html)?.[0];
 const kravKode = /\nconst criteria = \{[\s\S]*?\n\};/.exec(html)?.[0];
 if(!stepsKode || !kravKode) throw new Error("kunne ikke finde steps/criteria");
+// Hvad der er en registrering (og hvor lang loggen er) staar i fodteknik-blokken, hvor
+// juggleActiveDays bruger det; writeJuggle her i stige-blokken bruger det ogsaa.
+const fremdriftKode = ["JUGGLE_FREMDRIFT", "JUGGLE_LOG_MAX"].map(n=>new RegExp("\nconst " + n + " = [^\n]*;").exec(html)?.[0]);
+if(fremdriftKode.some(x=>!x)) throw new Error("kunne ikke finde JUGGLE_FREMDRIFT/JUGGLE_LOG_MAX");
 
 // Dialogerne (spoerg/besked/indtast) gribes, saa beskederne til fortryd og rettelser kan
 // laeses. spoerg svarer nej, saa intet bliver skrevet - medmindre testen beder om ja
@@ -37,12 +41,13 @@ async function indtast(m){ beskeder.push(String(m)); return svar; }
 function dagsISO(d){ const x=new Date(d); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); }
 ${stepsKode}
 ${kravKode}
+${fremdriftKode.join("\n")}
 `;
 const efterspil = `
 export { JUGGLE_MAIN, JUGGLE_WEAK, JUGGLE_MAIN_POINT, JUGGLE_WEAK_POINT, JUGGLE_TRICKS, JUGGLE_PHASES, JUGGLE_WEAK_PHASES, JUGGLE_RULES,
          JUGGLE_GATE_AFTER, JUGGLE_TRICK_NIVEAUER, juggleTrick, juggleTrickSpaerret, juggleTrickEfterfoelgere, ladderTrinIVindue, juggleMainPoints, juggleWeakPoints, jugglePhaseFor, juggleMedalMarks,
          ladderPoints, ladderPointsInWindow, juggleMainStep, juggleWeakStep, juggleTricks,
-         registerJuggle, undoJuggle, undoJuggleTrick, correctJuggle, correctJuggleTrick, criteria };
+         registerJuggle, undoJuggle, undoJuggleTrick, correctJuggle, correctJuggleTrick, criteria, dagsISO };
 `;
 const sti = new URL("./stigekode.mjs", import.meta.url);
 writeFileSync(sti, forspil + html.slice(a, b) + efterspil);
@@ -197,6 +202,78 @@ saet(0, 2, [], [
   {t:"weak", v:0, at: iso(-1)}, {t:"weak", v:0, at: iso(-1)}, {t:"weak", v:1, at: iso(-1)}
 ]);
 t("dårligt ben: dubletter tæller også kun én gang", K.ladderPointsInWindow(PID, siden), 5 + 5);
+
+console.log("\nEt trin tæller kun i vinduet, hvor det blev nået første gang (pointreglerne 2026-11-24)");
+// Spilleren tager trin 1 og 2 i oktober, fortryder trin 2 i oktober og tager det igen i
+// november. Trinnet er stadig kun taget én gang - det hører til oktober.
+const okt = new Date(2026, 9, 1), nov = new Date(2026, 10, 1), dec = new Date(2026, 11, 1);
+const vind = (fra, til) => K.ladderPointsInWindow(PID, fra) - K.ladderPointsInWindow(PID, til);
+const trinI = (fra, til) => K.ladderTrinIVindue(PID, fra) - K.ladderTrinIVindue(PID, til);
+saet(2, 0, [], [
+  {t:"main", v:1, at:"2026-11-03T17:00:00.000Z"},
+  {t:"undo", stige:"main", fra:2, til:1, at:"2026-10-20T17:05:00.000Z"},
+  {t:"main", v:1, at:"2026-10-20T17:00:00.000Z"},
+  {t:"main", v:0, at:"2026-10-18T17:00:00.000Z"}
+]);
+t("fortryd i oktober, tag det igen i november: begge trin tæller i oktober", vind(okt, nov), 5 + 5);
+t("og intet i november", vind(nov, dec), 0);
+t("topscorerens trin: 2 i oktober, 0 i november", [trinI(okt, nov), trinI(nov, dec)], [2, 0]);
+t("all-time er det samme som før", K.ladderPoints(PID), 10);
+saet(0, 0, ["oploft"], [
+  {t:"trick", v:"oploft", at:"2026-11-02T10:00:00.000Z"},
+  {t:"undo", stige:"trick", trick:"oploft", at:"2026-10-30T10:00:00.000Z"},
+  {t:"trick", v:"oploft", at:"2026-10-29T10:00:00.000Z"}
+]);
+t("et trick, fortrudt og taget igen i den næste måned, tæller i den første", [vind(okt, nov), vind(nov, dec)], [10, 0]);
+saet(0, 1, [], [
+  {t:"weak", v:0, at:"2026-11-02T10:00:00.000Z"},
+  {t:"undo", stige:"weak", fra:1, til:0, at:"2026-10-30T10:00:00.000Z"},
+  {t:"weak", v:0, at:"2026-10-29T10:00:00.000Z"}
+]);
+t("dårligt ben på samme måde", [vind(okt, nov), vind(nov, dec), trinI(okt, nov), trinI(nov, dec)], [5, 0, 1, 0]);
+// Træneren ruller trin 2 tilbage i oktober; spilleren tager det igen i november. Det
+// første trin 2 var stadig det første - det blev nået i oktober.
+saet(2, 0, [], [
+  {t:"main", v:1, at:"2026-11-04T10:00:00.000Z"},
+  {t:"correct", stige:"main", fra:2, til:1, at:"2026-10-25T10:00:00.000Z"},
+  {t:"main", v:1, at:"2026-10-21T10:00:00.000Z"}, {t:"main", v:0, at:"2026-10-20T10:00:00.000Z"}
+]);
+t("også efter trænerens rettelse tæller trinnet kun første gang", [vind(okt, nov), vind(nov, dec)], [10, 0]);
+// Uge-vinduet: samme regel.
+saet(1, 0, [], [{t:"main", v:0, at: iso(0)}, {t:"undo", stige:"main", fra:1, til:0, at: iso(-9)}, {t:"main", v:0, at: iso(-10)}]);
+t("et trin taget for 10 dage siden og taget om i dag giver intet i ugen", K.ladderPointsInWindow(PID, siden), 0);
+
+console.log("\nKun en registrering er en aktiv dag - ikke fortryd og ikke trænerens rettelse");
+K.saetRolle("spiller");
+K.saetJa(true);
+const iDagIso = K.dagsISO(new Date());
+K.skrivninger.length = 0;
+K.saetData([{id:PID, mainStep: 2, weakStep: 0, tricks: [], days: ["2026-10-01"]}], [{id:PID, entries: []}]);
+await K.undoJuggle("main");
+const stigeSkrivning = () => K.skrivninger.find(x=>x.ref === "juggleLadder/" + PID)?.data || {};
+t("fortryd skriver ikke dagen i days", "days" in stigeSkrivning(), false);
+t("men fortrydelsen logges stadig", K.skrivninger.find(x=>x.ref === "juggleLog/" + PID)?.data.entries[0].t, "undo");
+K.skrivninger.length = 0;
+K.saetData([{id:PID, mainStep: 0, weakStep: 0, tricks: [], days: ["2026-10-01"]}], [{id:PID, entries: []}]);
+await K.registerJuggle("main", 0);
+t("en registrering skriver dagen i days", stigeSkrivning().days, ["2026-10-01", iDagIso]);
+K.skrivninger.length = 0;
+K.saetData([{id:PID, mainStep: 0, weakStep: 0, tricks: ["oploft"], days: []}], [{id:PID, entries: []}]);
+await K.undoJuggleTrick("oploft");
+t("fortryd af et trick skriver heller ikke dagen", "days" in stigeSkrivning(), false);
+K.saetRolle("traener");
+K.skrivninger.length = 0;
+K.saetData([{id:PID, mainStep: 2, weakStep: 0, tricks: [], days: []}], [{id:PID, entries: []}]);
+K.saetSvar("1");
+await K.correctJuggle(PID, "main");
+t("trænerens rettelse skriver ikke dagen", "days" in stigeSkrivning(), false);
+K.saetSvar("3");
+K.saetData([{id:PID, mainStep: 0, weakStep: 2, tricks: [], days: []}], [{id:PID, entries: []}]);
+await K.correctJuggle(PID, "weak");
+t("rettelsen af dårligt ben spørger om berøringer, ikke jongleringer",
+  K.beskeder.some(b=>/3 berøringer med det dårlige ben|\(3 berøringer med det dårlige ben\)/.test(b)) && !K.beskeder.some(b=>/Ret .*dårligt ben-stigen.*jongleringer/s.test(b)), true);
+K.saetJa(false);
+K.saetSvar(null);
 
 console.log("\nEt fortrudt trin holder op med at tælle");
 saet(0, 0, [], [{t:"main", v:0, at: iso(-1)}, {t:"undo", stige:"main", fra:1, til:0, at: iso(-1)}]);
@@ -368,10 +445,10 @@ K.saetRolle("traener");
 const ret = async (tricks, id) => { saet(0,0,tricks); K.skrivninger.length = 0; await K.correctJuggleTrick(PID, id); return sidste(); };
 t("fjern Inderside 10: Inderside 20 ryger med, -35",
   await ret(["inderside5","inderside10","inderside20"], "inderside10"),
-  'Fjern "Inderside 10" for Testbarn?\n\nInderside 20 bygger på Inderside 10 og bliver også fjernet.\n\n-35 point. Rettelsen bliver logget med dit navn.');
+  'Fjern "Inderside 10" for Testbarn?\n\nInderside 20 bygger på Inderside 10 og bliver også fjernet.\n\n-35 point. Rettelsen bliver logget med din e-mail.');
 t("giv Inderside 20 til et barn uden serien: 5 og 10 gives med, +45",
   await ret([], "inderside20"),
-  'Giv "Inderside 20" for Testbarn?\n\nInderside 5 og Inderside 10 kommer før i serien og bliver også givet.\n\n+45 point. Rettelsen bliver logget med dit navn.');
+  'Giv "Inderside 20" for Testbarn?\n\nInderside 5 og Inderside 10 kommer før i serien og bliver også givet.\n\n+45 point. Rettelsen bliver logget med din e-mail.');
 t("giv Yderside 20 med Yderside 5: kun 10 gives med, +35", /Yderside 10 kommer før i serien og bliver også givet\.\n\n\+35 point/.test(await ret(["yderside5"], "yderside20")), true);
 t("giv 10 hovedstød: kun det, +20", /^Giv "10 hovedstød" for Testbarn\?\n\n\+20 point/.test(await ret([], "hoved10")), true);
 t("fjern Jorden rundt: -20", pointI(await ret(["jordenrundt"], "jordenrundt")), "-20");

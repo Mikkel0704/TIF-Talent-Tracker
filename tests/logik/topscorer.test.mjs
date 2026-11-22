@@ -10,6 +10,9 @@ function t(navn, fik, vent){
   else { fejl++; console.log("  FEJL " + navn + "\n         fik:      " + a + "\n         ventede:  " + b); }
 }
 const afsnit = s => console.log("\n" + s);
+// En dag efter i dag findes ikke endnu (footworkDays). Serverens ur saettes derfor til 10.
+// februar 2027 - efter alle maanederne her - som serveren selv goer det med kaaringens nu.
+K.saetNu("2027-02-10T12:00:00+01:00");
 const DEC = "2026-12", NOV = "2026-11";
 const dag = (n, m = DEC) => `${m}-${String(n).padStart(2, "0")}`;
 const kl = (iso, tid = "10:00:00") => `${iso}T${tid}+01:00`;            // dansk vintertid
@@ -64,9 +67,9 @@ s = stat([stigebarn], "A");
 t("december: hovedtrin 2 og 3 (5 + 5), dårligt ben trin 1 (5) og Opløft (10) = 25", s.point, 25);
 t("øvelser: 3 trin - hvert trin én gang, intet trick, intet trin uden for fremdriften", s.oevelser, 3);
 t("november: hovedtrin 1 (5 point, 1 trin)", tal(K.maanedTopscorerStat("A", NOV)).slice(0, 2), [5, 1]);
-t("et trin, der er registreret i både november og december, tæller i december - ikke i begge",
-  (() => { const b = { id: "A", stige: { mainStep: 1 }, log: [{ t: "main", v: 0, at: kl(dag(5)) }, { t: "main", v: 0, at: kl("2026-11-05") }] };
-    return [tal(stat([b], "A")).slice(0, 2), tal(K.maanedTopscorerStat("A", NOV)).slice(0, 2)]; })(), [[5, 1], [0, 0]]);
+t("et trin, der er registreret i både november og december (fortrudt og taget igen), tæller i november, hvor det blev nået første gang - ikke i begge",
+  (() => { const b = { id: "A", stige: { mainStep: 1 }, log: [{ t: "main", v: 0, at: kl(dag(5)) }, { t: "undo", stige: "main", fra: 1, til: 0, at: kl("2026-11-06") }, { t: "main", v: 0, at: kl("2026-11-05") }] };
+    return [tal(stat([b], "A")).slice(0, 2), tal(K.maanedTopscorerStat("A", NOV)).slice(0, 2)]; })(), [[0, 0], [5, 1]]);
 t("rettes stigen ned, tæller de fjernede trin ikke længere",
   tal(stat([{ ...stigebarn, stige: { mainStep: 1, weakStep: 0, tricks: [] } }], "A")).slice(0, 2), [0, 0]);
 

@@ -25,6 +25,10 @@ const clubRanking = [{id:"p1", name:"Egen spiller"}, {id:"fremmed", name:"Andet 
 const clubModules = {talentmaerke:{"2014":false}};
 const guideVideos = {f_t:{url:"https://eksempel.invalid/guides/f_t/1.mp4", sti:"guides/f_t/1.mp4"}};
 const deletionRequests = [{id:"p1", reason:"flytter"}];
+// Kaaringerne laeser alle aktive logins - hele klubben, alle aargange.
+const maanedensSpiller = [{id:"2026-11_2017", maaned:"2026-11", aargang:"2017", vindere:[{id:"p1", navn:"Egen spiller", dage:12}]},
+  {id:"2026-11_2012", maaned:"2026-11", aargang:"2012", vindere:[{id:"x", navn:"Kåret i en anden årgang", dage:20}]}];
+const maanedensTopscorer = [{id:"2026-11_2017", maaned:"2026-11", aargang:"2017", vindere:[{id:"p2", navn:"Topscorer", point:90}]}];
 ${html.slice(a, b)}
 export { backupPayload };`);
 const K = await import(sti.href);
@@ -35,7 +39,8 @@ const t=(n,f,v)=>{const x=JSON.stringify(f),y=JSON.stringify(v);
 console.log("\nBackup som admin");
 K.saetRolle("admin");
 let d = K.backupPayload();
-t("alle samlinger er med", ["users","players","playerNotes","submissions","challenges","juggleLadder","juggleLog","footwork","footworkLog","clubRanking","clubModules","deletionRequests"].every(k=>k in d), true);
+t("alle samlinger er med", ["users","players","playerNotes","submissions","challenges","juggleLadder","juggleLog","footwork","footworkLog","clubRanking","maanedensSpiller","maanedensTopscorer","clubModules","deletionRequests"].every(k=>k in d), true);
+t("Månedens spiller og Månedens topscorer er med", [d.maanedensSpiller.map(k=>k.id), d.maanedensTopscorer.map(k=>k.id)], [["2026-11_2017","2026-11_2012"], ["2026-11_2017"]]);
 t("hele klubben, også andre årganges stige og fodteknik", [d.juggleLadder.length, d.footwork.length, d.clubRanking.length], [2,2,2]);
 t("logins er med", d.users.length, 1);
 t("joker-begrundelserne er med (og derfor skal filen passes på)", d.footworkLog[0].reasons["2026-11-05"].tekst, "syg");
@@ -55,6 +60,7 @@ t("et fremmed barns navn står ingen steder i filen", JSON.stringify(d).includes
 t("ingen logins", d.users, []);
 t("ingen sletteanmodninger", d.deletionRequests, []);
 t("omfanget står i filen", d.omfang, "årgange: 2017");
+t("kåringerne er med, som træneren kan læse dem - hele klubben", [d.maanedensSpiller.length, d.maanedensTopscorer.length, d.maanedensSpiller[1].vindere[0].navn], [2, 1, "Kåret i en anden årgang"]);
 t("videolinket er heller ikke med her", JSON.stringify(d).includes("hemmeligt-link"), false);
 
 console.log(`\n${ok} ok, ${fejl} fejl`);

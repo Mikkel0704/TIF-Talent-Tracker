@@ -53,7 +53,7 @@ export function formOpret(data){
   const d = data && typeof data === "object" ? data : {};
   if(d.rolle !== "coach" && d.rolle !== "player") throw ugyldig("Ukendt slags login.");
   const email = tekst(d.email, "E-mailen", 320);
-  if(!email) throw ugyldig(d.rolle === "coach" ? "Skriv trænerens email." : "Skriv spillerens email.");
+  if(!email) throw ugyldig(d.rolle === "coach" ? "Skriv trænerens e-mail." : "Skriv spillerens e-mail.");
   if(!EMAIL.test(email)) throw ugyldig(BESKEDER["auth/invalid-email"][1]);
   if(typeof d.kode !== "string" || d.kode.length < MIN_KODE) throw ugyldig(BESKEDER["auth/invalid-password"][1]);
   if(d.kode.length > 128) throw ugyldig("Password er for langt.");
@@ -167,15 +167,22 @@ export async function sletLogin({ db, adminAuth, FieldValue, logger }, kalder, d
     const ref = db.collection("users").doc(uid);
     const bruger = await tx.get(ref);
     const d = bruger.exists ? bruger.data() : null;
-    let spiller = null;
+    let spiller = null, andreAktive = false;
     if(d && d.role === "player" && typeof d.playerId === "string" && d.playerId && !d.playerId.includes("/")){
-      spiller = await tx.get(db.collection("players").doc(d.playerId));
+      const [s, andre] = await Promise.all([
+        tx.get(db.collection("players").doc(d.playerId)),
+        tx.get(db.collection("users").where("playerId", "==", d.playerId))
+      ]);
+      spiller = s;
+      // Har barnet et ANDET aktivt spillerlogin, der ikke er demo, kan det stadig udfordres.
+      andreAktive = andre.docs.some(x => x.id !== uid && x.get("role") === "player" && x.get("active") !== false && x.get("demo") !== true);
     }
     svar.brugerdokument = "fandtes ikke"; svar.spiller = null;   // transaktionen kan koere igen
     if(d){ tx.delete(ref); svar.brugerdokument = "slettet"; }
-    // Som appen: et spillerlogin, der slettes, tager flaget med. Findes spilleren ikke
-    // laengere, skrives intet (ellers ville der opstaa en tom spiller).
-    if(spiller?.exists){ tx.update(spiller.ref, { hasActiveLogin: false, updatedAt: FieldValue.serverTimestamp() }); svar.spiller = spiller.id; }
+    // Som appen: et spillerlogin, der slettes, tager flaget med - medmindre barnet har et
+    // andet aktivt, rigtigt login. Findes spilleren ikke laengere, skrives intet (ellers ville
+    // der opstaa en tom spiller).
+    if(spiller?.exists && !andreAktive){ tx.update(spiller.ref, { hasActiveLogin: false, updatedAt: FieldValue.serverTimestamp() }); svar.spiller = spiller.id; }
   });
   try{
     await adminAuth.deleteUser(uid);

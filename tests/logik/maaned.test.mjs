@@ -2,6 +2,13 @@
 // træningsdage, medmindre andet står (som i bestillingen).
 import * as K from "./kode.mjs";
 
+// Testene bruger december 2026 og senere, og en dag efter i dag findes ikke endnu
+// (footworkDays). Uret staar derfor fast paa 10. februar 2027 - efter alle maanederne her -
+// medmindre en test flytter det (se "Dage efter i dag").
+const EKTE = Date;
+let NU = new EKTE("2027-02-10T12:00:00+01:00").getTime();
+globalThis.Date = class extends EKTE { constructor(...a){ if(a.length) super(...a); else super(NU); } static now(){ return NU; } };
+
 let ok = 0, fejl = 0;
 function t(navn, fik, vent){
   const a = JSON.stringify(fik), b = JSON.stringify(vent);
@@ -87,6 +94,14 @@ t("5. december: november", K.maanederTilKaaring("2026-12-05"), ["2026-11"]);
 t("5. januar: november og december, i rækkefølge", K.maanederTilKaaring("2027-01-05"), ["2026-11", "2026-12"]);
 t("første kåring er november 2026", K.MAANEDENS_FOERSTE, "2026-11");
 t("forrige måned over et årsskifte", K.forrigeMaaned("2027-01"), "2026-12");
+
+afsnit("Dage efter i dag (dansk tid) tæller ikke - heller ikke i kåringen");
+NU = new EKTE("2026-12-10T12:00:00+01:00").getTime();
+r = kaar([{id:"A", dage: ens(20, {t:1})}, {id:"B", dage: ens(12, {t:1})}]);
+t("den 10. december: A's dage 11.-20. er ikke kommet endnu, så A og B har 10 dage hver og deler",
+  [r.vindere, r.res.rangliste.map(x=>x.dage)], [["A", "B"], [10, 10]]);
+NU = new EKTE("2027-02-10T12:00:00+01:00").getTime();
+t("når dagene er kommet, tæller de", kaar([{id:"A", dage: ens(20, {t:1})}, {id:"B", dage: ens(12, {t:1})}]).vindere, ["A"]);
 
 console.log(`\n${ok} ok, ${fejl} fejl`);
 process.exit(fejl ? 1 : 0);

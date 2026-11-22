@@ -144,11 +144,13 @@ const medId = db => ({ spillere: liste(db.players), fodteknik: liste(db.footwork
   stiger: liste(db.juggleLadder), stigelogge: liste(db.juggleLog), kaaringer: liste(db.maanedensSpiller), topscorere: liste(db.maanedensTopscorer) });
 const sti = k => k.samling + "/" + k.id;
 const TILFAELDE = [
-  ["5. december kl. 00:00:30 (november)", "2026-12-04T23:00:30Z", {}],
+  // Reserven kaarer tidligst kl. 05:30 dansk tid (og 04:00 UTC) den 5. - serveren kl. 05:00.
+  ["5. december kl. 05:30 (november) - det tidligste, reserven kaarer", "2026-12-05T04:30:00Z", {}],
   ["7. januar kl. 09 (november og december - to maaneder hales ind)", "2027-01-07T08:00:00Z", {}],
-  ["5. februar kl. 05 med november gemt i nogle aargange (med andre vindere end tallene giver) og uden topscorer", "2027-02-05T04:00:00Z", { gemt: true }],
+  ["5. februar kl. 05:30 med november gemt i nogle aargange (med andre vindere end tallene giver) og uden topscorer", "2027-02-05T04:30:00Z", { gemt: true }],
   ["4. december kl. 23:59 (intet afgjort endnu)", "2026-12-04T22:59:00Z", {}],
-  ["6. januar kl. 12 med november kaaret i alle aargange og topscorer gemt i nogle (to maaneder, men kun én mangler de fleste steder)", "2027-01-06T11:00:00Z", { foerNov: true }]
+  ["6. januar kl. 12 med november kaaret i alle aargange og topscorer gemt i nogle (to maaneder, men kun én mangler de fleste steder)", "2027-01-06T11:00:00Z", { foerNov: true }],
+  ["5. december kl. 05:29 - serveren har kaaret kl. 05, reserven venter endnu", "2026-12-05T04:29:00Z", { reserveVenter: true }]
 ];
 for(const [i, [navn, iso, valg]] of TILFAELDE.entries()){
   console.log(`\nParitet · Maanedens spiller og topscorer · ${navn}`);
@@ -178,6 +180,10 @@ for(const [i, [navn, iso, valg]] of TILFAELDE.entries()){
   const server = alleKaaringerAtOprette(medId(db), nu);
   const { poster, igen, fejl } = await siden(db, nu);
   t("siden startede uden fejl", !fejl.length, fejl.slice(0, 3));
+  if(valg.reserveVenter){
+    t(`serveren kaarer (${server.length} poster), men siden opretter intet foer kl. 05:30`, server.length > 0 && poster.length === 0, poster.map(sti));
+    continue;
+  }
   const sp = server.filter(k => k.samling === "maanedensSpiller").length, tp = server.length - sp;
   t(`siden og serveren opretter de samme ${server.length} poster (${sp} Maanedens spiller, ${tp} topscorer) i samme raekkefoelge`,
     JSON.stringify(poster.map(sti)) === JSON.stringify(server.map(sti)), { side: poster.map(sti), server: server.map(sti) });

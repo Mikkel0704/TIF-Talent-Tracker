@@ -92,7 +92,7 @@ t("browseren skriver intet i users selv, og opretter intet login", !(await a.skr
 
 await a.nulstil();
 await a.page.click('button:has-text("Opret træner")'); await a.page.waitForTimeout(200);
-t("uden e-mail: appens egen besked, og serveren kaldes ikke", (await a.dialogTekst()) === "Skriv trænerens email." && !(await a.kald()).length);
+t("uden e-mail: appens egen besked, og serveren kaldes ikke", (await a.dialogTekst()) === "Skriv trænerens e-mail." && !(await a.kald()).length);
 await a.svar(true);
 
 await a.saetSvar("opretLogin", { fejl: { code: "already-exists", message: "Der findes allerede et login med den e-mail. Brug en anden, eller slet det gamle login først." } });

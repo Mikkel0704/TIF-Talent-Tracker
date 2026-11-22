@@ -8,7 +8,8 @@
 //
 // Den ene planlagte funktion er maanedensKaaring: Maanedens spiller og Maanedens topscorer
 // afgoeres af serveren den 5. kl. 05 dansk tid i stedet for at vente paa, at en admin
-// aabner appen.
+// aabner appen. Samme koersel rydder hver morgen op i joker-begrundelser og videoer
+// (oprydning.js).
 //
 // Tre kaldbare funktioner. opretLogin og sletLogin: logins oprettes og slettes af serveren,
 // saa Firebase Authentications aabne selvoprettelse kan lukkes (se logins.js). sletSpiller:
@@ -26,6 +27,7 @@ import { logger } from "firebase-functions";
 import { haandter, kaarMaanedensSpiller } from "./server.js";
 import * as logins from "./logins.js";
 import * as sletning from "./sletning.js";
+import { rydOp } from "./oprydning.js";
 
 // Funktionerne koerer i europe-west1. Selve Eventarc-triggeren skal ligge, hvor databasen
 // ligger (eur3); den saetter firebase deploy selv ud fra databasens placering.
@@ -48,10 +50,18 @@ export const ranglisteIndsendelse = onDocumentWritten("submissions/{id}", event 
 
 // Maanedens spiller og Maanedens topscorer. Hver dag kl. 05:00 dansk tid - med vilje hver dag: koerslen goer intet,
 // der allerede er gjort (create() overskriver aldrig), saa slaar koerslen den 5. fejl, tager
-// naeste morgen den. Paa alle andre dage finder den intet at goere og skriver intet.
+// naeste morgen den. Paa alle andre dage finder den intet at kaare og skriver intet.
+// Bagefter morgenoprydningen (oprydning.js): joker-begrundelser 3 doegn efter afgoerelsen og
+// videoer efter appens regler. Oprydningen kaster aldrig - en fejl dér logges og vaelter
+// ikke kaaringen - og den koerer, ogsaa hvis kaaringen fejlede.
 // Ingen genforsoeg ud over standarden.
 export const maanedensKaaring = onSchedule({ schedule: "0 5 * * *", timeZone: "Europe/Copenhagen" }, async () => {
-  const svar = await kaarMaanedensSpiller(hentDb(), new Date(), logger);
+  const nu = new Date();
+  let svar = null, kaaringFejl = null;
+  try{ svar = await kaarMaanedensSpiller(hentDb(), nu, logger); }
+  catch(e){ kaaringFejl = e; }
+  await rydOp({ db: hentDb(), bucket: getStorage(app()).bucket(sletning.VIDEO_BOETTE), FieldValue, logger }, nu);
+  if(kaaringFejl) throw kaaringFejl;
   const fejlet = [...svar.fejlet.map(id => "maanedensSpiller/" + id), ...svar.topscorer.fejlet.map(id => "maanedensTopscorer/" + id)];
   if(fejlet.length) throw new Error("maanedensKaaring: " + fejlet.length + " kaaring(er) blev ikke gemt: " + fejlet.join(", "));
 });
