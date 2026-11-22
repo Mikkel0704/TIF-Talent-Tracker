@@ -12,7 +12,8 @@ const kravKode = /\nconst criteria = \{[\s\S]*?\n\};/.exec(html)?.[0];
 if(!stepsKode || !kravKode) throw new Error("kunne ikke finde steps/criteria");
 
 // Dialogerne (spoerg/besked/indtast) gribes, saa beskederne til fortryd og rettelser kan
-// laeses. spoerg svarer altid nej, saa intet bliver skrevet.
+// laeses. spoerg svarer nej, saa intet bliver skrevet - medmindre testen beder om ja
+// (saetJa), og saa gribes skrivningerne i "skrivninger" i stedet for at gaa til Firestore.
 const forspil = `
 export let juggleLadder = [];
 export let juggleLog = [];
@@ -21,14 +22,17 @@ export const beskeder = [];
 let rolle = "traener", svar = null;
 export function saetRolle(r){ rolle = r; currentPlayerLink = r === "spiller" ? players[0] : null; }
 export function saetSvar(x){ svar = x; }
+let ja = false;
+export function saetJa(x){ ja = x; }
+export const skrivninger = [];
 const db = null, players = [{id:"p1", name:"Testbarn", year:"2017"}], currentUser = null;
 let currentPlayerLink = null;
-function setDoc(){ throw new Error("ikke i test"); } function doc(){ throw new Error("ikke i test"); }
+async function setDoc(ref, data){ skrivninger.push({ref, data}); } function doc(_db, samling, id){ return samling + "/" + id; }
 function serverTimestamp(){ return null; } function normalizeYearValue(v){ return String(v); }
 function isPlayer(){ return rolle === "spiller"; } function demoBlocked(){ return false; }
 function canAccessPlayer(){ return true; }
 function besked(m){ beskeder.push(String(m)); }
-async function spoerg(m){ beskeder.push(String(m)); return false; }
+async function spoerg(m){ beskeder.push(String(m)); return ja; }
 async function indtast(m){ beskeder.push(String(m)); return svar; }
 function dagsISO(d){ const x=new Date(d); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); }
 ${stepsKode}
@@ -36,7 +40,7 @@ ${kravKode}
 `;
 const efterspil = `
 export { JUGGLE_MAIN, JUGGLE_WEAK, JUGGLE_MAIN_POINT, JUGGLE_WEAK_POINT, JUGGLE_TRICKS, JUGGLE_PHASES, JUGGLE_WEAK_PHASES, JUGGLE_RULES,
-         JUGGLE_GATE_AFTER, juggleMainPoints, juggleWeakPoints, jugglePhaseFor, juggleMedalMarks,
+         JUGGLE_GATE_AFTER, JUGGLE_TRICK_NIVEAUER, juggleTrick, juggleTrickSpaerret, juggleTrickEfterfoelgere, ladderTrinIVindue, juggleMainPoints, juggleWeakPoints, jugglePhaseFor, juggleMedalMarks,
          ladderPoints, ladderPointsInWindow, juggleMainStep, juggleWeakStep, juggleTricks,
          registerJuggle, undoJuggle, undoJuggleTrick, correctJuggle, correctJuggleTrick, criteria };
 `;
@@ -100,13 +104,13 @@ t("et trin uden for stigen giver nul",
 console.log("\nSamlede point");
 t("hovedstigen i alt = 200", hovedPoint(K.JUGGLE_MAIN.length), 200);
 t("dårligt ben i alt = 150", svagPoint(K.JUGGLE_WEAK.length), 150);
-t("tricks i alt = 75", sum(K.JUGGLE_TRICKS.map(x=>x.point)), 75);
+t("tricks i alt = 50 + 90 + 100 = 240", sum(K.JUGGLE_TRICKS.map(x=>x.point)), 240);
 saet(0,0,[]);
 t("en tom stige giver nul", K.ladderPoints(PID), 0);
 saet(16,12,K.JUGGLE_TRICKS.map(x=>x.id));
-t("hele stigen = 200 + 150 + 75 = 425", K.ladderPoints(PID), 425);
+t("hele stigen = 200 + 150 + 240 = 590", K.ladderPoints(PID), 590);
 saet(15,10,K.JUGGLE_TRICKS.map(x=>x.id));
-t("hovedstige 15, dårligt ben 10, alle tricks = 180 + 110 + 75 = 365", K.ladderPoints(PID), 365);
+t("hovedstige 15, dårligt ben 10, alle tricks = 180 + 110 + 240 = 530", K.ladderPoints(PID), 530);
 saet(11,8,["oploft"]);
 t("hovedstige 11, dårligt ben 8, opløft = (4x5+4x10+3x15) + (3x5+3x10+2x15) + 10 = 190", K.ladderPoints(PID), 190);
 saet(12,10,["oploft"]);
@@ -160,13 +164,13 @@ saet(16, 10, ["oploft"], [
 ]);
 t("trin 16 og hver fase tælles med den nye takst i vinduet",
   K.ladderPointsInWindow(PID, siden), 20 + 20 + 15 + 10 + 20 + 15 + 10 + 10);
-// Et barn, der tager hele stigen paa én eftermiddag (som den 2026-11-20), faar 425 i ugen.
+// Et barn, der tager hele stigen paa én eftermiddag (som den 2026-11-20), faar 590 i ugen.
 saet(16, 12, K.JUGGLE_TRICKS.map(x=>x.id), [
   ...K.JUGGLE_MAIN.map((_,i)=>({t:"main", v:i, at: iso(0)})),
   ...K.JUGGLE_WEAK.map((_,i)=>({t:"weak", v:i, at: iso(0)})),
   ...K.JUGGLE_TRICKS.map(x=>({t:"trick", v:x.id, at: iso(0)}))
 ]);
-t("hele stigen på én dag giver 425 i ugen", K.ladderPointsInWindow(PID, siden), 425);
+t("hele stigen på én dag giver 590 i ugen", K.ladderPointsInWindow(PID, siden), 590);
 
 console.log("\nFortryd må ikke kunne give point to gange");
 // Spilleren tager trin 1, fortryder, og tager det igen. Loggen rummer nu to linjer for

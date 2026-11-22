@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.80</title>
+  <title>TIF Talent Tracker v15.81</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -74,6 +74,8 @@
     .ladderrow.done{background:#eef7f1;border-color:#cfe6da}
     .ladderrow.next{border-color:var(--maroon);box-shadow:0 0 0 2px rgba(109,27,58,.12)}
     .ladderrow.locked{opacity:.5}
+    .ladderrow.tricklaast{background:#f6f6f6;border-style:dashed}
+    .laastgrund{font-size:12px;font-weight:700;color:var(--maroon);margin-top:2px}
     .laddernum{flex:0 0 58px;font-weight:800;font-size:17px;text-align:right;font-variant-numeric:tabular-nums}
     .laddermid{flex:1;min-width:0}
     .ladderstep{font-size:12px;color:var(--muted)}
@@ -169,7 +171,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.80 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.81 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
 </header>
@@ -592,7 +594,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.80 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.81 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -978,15 +980,27 @@ async function correctJuggleTrick(pid, trickId){
   const p = players.find(x=>x.id===pid);
   if(!p || !canAccessPlayer(p.year, p.gender)) return besked("Ingen adgang");
   const t = juggleTrick(trickId); if(!t) return;
-  const har = juggleTricks(pid).includes(trickId);
-  if(!await spoerg(`${har ? "Fjern" : "Giv"} "${t.navn}" for ${p.name}?\n\n${har ? "-" : "+"}${t.point} point. Rettelsen bliver logget med dit navn.`)) return;
-  const tricks = har ? juggleTricks(pid).filter(x=>x!==trickId) : [...juggleTricks(pid), trickId];
+  const nu = juggleTricks(pid), har = nu.includes(trickId);
+  // Serierne skal staa hele: fjernes et trick, ryger de senere i serien med (som naar
+  // spilleren fortryder), og gives et trick, faar barnet ogsaa de forrige i serien, det
+  // mangler - har traeneren set 20 med indersiden, er 5 og 10 ogsaa klaret.
+  const ogsaa = [];
+  if(har) ogsaa.push(...juggleTrickEfterfoelgere(trickId).filter(x=>nu.includes(x.id)));
+  else for(let f = juggleTrickForrige(trickId); f && !nu.includes(f.id) && !ogsaa.includes(f); f = juggleTrickForrige(f.id)) ogsaa.unshift(f);
+  const point = t.point + ogsaa.reduce((n, x)=>n + x.point, 0);
+  const ogsaaTekst = !ogsaa.length ? ""
+    : har ? `${juggleOgListe(ogsaa.map(x=>x.navn))} bygger på ${t.navn} og bliver også fjernet.\n\n`
+          : `${juggleOgListe(ogsaa.map(x=>x.navn))} kommer før i serien og bliver også givet.\n\n`;
+  if(!await spoerg(`${har ? "Fjern" : "Giv"} "${t.navn}" for ${p.name}?\n\n${ogsaaTekst}${har ? "-" : "+"}${point} point. Rettelsen bliver logget med dit navn.`)) return;
+  const roert = [trickId, ...ogsaa.map(x=>x.id)];
+  const tricks = har ? nu.filter(x=>!roert.includes(x)) : [...nu, ...ogsaa.map(x=>x.id), trickId];
   const progress = {tricks};
   // Fjernes Oploeft, lukker porten igen - saa skal hovedstigen ogsaa tilbage til trin 3.
   if(har && trickId === "oploft" && juggleMainStep(pid) > JUGGLE_GATE_AFTER) progress.mainStep = JUGGLE_GATE_AFTER;
   try{
     await writeJuggle(pid, p, progress,
-      {t: "correct", stige: "trick", trick: trickId, til: har ? "fjernet" : "givet", at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""});
+      Object.assign({t: "correct", stige: "trick", trick: trickId, til: har ? "fjernet" : "givet", at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""},
+        ogsaa.length ? {ogsaa: ogsaa.map(x=>x.id)} : {}));
   }catch(e){ console.error(e); besked("Kunne ikke rette: " + (e.message || "ukendt fejl")); }
 }
 function jugglePhaseFor(trinNr, faser = JUGGLE_PHASES){ return faser.find(f=>trinNr<=f.til) || faser[faser.length-1]; }
@@ -1020,7 +1034,7 @@ function juggleTricks(pid){ const t = juggleFor(pid)?.tricks; return Array.isArr
 // (functions/byg.mjs haeler den ud af denne fil) og skriver udgaven paa hver linje.
 // Haev den, hver gang en pointregel aendres - saa kan admin-siden se, om serveren
 // stadig regner med de gamle regler, og funktionerne skal rulles ud igen.
-const POINTREGLER = "2026-11-20";
+const POINTREGLER = "2026-11-23";
 // Point som ren funktion af fremdrift. Intet gemt tal, intet at forfalske.
 function ladderPoints(pid){
   let sum = 0;
@@ -2073,8 +2087,8 @@ function pointsForStep(step){ return step.level*15 + POINT_BASE[step.medal]; }
 // "Debutant" betyder ny HER - ikke daarlig.
 //
 // Grænserne er regnet efter: en almindelig dag med tre oevelser giver 14 point, og
-// hele medaljeforloebet (2325) plus hele stigen (425) er 2750 - altsaa midt i Superliga og
-// 750 under Champions League paa 3500. Tager man hver eneste medalje og hvert eneste trin
+// hele medaljeforloebet (2325) plus hele stigen (590) er 2915 - altsaa i Superliga og
+// 585 under Champions League paa 3500. Tager man hver eneste medalje og hvert eneste trin
 // paa stigen, naar man Superliga. De tre oeverste trin kraever, at man ogsaa har traenet derhjemme.
 const RANK_TIERS = [
  {name:"Debutant", min:0, icon:"👟"},
@@ -2389,7 +2403,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.80 · ikke logget ind");
+    setSyncStatus("v15.81 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2415,7 +2429,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.80 · bekræft inden I går i gang");
+    setSyncStatus("v15.81 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2423,7 +2437,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.80 · vælg din egen adgangskode");
+    setSyncStatus("v15.81 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2497,7 +2511,7 @@ function startListeners(){
         if(!ranglisteAar) lytRangliste(normalizeYearValue(currentPlayerLink.year));
       }
     }
-    setSyncStatus("v15.80 · live database aktiv");
+    setSyncStatus("v15.81 · live database aktiv");
     renderAll();
   };
   spillereHentet = false;
@@ -2506,7 +2520,7 @@ function startListeners(){
       players = snap.exists() ? [migratePlayer({id: snap.id, ...snap.data()})] : [];
       spillereHentet = true;
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.80 · databasefejl: " + e.code))] : [];
+    }, (e)=>setSyncStatus("v15.81 · databasefejl: " + e.code))] : [];
     if(!egenId){ players = []; spillereHentet = true; spillerFaaet(); }
   } else {
     unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
@@ -2514,7 +2528,7 @@ function startListeners(){
       if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
       players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.80 · databasefejl: " + e.code));
+    }, (e)=>setSyncStatus("v15.81 · databasefejl: " + e.code));
   }
   // Spillerens egen aargang kendes fra loginnet (som allowedYears); mangler den dér,
   // startes lytteren, naar spillerens eget dokument er kommet (se spillerFaaet).
@@ -3116,14 +3130,14 @@ async function deletePlayer(id){
   const skrevet = ((await indtast(`Skriv spillerens navn for at bekræfte:\n\n${navn}`, {ja: "Slet alt", farlig: true})) || "").trim();
   if(skrevet !== navn.trim()) return besked("Navnet passede ikke. Intet er slettet.");
 
-  setSyncStatus("v15.80 · sletter...");
+  setSyncStatus("v15.81 · sletter...");
   let svar;
   try{
     // Serveren tjekker navnet igen, før den sletter noget.
     svar = (await sletSpillerPaaServeren({playerId: id, navn: skrevet})).data;
   }catch(e){
     console.error(e);
-    setSyncStatus("v15.80 · live database aktiv");
+    setSyncStatus("v15.81 · live database aktiv");
     const kode = String(e?.code || "").replace(/^functions\//, "");
     const tekst = serverFejlTekst(e);
     // Afviste serveren kaldet, før den gik i gang, er intet slettet - så ingen opfordring.
@@ -3131,7 +3145,7 @@ async function deletePlayer(id){
     return besked("Kunne ikke slette: " + tekst
       + (afvist ? "" : `\n\nNåede noget at blive slettet, så tryk "Slet alt" igen - så gør serveren resten.`));
   }
-  setSyncStatus("v15.80 · live database aktiv");
+  setSyncStatus("v15.81 · live database aktiv");
 
   const fejl = Array.isArray(svar?.fejl) ? svar.fejl : [];
   if(fejl.length){
@@ -3212,6 +3226,8 @@ function renderTracking(){
   // med spilleren foran sig til traening.
   const jNaaet = juggleMainStep(p.id), jSvag = juggleWeakStep(p.id), jTricks = juggleTricks(p.id);
   const jLog = juggleLogFor(p.id).slice(0, 5);
+  // Rullede en serie med (fortryd eller rettelse), staar de andre tricks i "ogsaa".
+  const ogsaaNavne = e=>Array.isArray(e.ogsaa) && e.ogsaa.length ? ", også " + escapeHtml(juggleOgListe(e.ogsaa.map(id=>juggleTrick(id)?.navn || String(id)))) : "";
   const juggleBlock = `<div class="exercise-block">
     <h3 style="margin-top:0">Jongleringsstigen · ${ladderPoints(p.id)} point</h3>
     <p class="small">Registreret af familien på tillid. Tag en stikprøve til træning, og ret her, hvis tallet ikke holder. Point genberegnes automatisk.</p>
@@ -3223,14 +3239,18 @@ function renderTracking(){
       <div><b>Dårligt ben</b><div class="small">${jSvag} af ${JUGGLE_WEAK.length} trin${jSvag ? " · senest " + JUGGLE_WEAK[jSvag-1] + " berøringer" : ""}</div></div>
       <button class="btn secondary smallbtn" onclick="correctJuggle('${p.id}','weak')">Ret</button>
     </div>
-    ${JUGGLE_TRICKS.map(t=>`<div class="checkrow">
-      <div><b>${escapeHtml(t.navn)}</b><div class="small">${t.point} point${t.id==="oploft" ? " · åbner trin 4" : ""}</div></div>
+    ${JUGGLE_TRICK_NIVEAUER.map(n=>`<div class="phasehead">Tricks · ${escapeHtml(n.navn)} · ${n.point} point pr. trick</div>`
+      + JUGGLE_TRICKS.filter(t=>t.niveau===n.id).map(t=>{
+        const mangler = !jTricks.includes(t.id) && juggleTrickSpaerret(p.id, t.id);
+        return `<div class="checkrow">
+      <div><b>${escapeHtml(t.navn)}</b><div class="small">${t.point} point${t.id==="oploft" ? " · åbner trin 4" : ""}${mangler ? ` · låst: kræver ${escapeHtml(mangler.navn)}` : ""}</div></div>
       <button class="toggle ${jTricks.includes(t.id)?'on':''}" onclick="correctJuggleTrick('${p.id}','${t.id}')">${jTricks.includes(t.id)?'Klaret':'Ikke endnu'}</button>
-    </div>`).join("")}
+    </div>`;
+      }).join("")).join("")}
     ${jLog.length ? `<div class="small" style="margin-top:10px"><b>Seneste registreringer</b>${jLog.map(e=>{
       const naar = e.at ? new Date(e.at).toLocaleString("da-DK") : "";
-      if(e.t === "correct") return `<div>${escapeHtml(naar)} · rettet af ${escapeHtml(e.af || "træner")}${e.stige==="trick" ? ` (${escapeHtml(juggleTrick(e.trick)?.navn || e.trick)} ${escapeHtml(e.til)})` : ` (${e.stige==="main"?"hovedstigen":"dårligt ben"} ${e.fra} → ${e.til})`}</div>`;
-      if(e.t === "undo") return `<div>${escapeHtml(naar)} · spilleren fortrød ${e.stige === "trick" ? escapeHtml(juggleTrick(e.trick)?.navn || e.trick) : `${e.stige === "main" ? "hovedstigen" : "dårligt ben"} ${e.fra} → ${e.til}`}</div>`;
+      if(e.t === "correct") return `<div>${escapeHtml(naar)} · rettet af ${escapeHtml(e.af || "træner")}${e.stige==="trick" ? ` (${escapeHtml(juggleTrick(e.trick)?.navn || e.trick)} ${escapeHtml(e.til)}${ogsaaNavne(e)})` : ` (${e.stige==="main"?"hovedstigen":"dårligt ben"} ${e.fra} → ${e.til})`}</div>`;
+      if(e.t === "undo") return `<div>${escapeHtml(naar)} · spilleren fortrød ${e.stige === "trick" ? escapeHtml(juggleTrick(e.trick)?.navn || e.trick) + ogsaaNavne(e) : `${e.stige === "main" ? "hovedstigen" : "dårligt ben"} ${e.fra} → ${e.til}`}</div>`;
       if(e.t === "trick") return `<div>${escapeHtml(naar)} · ${escapeHtml(juggleTrick(e.v)?.navn || e.v)}</div>`;
       const stige = e.t === "main" ? JUGGLE_MAIN : JUGGLE_WEAK;
       return `<div>${escapeHtml(naar)} · ${stige[e.v] ?? "?"} ${e.t === "main" ? "jongleringer" : "med dårligt ben"}</div>`;
@@ -3720,11 +3740,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.80 · migrering færdig");
+    setSyncStatus("v15.81 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.80 · migrering fejlede");
+    setSyncStatus("v15.81 · migrering fejlede");
   }
 }
 
@@ -3876,7 +3896,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.80 · uploader video...");
+    setSyncStatus("v15.81 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -3920,12 +3940,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.80 · live database aktiv");
+    setSyncStatus("v15.81 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.80 · live database aktiv");
+    setSyncStatus("v15.81 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -5050,15 +5070,21 @@ function renderJuggle(){
     </div>`;
   });
 
-  const trickliste = JUGGLE_TRICKS.map(t=>{
-    const klaret = tricks.includes(t.id);
-    return `<div class="ladderrow ${klaret ? "done" : ""}">
-      <div class="laddermid"><b>${klaret ? "✓ " : ""}${escapeHtml(t.navn)}</b>${t.id === "oploft" ? '<span class="medalmark">Åbner trin 4</span>' : ""}
-        <div class="ladderstep">${escapeHtml(t.tekst)} · ${t.point} point</div>${guideVideoKnap("t_" + t.id, t.navn)}</div>
+  // Tricks i tre grupper (Let/Mellem/Svaer). Et trick i en serie, hvis forrige trin ikke er
+  // klaret, staar som laast med grunden - og uden knap, ligesom de laaste trin paa stigen.
+  const trickliste = JUGGLE_TRICK_NIVEAUER.map(n=>{
+    const raekker = JUGGLE_TRICKS.filter(t=>t.niveau === n.id).map(t=>{
+      const klaret = tricks.includes(t.id);
+      const mangler = !klaret && juggleTrickSpaerret(pid, t.id);
+      return `<div class="ladderrow ${klaret ? "done" : mangler ? "tricklaast" : ""}" data-trick="${t.id}">
+      <div class="laddermid"><b>${klaret ? "✓ " : mangler ? "🔒 " : ""}${escapeHtml(t.navn)}</b>${t.id === "oploft" ? '<span class="medalmark">Åbner trin 4</span>' : ""}
+        <div class="ladderstep">${escapeHtml(t.tekst)} · ${t.point} point</div>${mangler ? `<div class="laastgrund">Tag ${escapeHtml(mangler.navn)} først</div>` : ""}${guideVideoKnap("t_" + t.id, t.navn)}</div>
       ${klaret
         ? `<button class="btn secondary smallbtn" onclick="undoJuggleTrick('${t.id}')">Fortryd</button>`
-        : knap("trick", t.id, "Klaret")}
+        : mangler ? "" : knap("trick", t.id, "Klaret")}
     </div>`;
+    }).join("");
+    return `<div class="phasehead">${escapeHtml(n.navn)} · ${n.point} point pr. trick</div>${raekker}`;
   }).join("");
 
   const total = ladderPoints(pid);
@@ -5074,7 +5100,7 @@ function renderJuggle(){
         <p class="small">Berøringer med det dårlige ben i træk - frit hvornår undervejs. Bolden vippes op fra jorden. Trinnene giver 5, 10, 15 og 20 point - samme trappe som hovedstigen.</p>
         ${svag}
         <h3 style="margin-top:18px">Tricks</h3>
-        <p class="small">Engangsudfordringer. Tag dem i den rækkefølge du vil.</p>
+        <p class="small">Engangsudfordringer. Tag dem i den rækkefølge, du vil - men Inderside, Yderside og Hælen bagom er serier, der tages i rækkefølge.</p>
         ${trickliste}
       </div>
     </div>`;

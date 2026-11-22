@@ -558,7 +558,7 @@ service cloud.firestore {
     // Der gemmes ALDRIG point. De regnes ud af tallene her (se index.html), saa en
     // spiller kan ikke skrive sig til point - kun paastaa trin, hvilket er hele
     // tillidsmodellen og det traeneren tager stikproeve paa. Graenserne nedenfor
-    // bestemmer det absolutte loft: 16 trin + 12 trin + 6 tricks (JUGGLE_MAIN og JUGGLE_WEAK i index.html).
+    // bestemmer det absolutte loft: 16 trin + 12 trin + 16 tricks (JUGGLE_MAIN, JUGGLE_WEAK og JUGGLE_TRICKS i index.html).
     match /juggleLadder/{playerId} {
       allow read: if egetEllerTraener(playerId);
 
@@ -596,7 +596,7 @@ service cloud.firestore {
           // goer. Samme faelde som med "demo" paa brugerdokumentet.
           && (!("mainStep" in request.resource.data) || (request.resource.data.mainStep is int && request.resource.data.mainStep >= 0 && request.resource.data.mainStep <= 16))
           && (!("weakStep" in request.resource.data) || (request.resource.data.weakStep is int && request.resource.data.weakStep >= 0 && request.resource.data.weakStep <= 12))
-          && (!("tricks" in request.resource.data) || (request.resource.data.tricks is list && request.resource.data.tricks.size() <= 6))
+          && (!("tricks" in request.resource.data) || (request.resource.data.tricks is list && request.resource.data.tricks.size() <= 16))
           && (!("days" in request.resource.data) || (request.resource.data.days is list && request.resource.data.days.size() <= 400))
           // Spilleren skal skrive SIN egen aargang - samme krav som i juggleLog. Uden det
           // kunne et barn parkere sin stige i en aargang, det ikke hoerer til.

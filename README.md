@@ -272,14 +272,40 @@ skriver, og som kan regnes forfra af registreringerne når som helst
 ## Jongleringsstigen: point og trin
 
 Stigens point står ét sted: `JUGGLE_MAIN_POINT` og `JUGGLE_WEAK_POINT` i `index.html`
-(`juggleMainPoints`/`juggleWeakPoints`). Fra pointreglerne **2026-11-20**:
+(`juggleMainPoints`/`juggleWeakPoints`) og på hvert trick i `JUGGLE_TRICKS`. Fra
+pointreglerne **2026-11-23**:
 
 - **Hovedstigen**, 16 trin med fire i hver fase: Find kontakten (3, 5, 7, 10) 5 point pr.
   trin, Rytme (15, 20, 30, 40) 10, Kontrol (50, 75, 100, 125) 15 og Udholdenhed
   (150, 200, 250, 300) 20 - i alt 200.
 - **Dårligt ben**, 12 trin med tre i hver fase: (2, 3, 5) 5, (7, 10, 15) 10,
   (20, 30, 40) 15 og (50, 75, 100) 20 - i alt 150.
-- **Tricks** 10 eller 15 - i alt 75. Hele stigen giver 425.
+- **Tricks**, 16 i tre grupper: **Let** 10 point (Opløft, Stop på vristen, Skiftefod,
+  Inderside 5, Yderside 5) = 50, **Mellem** 15 (Lår-fod-lår-fod, 3 hovedstød, Grib bolden
+  på foden, Inderside 10, Yderside 10, Hælen bagom 3) = 90 og **Svær** 20 (Jorden rundt,
+  10 hovedstød, Inderside 20, Yderside 20, Hælen bagom 5) = 100 - i alt 240. Hele stigen
+  giver 200 + 150 + 240 = **590**.
+
+Tricksene gemmes som id'er (`juggleLadder.tricks`). De seks oprindelige id'er (`oploft`,
+`vrist`, `skiftefod`, `laarfod`, `hoved`, `jordenrundt`) betyder det samme som før, så der
+skal ingen data lægges om. Kun Jorden rundt har fået nye point (15 → 20), og fordi point
+aldrig gemmes, gælder det også børn, der allerede har den.
+
+**Serierne tages i rækkefølge** (`kraever` på tricket): Inderside 5 → 10 → 20, Yderside
+5 → 10 → 20 og Hælen bagom 3 → 5. Et låst trick vises med grunden ("Tag Inderside 5
+først") og kan ikke registreres. Fortryder spilleren et trick, som et senere i serien
+bygger på, ryger de senere med - dialogen nævner dem og det samlede pointtab, som når
+Opløft ruller hovedstigen tilbage. Fjerner træneren et trick, sker det samme; giver
+træneren et trick, gives de forrige i serien, barnet mangler, med. 3 hovedstød og 10
+hovedstød er ikke en serie. Rækkefølgen håndhæves i appen; `firestore.rules` tjekker kun,
+at `tricks` er en liste med højst 16 elementer, ikke hvilke id'er den rummer - ukendte
+id'er tæller ikke (`juggleTricks`).
+
+**Udrulning af pointreglerne 2026-11-23 (app v15.81):** `firestore.rules` (loftet på
+`tricks` er hævet fra 6 til 16 - ellers kan et barn ikke gemme sit 7. trick), så
+funktionerne (`node vaerktoej/udrul-funktioner.cjs`), så appen, og til sidst
+`node vaerktoej/genberegn-rangliste.cjs --udfoer`. Admin-kortet advarer, indtil serveren
+regner med 2026-11-23.
 
 Før gav et trin lige så mange point som jongleringer (dårligt ben dobbelt). Stigen
 registreres på tillid uden video, og et barn tog hele stigen på 36 minutter for 690 point -
