@@ -79,28 +79,29 @@ await a.slut();
 
 console.log("\nDemo-login og hasActiveLogin");
 a = await start("u-admin");
-await a.page.evaluate(() => toggleUserActive("u-demo2")); await a.page.waitForTimeout(200);
+await a.page.evaluate(() => { toggleUserActive("u-demo2"); }); await a.page.waitForTimeout(200);
 let w = await a.skrivninger();
 t("Aktiver på et demo-login: login'et bliver aktivt", w.some(x => x.navn === "users" && x.id === "u-demo2" && x.data.active === true), w);
 t("men barnet bliver ikke en, der kan udfordres (hasActiveLogin false)", (await a.db()).players.p2.hasActiveLogin === false, (await a.db()).players.p2);
 await a.nulstil();
-await a.page.evaluate(() => toggleUserActive("u-demo1")); await a.page.waitForTimeout(200);
+await a.page.evaluate(() => { toggleUserActive("u-demo1"); }); await a.page.waitForTimeout(200);
 t("Deaktiver et demo-login på et barn med et andet, rigtigt login: barnet kan stadig udfordres", (await a.db()).players.p1.hasActiveLogin === true, (await a.db()).players.p1);
 await a.nulstil();
-await a.page.evaluate(() => toggleUserActive("u-oscar")); await a.page.waitForTimeout(200);
+await a.page.evaluate(() => { toggleUserActive("u-oscar"); }); await a.page.waitForTimeout(200);
 t("Deaktiver barnets eneste rigtige login: nu kan barnet ikke udfordres", (await a.db()).players.p1.hasActiveLogin === false);
-await a.page.evaluate(() => toggleUserActive("u-oscar")); await a.page.waitForTimeout(200);
+await a.page.evaluate(() => { toggleUserActive("u-oscar"); }); await a.page.waitForTimeout(200);
 t("Aktiver det igen: barnet kan udfordres igen", (await a.db()).players.p1.hasActiveLogin === true);
-// Synkronisér: p2 har kun et (nu aktivt) demo-login.
-await a.page.evaluate(() => { window.__db.players.p2.hasActiveLogin = true; });
-await a.page.evaluate(() => syncPlayerLoginFlags()); await a.page.waitForTimeout(250);
+await a.slut();
+// Synkronisér: Bo (p2) har kun et aktivt demo-login, men står som en, der kan udfordres.
+{ const d = data(); a = await start("u-admin", { ekstra: { users: { ...d.users, "u-demo2": { ...d.users["u-demo2"], active: true } } } }); }
+await a.page.evaluate(() => { syncPlayerLoginFlags(); }); await a.page.waitForTimeout(250);
 t("Synkronisér regner et demo-login som ingen login", (await a.db()).players.p2.hasActiveLogin === false, (await a.db()).players.p2);
 t("og siger, hvor mange der blev rettet", /Synkronisering færdig: 1 spillere opdateret\./.test(await a.dialogTekst() || ""), await a.dialogTekst());
 await a.luk();
 
 console.log("\nEt login, hvis barn er slettet");
 await a.nulstil();
-await a.page.evaluate(() => toggleUserActive("u-gammel")); await a.page.waitForTimeout(200);
+await a.page.evaluate(() => { toggleUserActive("u-gammel"); }); await a.page.waitForTimeout(200);
 w = await a.skrivninger();
 t("login'et deaktiveres", w.some(x => x.navn === "users" && x.id === "u-gammel" && x.data.active === false), w);
 t("men der skrives intet på en spiller, der ikke findes - ingen tom spiller", !w.some(x => x.navn === "players") && !(await a.db()).players["p-slettet"], w);
@@ -119,7 +120,7 @@ await a.luk();
 await a.page.evaluate(() => { window.__fejlVed = "players"; setPlayerGender("p1", "pige"); }); await a.page.waitForTimeout(200);
 t("Køn: \"Kunne ikke gemme køn: adgang nægtet.\"", await a.dialogTekst() === "Kunne ikke gemme køn: adgang nægtet.", await a.dialogTekst());
 await a.luk();
-await a.page.evaluate(() => setPlayerGender("p-slettet", "pige")); await a.page.waitForTimeout(150);
+await a.page.evaluate(() => { setPlayerGender("p-slettet", "pige"); }); await a.page.waitForTimeout(150);
 t("Køn på en spiller, der ikke findes: ingen skrivning", await a.dialogTekst() === "Spilleren findes ikke længere." && !(await a.db()).players["p-slettet"]);
 await a.luk();
 
@@ -142,7 +143,7 @@ await a.luk();
 await a.page.evaluate(() => showPage("challenges")); await a.page.waitForTimeout(200);
 await a.page.evaluate(() => setChallengeCreateType("freestyle")); await a.page.waitForTimeout(150);
 await a.page.fill("#challengeFreeTitle", "Flest hovedstød");
-await a.page.evaluate(() => createChallenge("p1")); await a.page.waitForTimeout(200);
+await a.page.evaluate(() => { createChallenge("p1"); }); await a.page.waitForTimeout(200);
 t("ny udfordring: \"Udfordringen blev ikke sendt: adgang nægtet.\" - ikke \"sendt\"", await a.dialogTekst() === "Udfordringen blev ikke sendt: adgang nægtet.", await a.dialogTekst());
 await a.luk();
 await a.page.evaluate(() => { window.__fejlVed = null; createChallenge("p1"); }); await a.page.waitForTimeout(200);

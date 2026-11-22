@@ -5,7 +5,7 @@
 // det er sådan appen lytter. Emulatorens ur er det rigtige ur, så "afgjort" testes med en
 // måned langt tilbage (2025-01) og én langt fremme (2099-01).
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, getDocs, collection, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, collection, deleteDoc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import fs from 'fs';
 
 const env = await initializeTestEnvironment({
@@ -36,6 +36,15 @@ const S = 'maanedensTopscorer';
 const vinder = (id, point = 120) => ({id, navn:'Navn ' + id, point, oevelser: 30, svaer: 4, mellem: 3, let: 2, starter: 1});
 const post = (maaned, aargang = '2017', ekstra = {}) => ({maaned, aargang, vindere: [vinder('p1')], beregnet: serverTimestamp(), ...ekstra});
 const gem = (k, maaned, aargang = '2017', ekstra, id) => setDoc(doc(db(k), S, id || `${maaned}_${aargang}`), post(maaned, aargang, ekstra));
+// En topscorer kaares lige efter Maanedens spiller for samme maaned og aargang. Her er
+// Maanedens spiller p5 i alle maaneder i 2025 (2017 og 2016) - ikke p1, der er topscorer.
+await env.withSecurityRulesDisabled(async c => {
+  for(let m = 1; m <= 12; m++) for(const aar of ['2017', '2016']){
+    const maaned = '2025-' + String(m).padStart(2, '0');
+    await setDoc(doc(c.firestore(), 'maanedensSpiller', `${maaned}_${aar}`), {maaned, aargang: aar, beregnet: new Date(),
+      vindere: [{id:'p5', navn:'Navn p5', dage: 10, minutter: 15, oevelser: 10, point: 20}]});
+  }
+});
 
 console.log('\n--- Hvem må gemme en topscorer ---');
 await proev('admin gemmer en afgjort måned', 'ALLOW', ()=>gem('admin', '2025-01'));
@@ -67,8 +76,39 @@ await proev('"rettet" ved oprettelsen afvises', 'DENY', ()=>gem('admin', '2025-0
 await proev('årgangen skal være en tekst', 'DENY', ()=>setDoc(doc(db('admin'), S, '2025-09_2017'), {maaned:'2025-09', aargang:2017, vindere:[], beregnet: serverTimestamp()}));
 await proev('vindere skal være en liste', 'DENY', ()=>gem('admin', '2025-09', '2017', {vindere: {p1: true}}));
 await proev('højst 30 vindere', 'DENY', ()=>gem('admin', '2025-09', '2017', {vindere: Array.from({length: 31}, (_, i)=>vinder('p' + i, 5))}));
-await proev('30 delte vindere er stadig en gyldig post', 'ALLOW', ()=>gem('admin', '2025-09', '2017', {vindere: Array.from({length: 30}, (_, i)=>vinder('p' + i, 5))}));
+// En klient maa hoejst gemme 3 delte topscorere (reglerne sammenligner hvert par med
+// Maanedens spillers vindere); flere kaarer serveren.
+await proev('en klient kan ikke gemme 4 delte topscorere (det goer serveren)', 'DENY', ()=>gem('admin', '2025-09', '2017', {vindere: ['p1','p2','p3','p4'].map(id=>vinder(id, 5))}));
+await proev('3 delte topscorere er en gyldig post', 'ALLOW', ()=>gem('admin', '2025-09', '2017', {vindere: ['p1','p2','p3'].map(id=>vinder(id, 5))}));
 await proev('ingen topscorer er en gyldig kåring', 'ALLOW', ()=>setDoc(doc(db('admin'), S, '2025-11_2017'), {maaned:'2025-11', aargang:'2017', vindere:[], beregnet: serverTimestamp()}));
+
+console.log('\n--- Kun efter Månedens spiller, og ikke til en af dens vindere ---');
+await env.withSecurityRulesDisabled(async c => {
+  await setDoc(doc(c.firestore(), 'maanedensSpiller', '2024-05_2017'), {maaned:'2024-05', aargang:'2017', beregnet:new Date(),
+    vindere:[{id:'p1', navn:'Navn p1', dage:9, minutter:9, oevelser:9, point:9}, {id:'p7', navn:'Navn p7', dage:9, minutter:9, oevelser:9, point:9}]});
+  await setDoc(doc(c.firestore(), 'maanedensSpiller', '2024-06_2017'), {maaned:'2024-06', aargang:'2017', beregnet:new Date(),
+    vindere:['p1','p2','p3','p4'].map(id=>({id, navn:'Navn '+id, dage:1, minutter:1, oevelser:1, point:1}))});
+});
+await proev('uden Månedens spiller for samme måned og årgang: nej - heller ikke admin', 'DENY', ()=>gem('admin', '2024-04'));
+await proev('Månedens spiller for en anden årgang tæller ikke', 'DENY', ()=>gem('admin', '2025-01', '2015'));
+await proev('topscoreren er Månedens spiller (p1 delte prisen): nej', 'DENY', ()=>gem('admin', '2024-05'));
+await proev('heller ikke når p1 står som nr. 2 af tre delte topscorere', 'DENY', ()=>gem('admin', '2024-05', '2017', {vindere:[vinder('p3'), vinder('p1'), vinder('p4')]}));
+await proev('heller ikke Månedens spillers anden vinder (p7) som nr. 3', 'DENY', ()=>gem('admin', '2024-05', '2017', {vindere:[vinder('p3'), vinder('p4'), vinder('p7')]}));
+await proev('en træner kan heller ikke', 'DENY', ()=>gem('hel', '2024-05'));
+await proev('tre andre end Månedens spillers vindere: ja', 'ALLOW', ()=>gem('admin', '2024-05', '2017', {vindere:[vinder('p3'), vinder('p4'), vinder('p8')]}));
+await proev('Månedens spiller med 4 delte vindere: en klient kan ikke kåre topscoreren (det gør serveren)', 'DENY', ()=>gem('admin', '2024-06', '2017', {vindere:[vinder('p8')]}));
+await proev('Månedens spiller og en tom topscorer i samme batch: ja (reglen ser Månedens spiller efter skrivningen)', 'ALLOW', ()=>{
+  const f = db('admin'), b = writeBatch(f);
+  b.set(doc(f, 'maanedensSpiller', '2024-07_2017'), {maaned:'2024-07', aargang:'2017', vindere:[{id:'p1', navn:'Navn p1', dage:1, minutter:1, oevelser:1, point:1}], beregnet: serverTimestamp()});
+  b.set(doc(f, S, '2024-07_2017'), {maaned:'2024-07', aargang:'2017', vindere:[], beregnet: serverTimestamp()});
+  return b.commit();
+});
+await proev('men ikke med Månedens spillers vinder som topscorer i samme batch', 'DENY', ()=>{
+  const f = db('admin'), b = writeBatch(f);
+  b.set(doc(f, 'maanedensSpiller', '2024-08_2017'), {maaned:'2024-08', aargang:'2017', vindere:[{id:'p1', navn:'Navn p1', dage:1, minutter:1, oevelser:1, point:1}], beregnet: serverTimestamp()});
+  b.set(doc(f, S, '2024-08_2017'), post('2024-08'));
+  return b.commit();
+});
 
 console.log('\n--- Admin må kun fjerne vindere (når et barn slettes) ---');
 await env.withSecurityRulesDisabled(async c => {
@@ -129,11 +169,11 @@ await proev('en deaktiveret admin må ikke', 'DENY', ()=>alle('lukketAdmin'));
 await proev('uden login må man ikke', 'DENY', ()=>getDocs(collection(env.unauthenticatedContext().firestore(), S)));
 
 console.log('\n--- Månedens spiller er uændret (de deler nu reglernes funktioner) ---');
-await proev('Månedens spiller: admin gemmer stadig', 'ALLOW', ()=>setDoc(doc(db('admin'), 'maanedensSpiller', '2025-01_2017'),
-  {maaned:'2025-01', aargang:'2017', vindere:[{id:'p1', navn:'Oscar', dage: 12, minutter: 30, oevelser: 20, point: 60}], beregnet: serverTimestamp()}));
+await proev('Månedens spiller: admin gemmer stadig', 'ALLOW', ()=>setDoc(doc(db('admin'), 'maanedensSpiller', '2025-01_2015'),
+  {maaned:'2025-01', aargang:'2015', vindere:[{id:'p1', navn:'Oscar', dage: 12, minutter: 30, oevelser: 20, point: 60}], beregnet: serverTimestamp()}));
 await proev('Månedens spiller: en træner, der kun ser drengene, kan stadig ikke', 'DENY', ()=>setDoc(doc(db('drenge'), 'maanedensSpiller', '2025-02_2017'),
   {maaned:'2025-02', aargang:'2017', vindere:[], beregnet: serverTimestamp()}));
-await proev('Månedens spiller: admin kan stadig slette en fejl', 'ALLOW', ()=>deleteDoc(doc(db('admin'), 'maanedensSpiller', '2025-01_2017')));
+await proev('Månedens spiller: admin kan stadig slette en fejl', 'ALLOW', ()=>deleteDoc(doc(db('admin'), 'maanedensSpiller', '2025-01_2015')));
 
 await env.cleanup();
 console.log(`\n${r.filter(x=>x[1]).length} / ${r.length} bestået`);

@@ -63,6 +63,9 @@ await env.withSecurityRulesDisabled(async c => {
     await setDoc(doc(db,'juggleLog',pid), LOG(year, gender));
     await setDoc(doc(db,'clubRanking',pid), {name:'TEST '+pid, year, points:10, updatedAt:new Date()});
   }
+  // Boern, der kun har et spillerdokument endnu - traeneren skriver deres foerste stige,
+  // log, fodteknik og note. Reglerne kraever, at barnet i stien findes i traenerens aargang.
+  for(const [pid, gender] of [['k1','dreng'], ['k2','dreng'], ['k3','pige']]) await setDoc(doc(db,'players',pid), {name:'TEST '+pid, year:'2017', gender, points:0, passed:{}});
   // Gamle dokumenter fra foer koen blev denormaliseret: intet gender-felt.
   await setDoc(doc(db,'players','p-gammel'), {name:'TEST gammel', year:'2017', points:0});
   await setDoc(doc(db,'playerNotes','p-gammel'), {note:'gammel', year:'2017', updatedAt:new Date()});

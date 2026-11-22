@@ -373,20 +373,19 @@ service cloud.firestore {
     // En topscorer kan kun oprettes, naar Maanedens spiller for samme maaned og aargang findes
     // (getAfter: ogsaa hvis de skrives i samme batch), og ingen af topscorerens vindere staar
     // blandt dens vindere. Reglerne kan ikke loebe en liste igennem, saa en klient maa hoejst
-    // gemme 10 topscorere mod hoejst 3 Maanedens spillere - hvert par sammenlignes. Stoerre
-    // delte priser (i praksis aldrig) kaarer serveren, som ikke er bundet af reglerne.
+    // gemme 3 topscorere mod hoejst 3 Maanedens spillere - hvert par sammenlignes (flere par
+    // sprænger graensen paa 1000 udtryk). Stoerre delte priser kaarer serveren, som ikke er
+    // bundet af reglerne; appens reserve faar et nej og lader serverens post staa.
     function topscorerUdenMaanedensSpiller(postId) {
       let sti = /databases/$(database)/documents/maanedensSpiller/$(postId);
-      let t = request.resource.data.vindere;
-      return existsAfter(sti) && t.size() <= 10 && ikkeBlandt(t, getAfter(sti).data.get("vindere", []));
+      let s = existsAfter(sti) ? getAfter(sti).data.get("vindere", null) : null;
+      return s != null && ikkeBlandt(request.resource.data.vindere, s);
     }
     function ikkeBlandt(t, s) {
-      return s is list && s.size() <= 3
-        && (t.size() < 1 || ikkeVinder(t[0].id, s)) && (t.size() < 2 || ikkeVinder(t[1].id, s))
-        && (t.size() < 3 || ikkeVinder(t[2].id, s)) && (t.size() < 4 || ikkeVinder(t[3].id, s))
-        && (t.size() < 5 || ikkeVinder(t[4].id, s)) && (t.size() < 6 || ikkeVinder(t[5].id, s))
-        && (t.size() < 7 || ikkeVinder(t[6].id, s)) && (t.size() < 8 || ikkeVinder(t[7].id, s))
-        && (t.size() < 9 || ikkeVinder(t[8].id, s)) && (t.size() < 10 || ikkeVinder(t[9].id, s));
+      return s is list && s.size() <= 3 && t.size() <= 3
+        && (t.size() < 1 || ikkeVinder(t[0].id, s))
+        && (t.size() < 2 || ikkeVinder(t[1].id, s))
+        && (t.size() < 3 || ikkeVinder(t[2].id, s));
     }
     function ikkeVinder(id, s) {
       return (s.size() < 1 || s[0].id != id) && (s.size() < 2 || s[1].id != id) && (s.size() < 3 || s[2].id != id);

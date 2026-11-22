@@ -36,6 +36,14 @@ t("regler-feltet er POINTREGLER", l.regler === POINTREGLER);
 t("kanUdfordres kun ved hasActiveLogin === true",
   linje({ player: spiller({ hasActiveLogin: true }) }).kanUdfordres === true && linje({ player: spiller({ hasActiveLogin: "ja" }) }).kanUdfordres === false);
 
+console.log("\nGamle spillere og dage efter i dag (pointreglerne 2026-11-24)");
+l = linje({ player: { id: "g", name: "Gammel", note: "U10 - hurtig", points: 7 } });
+t("en gammel spiller uden aargang faar aargangen fra noten, som i appen og kaaringen (migratePlayer)", l.year === "2016" && l.total === 7, l);
+l = linje({ player: spiller(), footworkDoc: { days: { "2026-11-18": { t: 1 }, "2026-11-19": { t: 10 }, "2027-01-01": { t: 10 } } } });
+t("en fodteknik-dag efter 'nu' giver ingen point - hverken i alt, ugen eller maaneden", l.total === 2 && l.uge.point === 2 && l.maaned.point === 2, l);
+l = linje({ player: spiller(), footworkDoc: { days: { "2026-11-18": { t: 1 }, "2026-11-19": { t: 10 } } } }, new Date("2026-11-19T12:00:00Z"));
+t("dagen efter taeller den - linjen regnes 'pr. nu', ikke efter maskinens ur", l.total === 2 + 20 + 3 * 5 && l.uge.point === l.total, l);
+
 console.log("\nKun Talentmaerke");
 const indsendelser = [
   { playerId: "a", status: "approved", reviewedAt: ts("2026-11-17T09:00:00Z"), pointsAwarded: 20 },  // denne uge
@@ -233,6 +241,16 @@ b = byg("t-trin", html.replace("function ladderTrinIVindue(", "function ladderTr
 t("mangler function ladderTrinIVindue, stopper den med navnet", b.kode !== 0 && /mangler function ladderTrinIVindue/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
 b = byg("t-kaster", html.replace("function maanedTopscorerStat(pid, maaned){", "function maanedTopscorerStat(pid, maaned){ return udefineretTopscorer;"));
 t("kan topscoreren ikke regnes i den byggede kode, stopper den - og der ligger ingen halv fil", b.kode !== 0 && /udefineretTopscorer/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+for(const navn of ["jokerBegrundelserAtSlette"]){
+  b = byg("o-" + navn, html.replace("function " + navn + "(", "function " + navn + "Omdoebt("));
+  t(`mangler ${navn} i blokken (morgenoprydningen), stopper den med navnet`, b.kode !== 0 && new RegExp(navn + " ligger ikke i fodteknik-blokken").test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+}
+for(const navn of ["videoSkalSlettes", "tidspunktMs"]){
+  b = byg("o-" + navn, html.replace("function " + navn + "(", "function " + navn + "Omdoebt("));
+  t(`mangler function ${navn} (morgenoprydningen), stopper den med navnet`, b.kode !== 0 && new RegExp("mangler function " + navn).test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+}
+b = byg("o-forkert", html.replace("ms - uploadet > VIDEO_MAX_AGE_MS", "ms - uploadet > VIDEO_MAX_AGE_MS * 2"));
+t("sletter oprydningen ikke en video efter 7 dage paa proeveeksemplet, stopper den", b.kode !== 0 && /videoSkalSlettes/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
 b = byg("t-forkert", html.replace("(b.point - a.point) || (b.oevelser - a.oevelser)", "(a.point - b.point) || (b.oevelser - a.oevelser)"));
 t("regner topscoreren forkert paa proeveeksemplet (faerrest point vinder), stopper den", b.kode !== 0 && /proeven paa Maanedens topscorer gav/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
 b = byg("t-medaljer", html.replace("const vindue = since=>pointsInWindow(pid, since) + ladderPointsInWindow", "const vindue = since=>ladderPointsInWindow"));

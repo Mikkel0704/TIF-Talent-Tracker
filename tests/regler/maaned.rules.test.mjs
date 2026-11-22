@@ -44,6 +44,20 @@ await proev('uden login kan man ikke', 'DENY', ()=>setDoc(doc(env.unauthenticate
 console.log('\n--- Kun når måneden er afgjort ---');
 await proev('en måned, der ikke er afgjort, kan ikke kåres - heller ikke af admin', 'DENY', ()=>gem('admin', '2099-01'));
 await proev('den indeværende måned kan ikke kåres', 'DENY', ()=>gem('admin', new Date().toISOString().slice(0, 7)));
+// Graensen er den 5. i maaneden efter kl. 04:00 UTC (serveren kaarer kl. 05 dansk tid; ingen
+// klient maa komme foer). Emulatorens ur er det rigtige, saa testen finder den maaned, der
+// senest er afgjort efter den regel, og den efter - som ikke er.
+{
+  const afgjortFra = m => { const [y, md] = m.split('-').map(Number); return Date.UTC(y, md, 5, 4); };   // md er 1-baseret: maaneden efter
+  const plus = (m, n) => { const [y, md] = m.split('-').map(Number); const d = new Date(Date.UTC(y, md - 1 + n, 1)); return d.toISOString().slice(0, 7); };
+  let m = new Date().toISOString().slice(0, 7);
+  while(afgjortFra(m) > Date.now()) m = plus(m, -1);
+  // Et marginalt tilfaelde: koerer testen inden for et minut af graensen, kan uret flytte sig.
+  if(Math.abs(afgjortFra(plus(m, 1)) - Date.now()) > 60000){
+    await proev(`den senest afgjorte måned (${m}, afgjort ${new Date(afgjortFra(m)).toISOString()}) kan kåres`, 'ALLOW', ()=>gem('admin', m, '2016'));
+    await proev(`måneden efter (${plus(m, 1)}) kan ikke - den afgøres først den 5. kl. 04:00 UTC`, 'DENY', ()=>gem('admin', plus(m, 1), '2016'));
+  }
+}
 
 console.log('\n--- Den ligger fast ---');
 await proev('en kåring kan ikke ændres - heller ikke af admin', 'DENY', ()=>gem('admin', '2025-01'));

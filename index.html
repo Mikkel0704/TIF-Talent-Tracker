@@ -4350,12 +4350,19 @@ function markSubmissionViewed(id){
   setDoc(doc(db, v.ny ? "submissionVideos" : "submissions", id), {viewedAt: serverTimestamp()}, {merge:true})
     .catch(e=>console.error("kunne ikke markere video som set", e));
 }
+// Kun en sti i spillernes videomappe slettes i lageret. Stien er skrevet af en spillers
+// browser; pegede den paa en instruktionsvideo (guides/), ville en administrators browser
+// ellers slette den. Linket fjernes stadig. Samme vaern som gyldigSti i functions/sletning.js.
+function erVideoSti(sti){
+  return typeof sti === "string" && sti.startsWith("submissions/") && sti.split("/").length >= 3
+    && !sti.split("/").some(del=>del === "" || del === "." || del === "..");
+}
 async function deleteViewedSubmissionVideo(id){
   const v = videoFor(id);
   if(!v || !v.path || !v.url) return;
   try{
     try{
-      await deleteObject(storageRef(storage, v.path));
+      if(erVideoSti(v.path)) await deleteObject(storageRef(storage, v.path));
     }catch(e){
       // Er filen allerede vaek - slettet af en anden klient eller af lagerets egen
       // slettefrist - skal linket stadig ryddes. Ellers proever hver oprydning forgaeves
@@ -4418,7 +4425,7 @@ async function deleteSubmissionVideoDoc(id){
   const v = videoFor(id);
   if(!v || !v.path) return;
   try{
-    try{ await deleteObject(storageRef(storage, v.path)); }
+    try{ if(erVideoSti(v.path)) await deleteObject(storageRef(storage, v.path)); }
     catch(e){ if(e?.code !== "storage/object-not-found") throw e; }
     await deleteDoc(doc(db, "submissionVideos", id));
   }catch(e){ console.error("kunne ikke slette video efter behandling", e); }
@@ -4616,7 +4623,7 @@ async function reviewSubmission(id, approve){
   const v = videoFor(s);
   if(!s.challengeId && v?.path){
     try{
-      try{ await deleteObject(storageRef(storage, v.path)); }
+      try{ if(erVideoSti(v.path)) await deleteObject(storageRef(storage, v.path)); }
       catch(e){ if(e?.code !== "storage/object-not-found") throw e; }
       // Filen er vaek, saa der er intet link at passe paa laengere: hele dokumentet ryger.
       if(v.ny) await deleteDoc(doc(db, "submissionVideos", id));

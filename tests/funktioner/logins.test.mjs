@@ -221,6 +221,24 @@ t("et spillerlogin, hvis spiller er slettet, skriver ingen tom spiller",
     return x.status === 200 && x.result.spiller === null && !(await db.collection("players").doc("slettet-barn").get()).exists && !(await brugerDok(u.uid));
   })());
 
+console.log("\nLogins · sletLogin og barnets andre logins");
+// Et barn kan have flere logins (fx en til hver forælder). Slettes ét, kan barnet stadig
+// udfordres, hvis et ANDET aktivt, rigtigt login findes. Et demo-login tæller aldrig.
+const nytLogin = async (email, demo = false) => (await kald("opretLogin", { rolle: "player", email, kode: KODE, playerId: "p1", demo }, { bevis: admin.bevis })).result?.uid;
+const mor = await nytLogin("mor@eksempel.invalid"), far = await nytLogin("far@eksempel.invalid");
+t("(to rigtige logins til p1, og barnet kan udfordres)", !!mor && !!far && (await spiller("p1"))?.hasActiveLogin === true);
+r = await kald("sletLogin", { uid: mor }, { bevis: admin.bevis });
+t("slettes det ene, rører serveren ikke barnet (svaret siger spiller: null)", r.status === 200 && r.result?.spiller === null && r.result.brugerdokument === "slettet", r);
+t("og barnet kan stadig udfordres - fars login er aktivt", (await spiller("p1"))?.hasActiveLogin === true);
+const demoP1 = await nytLogin("demo.p1@eksempel.invalid", true);
+r = await kald("sletLogin", { uid: far }, { bevis: admin.bevis });
+t("slettes det sidste rigtige login, mens et demo-login findes: barnet kan ikke længere udfordres", r.result?.spiller === "p1" && (await spiller("p1"))?.hasActiveLogin === false, r);
+const bror = await nytLogin("bror@eksempel.invalid"), soester = await nytLogin("soester@eksempel.invalid");
+await db.collection("users").doc(soester).update({ active: false });
+r = await kald("sletLogin", { uid: bror }, { bevis: admin.bevis });
+t("et deaktiveret andet login tæller heller ikke", r.result?.spiller === "p1" && (await spiller("p1"))?.hasActiveLogin === false, r);
+for(const uid of [demoP1, soester]) await kald("sletLogin", { uid }, { bevis: admin.bevis });
+
 console.log("\nLogins · halvt oprettet ruller tilbage (koden kaldt direkte mod emulatoren)");
 const logbog = [];
 const logger = { info: (...a) => logbog.push(a), warn: (...a) => logbog.push(a), error: (...a) => logbog.push(a) };

@@ -11,17 +11,18 @@ Live: https://mikkel0704.github.io/TIF-Talent-Tracker/
 | Del | Hvor |
 |---|---|
 | Selve appen | `index.html` - én fil, ingen build. GitHub Pages viser `main`. |
-| Login | Firebase Authentication (email + adgangskode). Logins oprettes og slettes af serveren - se "Logins oprettes af serveren". |
+| Login | Firebase Authentication (Identity Platform, USA) med e-mail og adgangskode. Logins oprettes og slettes af serveren - se "Logins oprettes af serveren". |
 | Data | Cloud Firestore, projekt `tif-talent-tracker`, EU (eur3) |
 | Videoer | Cloud Storage, bøtte `tif-talent-tracker`, Belgien (europe-west1). Mapperne hedder `submissions/{login-id}/`, kan ikke listes fra appen, og tømmes af en slettefrist på 8 dage. |
 | Adgangsregler | `firestore.rules` og `storage.rules` |
 | Værn mod fremmede klienter | App Check med reCAPTCHA Enterprise, håndhævet på Firestore og Storage |
-| Ranglisten, logins og sletning | Cloud Functions i `functions/`, Belgien (europe-west1). Regner hvert barns point ud og skriver én linje pr. barn - se "Ranglisten regnes på serveren". Opretter og sletter logins - se "Logins oprettes af serveren". Sletter alt om et barn - se "Slet alt om et barn". |
+| Ranglisten, kåringer, oprydning, logins og sletning | Cloud Functions i `functions/`, Belgien (europe-west1). Regner hvert barns point ud og skriver én linje pr. barn - se "Ranglisten regnes på serveren". Kårer Månedens spiller og Månedens topscorer og rydder hver morgen op i videoer og joker-begrundelser - se "Morgenoprydningen". Opretter og sletter logins - se "Logins oprettes af serveren". Sletter alt om et barn - se "Slet alt om et barn". |
 | Tests | `tests/` - se `tests/README.md` |
 
-Serveren gør fire ting: den regner ranglisten ud, den kårer Månedens spiller og Månedens
-topscorer, den opretter og sletter logins, og den sletter alt om et barn. Alt andet, der skal håndhæves, håndhæves i
-reglerne; resten er brugerflade.
+Serveren gør fem ting: den regner ranglisten ud, den kårer Månedens spiller og Månedens
+topscorer, den rydder hver morgen op i videoer og joker-begrundelser, den opretter og sletter
+logins, og den sletter alt om et barn. Alt andet, der skal håndhæves, håndhæves i reglerne;
+resten er brugerflade.
 
 ## Udrulning
 
@@ -63,23 +64,26 @@ Appen kalder to kaldbare Cloud Functions i europe-west1, `opretLogin` og `sletLo
   serverens tidsstempler. For et spillerlogin læser serveren selv spillerens årgang og køn
   og sætter `hasActiveLogin` (ikke for demo).
 - **Intet halvt.** Kan `users`-dokumentet ikke skrives, slettes det nye login igen.
-- **Slet sletter helt:** `users`-dokumentet, spillerens `hasActiveLogin` og selve login'et i
-  Authentication. Samme e-mail kan bruges igen med det samme. (Slettes et barn med "Slet
+- **Slet sletter helt:** `users`-dokumentet og selve login'et i Authentication. Spillerens
+  `hasActiveLogin` sættes til `false` - medmindre barnet har et andet aktivt login, der ikke er
+  demo (så kan barnet stadig udfordres). Samme e-mail kan bruges igen med det samme. (Slettes et barn med "Slet
   alt", går barnets logins med - se "Slet alt om et barn".)
 - Serveren logger kun login-id'er og antal, aldrig e-mails eller navne.
+- **Et demo-login gør aldrig et barn til en, der kan udfordres** - heller ikke når admin trykker
+  "Aktiver" eller "Synkronisér spilleres login-status" i appen. Deaktiveres ét login, bliver
+  barnet stående som udfordrbart, hvis et andet aktivt, rigtigt login findes. Findes barnet
+  ikke længere, skriver "Aktiver"/"Deaktiver" intet på spilleren (ingen tom spiller).
 
-**Selvoprettelsen lukkes for sig.** Før kunne enhver med den offentlige API-nøgle i
-`index.html` oprette en konto i projektet, fordi appen oprettede logins fra browseren.
-`tests/vaerktoej/luk-selvoprettelse.cjs` lukker for det og beviser det bagefter udefra: en
-oprettelse med den offentlige nøgle skal afvises med `ADMIN_ONLY_OPERATION`. Indstillingen
-hører til Identity Platform; er projektet ikke opgraderet, stopper værktøjet og ændrer intet.
+**Selvoprettelsen er lukket.** Før kunne enhver med den offentlige API-nøgle i `index.html`
+oprette en konto i projektet, fordi appen oprettede logins fra browseren. Det er lukket med
+`tests/vaerktoej/luk-selvoprettelse.cjs` (Identity Platform), som også beviser det udefra: en
+oprettelse med den offentlige nøgle afvises med `ADMIN_ONLY_OPERATION` (`--tjek` læser kun).
 `tests/vaerktoej/fremmede-konti.cjs` viser (og med `--slet` sletter) de konti, der ikke har
 et `users`-dokument.
 
-**Rækkefølgen ved udrulning:** funktionerne først (`udrul-funktioner.cjs`), så appen (push
-til `main`), prøv at oprette og slette et login fra appen - og først derefter
-`luk-selvoprettelse.cjs` og `fremmede-konti.cjs`. Lukkes der, før appen kalder serveren,
-kan ingen oprette logins.
+**Et login uden `users`-dokument** får i appen beskeden "Du har ingen adgang til appen.
+Kontakt klubben." og logges ud. Appen opretter aldrig selv et `users`-dokument (det gjorde den
+før v15.81, reglerne afviste det, og siden hang uden et ord).
 
 ## Slet alt om et barn
 
@@ -142,7 +146,7 @@ Spillerne får en "Se video"-knap på øvelsen under Fodteknik, Jonglering og Gu
 ## Adgangsreglerne i korte træk
 
 - **Et login uden for klubben kan ingenting.** Logins oprettes af serveren, og
-  selvoprettelsen i Firebase Authentication lukkes (se "Logins oprettes af serveren"). Der
+  selvoprettelsen i Firebase Authentication er lukket (se "Logins oprettes af serveren"). Der
   findes alligevel Auth-konti uden `users`-dokument - konti fra før selvoprettelsen blev
   lukket, og logins efter børn, der blev slettet i appen før v15.78 (dengang kunne browseren
   ikke slette selve login'et). Derfor kræver hver regel stadig
@@ -151,6 +155,14 @@ Spillerne får en "Se video"-knap på øvelsen under Fodteknik, Jonglering og Gu
 - **En træner rører kun det, der allerede ligger i trænerens egne årgange.** En rettelse
   kræver adgang til både det eksisterende dokument og det nye indhold; ellers kunne en
   træner flette sin egen årgang ind på et andet barns dokument og dermed overtage det.
+- **...og kun børn i trænerens egne årgange** (fra v15.81). På `juggleLadder`, `juggleLog`,
+  `footwork`, `footworkLog` og `playerNotes` skal barnet i stien (`players/{id}`: årgang og
+  køn) også ligge i trænerens adgang - både ved oprettelse og rettelse (`traenerTilBarn`, ét
+  ekstra opslag). Ellers kunne en træner med kun 2017 oprette `juggleLadder/{et 2012-barn}`
+  med `year: "2017"` og give barnet trin og point. Findes spilleren ikke, kan kun admin skrive.
+  På `submissions` skal en træners rettelse også gælde det nye indhold (årgang og køn), og
+  `playerId` kan ikke skiftes ud - ellers kunne en indsendelse flyttes over på et andet barn
+  med 999 point. Spillerens egne skrivninger og admin er uændrede.
 - **Spillere læser kun deres egne logge** (`footworkLog`, `juggleLog`), hvor joker-
   begrundelser og bruger-id'er står.
 - **En spiller henter kun det om andre børn, som ranglisten viser.** Eget spillerdokument,
@@ -212,12 +224,46 @@ pointkoden. De fleste dage finder den ingenting og skriver ingenting.
 - **Daglig med vilje:** kørslen kan gentages uden skade, så en fejlet kørsel den 5. bliver
   indhentet næste morgen.
 - **En kåring oprettes én gang** (`create()`), og findes den allerede, stopper serveren for
-  den årgang. Appens egen kåring (`kaarMaanedensSpiller`) er reserven: åbner admin appen,
-  før serveren har kåret, opretter appen posten, og serveren lader den stå.
+  den årgang. Appens egen kåring (`kaarMaanedensSpiller`) er reserven, hvis serverens kørsel
+  fejlede: den kårer tidligst den 5. kl. 05:30 dansk tid og kl. 04:00 UTC (`kaaringsDag` -
+  om sommeren altså kl. 06:00), og reglerne tillader ingen klient at oprette en kåring før den
+  5. kl. 04:00 UTC. Serveren kører kl. 05:00 dansk tid (04:00 UTC om vinteren, 03:00 UTC om
+  sommeren), så en klient kan aldrig komme før serveren. Findes posten, lader serveren den stå.
 - **Registreringer til og med den 4. tæller med.** Det, der først skrives ind i løbet af
   den 5., kommer ikke med.
 - `tests/funktioner/kaaring-paritet.test.mjs` lader den rigtige side kåre og sammenligner
   det, siden skriver, felt for felt med serverens - begge priser, i samme rækkefølge.
+
+## Morgenoprydningen
+
+Samme planlagte kørsel som kåringen (`maanedensKaaring`, hver dag kl. 05:00 dansk tid) rydder
+bagefter op (`functions/oprydning.js`), så privatlivstekstens frister holder, også når ingen
+træner åbner appen:
+
+- **Joker-begrundelser:** fritekstbegrundelsen på en joker slettes 3 døgn efter, træneren
+  har afgjort jokeren (godkendt eller afvist). En ubehandlet anmodning beholder sin begrundelse.
+  Kun feltet `tekst` fjernes; dato, svar, hvem og hvornår bliver (streaken bruger dem).
+- **Videoer:** en træningsvideo, når træneren har godkendt eller afvist den; en duelvideo, når
+  modparten har set den (en time efter `viewedAt`, så en afspilning ikke afbrydes) eller senest
+  2 døgn efter afgørelsen; enhver video senest 7 dage efter upload. Filen slettes i lageret, og
+  dokumenterne ryddes præcis som i appen: en træningsvideo mister hele `submissionVideos`-
+  dokumentet; ellers sættes `videoURL: null` og `videoDeletedAt` (på `submissionVideos`, eller
+  på indsendelsen for en gammel video), så appen viser "slettet efter behandling" eller
+  "udløbet" som før. Indsendelsen (status, point) røres ikke.
+- **Samme regler, samme kode:** afgørelserne træffes af `jokerBegrundelserAtSlette` og
+  `videoSkalSlettes` i `index.html`, skåret ud af `byg.mjs`. Appens egen oprydning i en
+  træners browser (`sweepFootworkJokerReasons`, `sweepExpiredVideos`) bruger de samme
+  funktioner og er stadig reserven. `tests/funktioner/oprydning-paritet.test.mjs` viser, at
+  de sletter det samme.
+- **Kun `submissions/`:** en sti uden for videomappen slettes aldrig i lageret (`gyldigSti` fra
+  `sletning.js`; appen har samme værn, `erVideoSti`) - linket fjernes stadig.
+- **Fejler noget, kører resten videre**, og kåringen fejler aldrig af den grund (`rydOp` kaster
+  aldrig). Alt kan køres igen uden skade. Loggen har kun id'er og antal.
+- Bøttens slettefrist (8 dage) er stadig sikkerhedsnettet under det hele.
+
+**Udrulning:** funktionerne (`udrul-funktioner.cjs`). Funktionernes konto skal kunne læse og
+skrive Firestore og slette filer i bøtten `tif-talent-tracker` (det kan den allerede for
+"Slet alt").
 
 ## Månedens topscorer
 
@@ -226,8 +272,9 @@ kl. 05.00, første gang for november 2026) og med appens egen kode (`maanedTopsc
 `maanedensTopscorerRangering` i `index.html`, skåret ud af `byg.mjs`).
 
 - **Flest point i måneden** i årgangen, drenge og piger sammen. Alle point tæller, som
-  "Denne måned" talte dem: medaljepoint i den måned, træneren godkendte dem (`reviewedAt`),
-  stigens trin efter datoen i loggen og fodteknikkens dage med kombi og streak-milepæle.
+  "Denne måned" talte dem: point for godkendte videoer i Talentmærket og vundne dueller i den
+  måned, træneren godkendte dem (`reviewedAt`), stigens trin og tricks i den måned, de blev
+  nået første gang, og fodteknikkens dage med kombi og streak-milepæle.
   Måneden regnes som vinduet fra månedens start minus vinduet fra næste måneds start, med
   appens egne vinduesfunktioner. En dag med en godkendt joker giver 0.
 - **Lige point** afgøres af, i rækkefølge: flest øvelser (fodteknik-gennemførelser på dage
@@ -248,8 +295,12 @@ kl. 05.00, første gang for november 2026) og med appens egen kode (`maanedTopsc
   er noget at kåre.
 - **Regler:** som `maanedensSpiller` - alle aktive logins læser; admin eller en træner, der
   ser hele årgangen, opretter én gang, når måneden er afgjort; admin må kun fjerne vindere
-  (`vindere` kortere + `rettet`). Forskellen: en topscorer kan ikke slettes, heller ikke af
-  admin.
+  (`vindere` kortere + `rettet`). Forskellene: en topscorer kan ikke slettes, heller ikke af
+  admin, og en klient kan kun oprette den, når Månedens spiller for samme måned og årgang
+  findes (`getAfter`, så også i samme batch), og ingen af dens vindere er topscorer. Reglerne
+  kan ikke løbe en liste igennem, så hvert par sammenlignes: en klient må højst gemme 3 delte
+  topscorere mod højst 3 delte Månedens spillere (flere par sprænger grænsen på 1000 udtryk).
+  Større delte priser kårer serveren, som ikke er bundet af reglerne.
 - **Emblemerne:** Månedens spiller er nu en guldpokal (før en medalje), topscoreren en
   sort-hvid bold i fart - tegnet i koden (`maanedensEmblem`, `topscorerEmblem`), og bolden
   bevidst mindre end pokalen i hver størrelse.
@@ -305,11 +356,31 @@ id'er tæller ikke (`juggleTricks`).
 `tricks` er hævet fra 6 til 16 - ellers kan et barn ikke gemme sit 7. trick), så
 funktionerne (`node vaerktoej/udrul-funktioner.cjs`), så appen, og til sidst
 `node vaerktoej/genberegn-rangliste.cjs --udfoer`. Admin-kortet advarer, indtil serveren
-regner med 2026-11-23.
+regner med de nyeste pointregler (nu 2026-11-24, se nedenfor).
+
+**Pointreglerne 2026-11-24 (også app v15.81):** totalerne er de samme; kun uge og måned (og
+dermed Månedens topscorer) er rettet, og kun når data er usædvanlige:
+
+- Et trin eller trick tæller i uge og måned kun i det vindue, hvor det blev nået **første
+  gang** (den tidligste registrering i loggen, så længe det stadig er en del af fremdriften) -
+  ikke igen efter fortryd og ny registrering (`ladderFoersteGang`). Før kunne man fortryde i
+  én måned og registrere igen i den næste og få trinnet med i begge.
+- Kun en registrering (trin eller trick) er en aktiv dag i streaken. Fortryd og trænerens
+  rettelser er ikke. Før v15.81 skrev et fortryd dagen i `juggleLadder.days`; en sådan dag
+  tæller ikke, når loggen kan bevise, at der kun blev fortrudt den dag (`juggleActiveDays`).
+- Dage efter i dag (dansk tid) i fodteknikken, stigens datoer og jokerne tæller ikke, før
+  dagen er kommet (`footworkDays`). Serveren regner "i dag" ud fra det tidspunkt, der regnes
+  for (`saetNu` i den genererede kode), ikke maskinens ur.
+
+**Udrulning af v15.81 (pointreglerne 2026-11-24, morgenoprydningen og de strammede regler),
+oven på 2026-11-23 ovenfor:** funktionerne (`udrul-funktioner.cjs`), så `firestore.rules`
+(`npm run regler` først), så appen, og til sidst `genberegn-rangliste.cjs --udfoer`. Den
+gamle app (v15.80) kan stadig alt med de nye regler - dens reserve-kåring kl. 00 den 5. får
+blot et nej og lader serverens post stå.
 
 Før gav et trin lige så mange point som jongleringer (dårligt ben dobbelt). Stigen
 registreres på tillid uden video, og et barn tog hele stigen på 36 minutter for 690 point -
-mere end uger med fodteknik. Nu er et trin mindre værd end en medalje (25-80) og omtrent en
+mere end uger med fodteknik. Nu er et trin mindre værd end en godkendt øvelse i Talentmærket (25-80) og omtrent en
 god dag med fodteknik. Pointene gemmes ikke, så de nye gælder også trin, der er taget før.
 
 **Trinnene er gemt som numre, ikke som antal jongleringer** (`mainStep`/`weakStep` og
@@ -384,6 +455,7 @@ et barn end navn, årgang og de tal, der står på en rangliste eller en kåring
 ## Backup
 
 Der er ingen automatisk backup. Under Indstillinger kan en træner eller admin hente en
-JSON-fil med alt, vedkommende har adgang til. Links til spillernes indsendte videoer er
-udeladt; adresserne på instruktionsvideoerne er med. Der er ingen
+JSON-fil med alt, vedkommende har adgang til - også joker-begrundelser, der ikke er slettet
+endnu, og kåringerne (Månedens spiller og Månedens topscorer). Links til spillernes indsendte
+videoer er udeladt; adresserne på instruktionsvideoerne er med. Der er ingen
 gendan-knap; filen er en læsbar kopi.
