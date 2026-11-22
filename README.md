@@ -162,7 +162,8 @@ Spillerne får en "Se video"-knap på øvelsen under Fodteknik, Jonglering og Gu
   med `year: "2017"` og give barnet trin og point. Findes spilleren ikke, kan kun admin skrive.
   På `submissions` skal en træners rettelse også gælde det nye indhold (årgang og køn), og
   `playerId` kan ikke skiftes ud - ellers kunne en indsendelse flyttes over på et andet barn
-  med 999 point. Spillerens egne skrivninger og admin er uændrede.
+  med 999 point (dengang talte indsendelsernes point; siden pointreglerne 2026-11-25 gør de
+  ikke, men reglen står). Spillerens egne skrivninger og admin er uændrede.
 - **Spillere læser kun deres egne logge** (`footworkLog`, `juggleLog`), hvor joker-
   begrundelser og bruger-id'er står.
 - **En spiller henter kun det om andre børn, som ranglisten viser.** Eget spillerdokument,
@@ -194,6 +195,8 @@ point. Derfor regner en Cloud Function pointene ud og skriver én linje pr. barn
 
 - `rangliste/{spiller-id}`: navn, årgang, køn, om barnet kan udfordres, point i alt, og
   point denne uge og denne måned med den dato, perioden begynder (`uge.fra`, `maaned.fra`).
+  Pointene er kun Daglig fodteknik og Jongleringsstigen - se "Talentmærket og dueller giver
+  ingen point".
 - `klubRangliste/top`: klubbens top 10 med navn, årgang og point i alt.
 
 **Samme kode, ikke en kopi.** `functions/byg.mjs` skærer pointkoden ud af `index.html` og
@@ -271,12 +274,13 @@ Den anden månedspris, kåret i samme kørsel som Månedens spiller (`maanedensK
 kl. 05.00, første gang for november 2026) og med appens egen kode (`maanedTopscorerStat`,
 `maanedensTopscorerRangering` i `index.html`, skåret ud af `byg.mjs`).
 
-- **Flest point i måneden** i årgangen, drenge og piger sammen. Alle point tæller, som
-  "Denne måned" talte dem: point for godkendte videoer i Talentmærket og vundne dueller i den
-  måned, træneren godkendte dem (`reviewedAt`), stigens trin og tricks i den måned, de blev
-  nået første gang, og fodteknikkens dage med kombi og streak-milepæle.
+- **Flest point i måneden** i årgangen, drenge og piger sammen. Alle point fra Daglig
+  fodteknik og Jongleringsstigen tæller, som "Denne måned" tæller dem: stigens trin og tricks i
+  den måned, de blev nået første gang, og fodteknikkens dage med kombi og streak-milepæle.
+  Talentmærket og dueller tæller ikke (fra pointreglerne 2026-11-25 - før talte point for
+  godkendte videoer og vundne dueller i den måned, træneren godkendte dem).
   Måneden regnes som vinduet fra månedens start minus vinduet fra næste måneds start, med
-  appens egne vinduesfunktioner. En dag med en godkendt joker giver 0.
+  appens egen vinduesfunktion (`rangPointIVindue`). En dag med en godkendt joker giver 0.
 - **Lige point** afgøres af, i rækkefølge: flest øvelser (fodteknik-gennemførelser på dage
   i måneden uden godkendt joker + trin på stigen - hovedstige og dårligt ben - registreret i
   måneden og stadig en del af fremdriften, hvert trin én gang; tricks tæller ikke), flest
@@ -314,11 +318,53 @@ Point fra Daglig fodteknik og Jongleringsstigen står ingen steder i databasen. 
 kun registreringerne, og point regnes ud af dem, hver gang de vises. Derfor kan en
 rettelse, en sletning eller en bagudregistrering aldrig efterlade et forkert tal et andet
 sted - og derfor kan en spiller ikke skrive point til sig selv: der er intet pointfelt at
-skrive i. Medaljepoint står på spilleren og kan kun skrives af en træner.
+skrive i. Og det er de eneste point, der findes: ranglisten, rangtrinnene og Månedens
+topscorer tæller kun dem.
+
+Talentmærkets og duellernes gamle point står stadig i databasen - `players.points` og
+`submissions.pointsAwarded`, som kun en træner kan skrive - og en godkendelse eller en afgjort
+duel skriver dem stadig, som den altid har gjort. Men fra pointreglerne 2026-11-25 tæller og
+vises de ingen steder (se "Talentmærket og dueller giver ingen point").
 
 Ranglistens linjer er ikke en undtagelse: de er et udregnet spejl, som kun serveren
 skriver, og som kan regnes forfra af registreringerne når som helst
 (`tests/vaerktoej/genberegn-rangliste.cjs`).
+
+## Talentmærket og dueller giver ingen point
+
+Ejerens beslutning, **pointreglerne 2026-11-25 (app v15.82):** point fra Talentmærket og
+fra dueller er taget helt ud af alle ranglister og priser - også de point, børnene allerede
+har.
+
+- **Kun Daglig fodteknik og Jongleringsstigen tæller:** point i alt, "Denne uge", "Denne
+  måned", serverens linjer (`rangliste/{id}`: `total`, `uge`, `maaned`), klubbens top 10,
+  rangtrinnene (Debutant, Klubspiller, ... - grænserne er de samme) og Månedens topscorer.
+  Månedens spiller talte i forvejen kun fodteknik og er uændret. Rangtrinnene nås nu kun
+  gennem fodteknik og stigen; hele stigen er 590 point (Talent).
+- **Ét sted i koden:** `totalPoints(p)` = `ladderPoints` + `footworkPoints` og
+  `rangPointIVindue(pid, since)` = `ladderPointsInWindow` + `footworkPointsInWindow` i
+  `index.html`. Siden, serveren (`functions/rangliste.js`) og topscoreren
+  (`maanedTopscorerStat`) bruger kun dem. `pointsInWindow` (indsendelsernes point) findes ikke
+  længere. `functions/byg.mjs` stopper udrulningen, hvis `totalPoints` tæller
+  `players.points` med, eller `rangPointIVindue` tæller `pointsAwarded` med.
+- **Intet slettes eller skrives om.** `players.points` og `submissions.pointsAwarded` står,
+  som de står, og godkendelser og dueller skriver dem stadig (`pointsForStep`,
+  `CHALLENGE_BONUS`) - så beslutningen kan vendes. Det samme gælder det gamle spejl
+  `clubRanking` og backuppen, som er en rå kopi af databasen.
+- **Talentmærket er sit eget:** beståede øvelser, optjente og overrakte medaljer vises som
+  før, men uden point. Godkendelsesdialogen og historiklinjerne nævner ingen point længere
+  ("Præcision · N1 S godkendt via video", "... · vandt duellen", "... · allerede bestået",
+  "Vandt fri udfordring "..."") - gamle historiklinjer står, som de blev gemt. Talentmærkets
+  side viser ikke længere et pointtal; profilen viser fodteknik + stige, samme tal som
+  ranglisten.
+- **Topscorerens lige stilling** afgøres som før (øvelser, svære, mellem, lette, starter).
+
+**Udrulning (ingen regelændring):** funktionerne (`node vaerktoej/udrul-funktioner.cjs`), så
+appen (v15.82), og til sidst `node vaerktoej/genberegn-rangliste.cjs --udfoer`, så alle
+linjer og klubbens top 10 regnes forfra uden de gamle point. Admin-kortet "Ranglisten på
+serveren" advarer, indtil serveren regner med pointreglerne 2026-11-25. Månedens topscorer
+for november 2026 kåres den 5. december med den kode, serveren har den morgen - rul derfor ud
+før.
 
 ## Jongleringsstigen: point og trin
 
@@ -356,7 +402,7 @@ id'er tæller ikke (`juggleTricks`).
 `tricks` er hævet fra 6 til 16 - ellers kan et barn ikke gemme sit 7. trick), så
 funktionerne (`node vaerktoej/udrul-funktioner.cjs`), så appen, og til sidst
 `node vaerktoej/genberegn-rangliste.cjs --udfoer`. Admin-kortet advarer, indtil serveren
-regner med de nyeste pointregler (nu 2026-11-24, se nedenfor).
+regner med de nyeste pointregler (nu 2026-11-25, se "Talentmærket og dueller giver ingen point").
 
 **Pointreglerne 2026-11-24 (også app v15.81):** totalerne er de samme; kun uge og måned (og
 dermed Månedens topscorer) er rettet, og kun når data er usædvanlige:
@@ -380,8 +426,10 @@ blot et nej og lader serverens post stå.
 
 Før gav et trin lige så mange point som jongleringer (dårligt ben dobbelt). Stigen
 registreres på tillid uden video, og et barn tog hele stigen på 36 minutter for 690 point -
-mere end uger med fodteknik. Nu er et trin mindre værd end en godkendt øvelse i Talentmærket (25-80) og omtrent en
-god dag med fodteknik. Pointene gemmes ikke, så de nye gælder også trin, der er taget før.
+mere end uger med fodteknik. Nu er et trin omtrent en god dag med fodteknik værd (da tallene
+blev sat, også mindre end en godkendt øvelse i Talentmærket, 25-80 - siden pointreglerne
+2026-11-25 giver Talentmærket ingen point). Pointene gemmes ikke, så de nye gælder også trin,
+der er taget før.
 
 **Trinnene er gemt som numre, ikke som antal jongleringer** (`mainStep`/`weakStep` og
 `v`/`fra`/`til` i `juggleLog`). Da stigerne fik nye tal, skulle de gemte numre derfor
@@ -433,9 +481,9 @@ koden - "V-rul" hedder nu "V-rul yderside" (kode `v`), "V+L rul" hedder "L+V-rul
 | Samling | Indhold | Hvem må læse |
 |---|---|---|
 | `users` | Login, rolle, årgange | Brugeren selv og admin |
-| `players` | Navn, årgang, medaljer, medaljepoint, historik | Barnet selv; trænere i årgangen |
+| `players` | Navn, årgang, medaljer, medaljepoint (`points` - tæller ikke fra 2026-11-25), historik | Barnet selv; trænere i årgangen |
 | `playerNotes` | Trænerens note | Kun trænere |
-| `submissions` | Indsendelser: øvelse, status og point - **ikke** videolinket | Barnet selv og modparten i en duel; trænere i årgangen |
+| `submissions` | Indsendelser: øvelse, status og point (`pointsAwarded` - tæller ikke fra 2026-11-25) - **ikke** videolinket | Barnet selv og modparten i en duel; trænere i årgangen |
 | `submissionVideos` | Link og sti til videoen, samme id som indsendelsen | Træneren, barnet selv, og duel-modparten efter afgørelsen |
 | `challenges` | Dueller | De to parter; trænere i årgangen |
 | `juggleLadder` / `footwork` | Fremdrift og registreringer - kun tal og datoer | Barnet selv; trænere i årgangen |
