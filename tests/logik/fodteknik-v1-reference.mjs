@@ -524,7 +524,7 @@ async function decideFootworkJoker(pid, dato, approve){
     + (approve
       ? "Dagen bryder ikke streaken, men den tæller ikke som aktiv dag og giver ingen point."
       : "Dagen bliver en almindelig dag uden aktivitet, så streaken genberegnes - og kan blive brudt.")
-    + `\n\nAfgørelsen bliver logget med din e-mail.`)) return;
+    + `\n\nAfgørelsen bliver logget med dit navn.`)) return;
   try{
     await writeFootwork(pid, p, {jokers: {[dato]: approve ? "approved" : "rejected"}},
       {d: dato, e: "joker", til: approve ? "godkendt" : "afvist", at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""},
@@ -583,7 +583,7 @@ async function resetFootworkDay(pid, dato){
   const counts = footworkDayCounts(pid, dato);
   const i_alt = counts.reduce((a,b)=>a+b, 0);
   if(!i_alt) return besked("Der er ikke registreret noget den dag.");
-  if(!await spoerg(`Nulstil ${p.name}s fodteknik den ${datoTekst(dato)}?\n\n${i_alt} ${i_alt===1?"gennemførelse":"gennemførelser"} forsvinder. Dagen holder op med at tælle som aktiv, så streaken genberegnes - og kan blive brudt.\n\nRettelsen bliver logget med din e-mail.`)) return;
+  if(!await spoerg(`Nulstil ${p.name}s fodteknik den ${datoTekst(dato)}?\n\n${i_alt} ${i_alt===1?"gennemførelse":"gennemførelser"} forsvinder. Dagen holder op med at tælle som aktiv, så streaken genberegnes - og kan blive brudt.\n\nRettelsen bliver logget med dit navn.`)) return;
   try{
     await writeFootwork(pid, p, {days: {[dato]: deleteField()}},
       {d: dato, e: "nulstil", fra: i_alt, til: 0, at: new Date().toISOString(), by: currentUser?.uid || "", af: currentUser?.email || ""});
