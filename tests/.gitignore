@@ -6,6 +6,7 @@ service-account.json
 logik/kode.mjs
 logik/stigekode.mjs
 logik/rangkode.mjs
+logik/pointkode.mjs
 visning/*.html
 visning/*.png
 *.log

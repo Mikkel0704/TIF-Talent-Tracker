@@ -42,9 +42,9 @@ const data = () => ({
 });
 // Serverens opgoerelse. Tallene er med vilje nogle, siden ikke selv kan kende.
 const OPGOER = { playerId: "p2", findes: true, navn: "Ida Test", aargang: "2017", indsendelser: 3, udfordringer: 1, videodokumenter: 2, videofiler: 4,
-  kaaringer: 1, logins: [{ uid: "u-ida", email: "ida@x.invalid" }, { uid: "u-demo", email: "demo@x.invalid" }],
+  kaaringer: 1, topscorerKaaringer: 2, logins: [{ uid: "u-ida", email: "ida@x.invalid" }, { uid: "u-demo", email: "demo@x.invalid" }],
   note: true, stige: true, stigelog: true, fodteknik: true, fodtekniklog: true, klubRangliste: true, rangliste: true, anmodning: true };
-const ALT_SLETTET = { playerId: "p2", faerdig: true, fejl: [], slettet: { videofiler: 4, videodokumenter: 2, indsendelser: 3, udfordringer: 1, kaaringer: 1,
+const ALT_SLETTET = { playerId: "p2", faerdig: true, fejl: [], slettet: { videofiler: 4, videodokumenter: 2, indsendelser: 3, udfordringer: 1, kaaringer: 1, topscorerKaaringer: 2,
   klubRangliste: 1, note: 1, stige: 1, stigelog: 1, fodteknik: 1, fodtekniklog: 1, logins: 2, brugerdokumenter: 2, spiller: 1, rangliste: 1, anmodning: 1 } };
 const SPOERG = "Slet ALT om Ida Test (2017)?\n\nDette fjerner for altid:\n"
   + "· Profilen med point, niveauer, medaljer, note og historik\n"
@@ -54,6 +54,7 @@ const SPOERG = "Slet ALT om Ida Test (2017)?\n\nDette fjerner for altid:\n"
   + "· 4 videofiler i skyen\n"
   + "· Pladsen på klub-ranglisten\n"
   + "· 1 kåring som Månedens spiller\n"
+  + "· 2 kåringer som Månedens topscorer\n"
   + "· Adgangen for ida@x.invalid, demo@x.invalid\n"
   + "\nDet kan ikke fortrydes.";
 
@@ -120,17 +121,19 @@ t("slutbeskeden siger, at alt er slettet - ogsaa login'ene - og intet om at goer
 t("siden har hverken skrevet, slettet eller slaaet indsendelser, dueller, logins eller videolinks op", await ingenEgneSkridt());
 await svar(true);
 
-await nulstil([{ data: { ...OPGOER, logins: [{ uid: "u-ida", email: "ida@x.invalid" }], kaaringer: 0 } }, { data: ALT_SLETTET }]);
+await nulstil([{ data: { ...OPGOER, logins: [{ uid: "u-ida", email: "ida@x.invalid" }], kaaringer: 0, topscorerKaaringer: 0 } }, { data: ALT_SLETTET }]);
 await klikSletAlt();
 const tekst1 = await dialogTekst() || "";
-t("ét login og ingen kaaringer: entals-form, ingen kaaringslinje", tekst1.includes("· Adgangen for ida@x.invalid\n") && !tekst1.includes("Månedens spiller"), tekst1);
+t("ét login og ingen kaaringer: entals-form, ingen kaaringslinje", tekst1.includes("· Adgangen for ida@x.invalid\n") && !tekst1.includes("Månedens spiller") && !tekst1.includes("Månedens topscorer"), tekst1);
 await svar(true); await skriv("Ida Test");
 t("og slutbeskeden i ental", (await dialogTekst()) === "Alt om Ida Test er slettet.\n\nLogin'et er også slettet, så e-mailen kan bruges igen:\nida@x.invalid", await dialogTekst());
 await svar(true);
 
-await nulstil([{ data: { ...OPGOER, logins: [], indsendelser: 1, udfordringer: 0, videofiler: 1 } }, { data: ALT_SLETTET }]);
+await nulstil([{ data: { ...OPGOER, logins: [], indsendelser: 1, udfordringer: 0, videofiler: 1, kaaringer: 0, topscorerKaaringer: 1 } }, { data: ALT_SLETTET }]);
 await klikSletAlt();
 const tekst2 = await dialogTekst() || "";
+t("én topscorer-kåring og ingen som Månedens spiller: kun topscorer-linjen, i ental",
+  tekst2.includes("· 1 kåring som Månedens topscorer\n") && !tekst2.includes("som Månedens spiller"), tekst2);
 t("intet login: 'Ingen login knyttet til spilleren', og tallene i ental", tekst2.includes("· Ingen login knyttet til spilleren\n")
   && tekst2.includes("· 1 indsendte video og deres data\n") && tekst2.includes("· 0 udfordringer med Ida Test\n") && tekst2.includes("· 1 videofil i skyen\n"), tekst2);
 await svar(true); await skriv("Ida Test");
@@ -139,10 +142,11 @@ await svar(true);
 
 console.log("\nSlet spiller · noget fejlede");
 await nulstil([{ data: OPGOER }, { data: { playerId: "p2", faerdig: false, slettet: { videofiler: 3 },
-  fejl: [{ art: "videofil", id: "submissions/u-ida/123_klip.mp4" }, { art: "login", id: "u-demo" }, { art: "indsendelse", id: "sub9" }, { art: "kaaring", id: "2026-10_2017" }] } }]);
+  fejl: [{ art: "videofil", id: "submissions/u-ida/123_klip.mp4" }, { art: "login", id: "u-demo" }, { art: "indsendelse", id: "sub9" }, { art: "kaaring", id: "2026-10_2017" },
+    { art: "topscorer", id: "2026-11_2017" }] } }]);
 await klikSletAlt(); await svar(true); await skriv("Ida Test");
 t("fejlene staar der med filnavn, e-mail og id - og at en ny 'Slet alt' goer resten",
-  (await dialogTekst()) === "ADVARSEL: 4 ting kunne ikke slettes:\n· videofil 123_klip.mp4\n· login demo@x.invalid\n· indsendelse sub9\n· Månedens spiller 2026-10_2017\n\n"
+  (await dialogTekst()) === "ADVARSEL: 5 ting kunne ikke slettes:\n· videofil 123_klip.mp4\n· login demo@x.invalid\n· indsendelse sub9\n· Månedens spiller 2026-10_2017\n· Månedens topscorer 2026-11_2017\n\n"
     + "Resten er slettet, og adgangen til appen er lukket. Ida Test står stadig på listen, indtil alt er væk. Tryk \"Slet alt\" igen - så gør serveren resten.", await dialogTekst());
 await svar(true);
 await nulstil([{ data: OPGOER }, { data: { playerId: "p2", faerdig: false, slettet: {}, fejl: [{ art: "adgang", id: "u-ida" }, { art: "spiller", id: "p2" }] } }]);
@@ -177,7 +181,7 @@ await klikSletAlt(); await svar(true); await skriv("Ida Test");
 t("forbindelsen svigter midt i: admin faar at vide, at en ny 'Slet alt' goer resten",
   (await dialogTekst()) === "Kunne ikke slette: Ingen forbindelse til serveren. Tjek internetforbindelsen, og prøv igen.\n\nNåede noget at blive slettet, så tryk \"Slet alt\" igen - så gør serveren resten.", await dialogTekst());
 await svar(true);
-t("statuslinjen er tilbage paa v15.79 · live database aktiv", await page.evaluate(() => document.getElementById("syncStatus").textContent) === "v15.79 · live database aktiv");
+t("statuslinjen er tilbage paa v15.80 · live database aktiv", await page.evaluate(() => document.getElementById("syncStatus").textContent) === "v15.80 · live database aktiv");
 
 console.log("\nSlet spiller · Godkend og slet alt");
 await nulstil([{ data: OPGOER }, { data: ALT_SLETTET }]);

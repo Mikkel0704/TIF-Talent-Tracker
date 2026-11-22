@@ -205,6 +205,22 @@ b = byg("m-kaster", html.replace("function maanedStat(pid, maaned){", "function 
 t("kan kaaringen ikke regnes i den byggede kode, stopper den - og der ligger ingen halv fil", b.kode !== 0 && /udefineretMaaned/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
 b = byg("m-forkert", html.replace("const MAANEDENS_AFGOERES_DAG = 5;", "const MAANEDENS_AFGOERES_DAG = 6;"));
 t("regner kaaringen forkert paa proeveeksemplet, stopper den", b.kode !== 0 && /maanederTilKaaring virker ikke/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+
+console.log("\nbyg.mjs fejler hoejlydt · Maanedens topscorer");
+for(const navn of ["maanedTopscorerStat", "maanedTopscorerSammenlign", "maanedensTopscorerRangering", "topscorerVinder"]){
+  b = byg("t-" + navn, html.replace("function " + navn + "(", "function " + navn + "Omdoebt("));
+  t(`mangler ${navn} i blokken, stopper den med navnet`, b.kode !== 0 && new RegExp(navn + " ligger ikke i fodteknik-blokken").test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+}
+b = byg("t-TOPSCORER_FELTER", html.replace("const TOPSCORER_FELTER =", "const TOPSCORER_FELTER_FLYTTET ="));
+t("mangler const TOPSCORER_FELTER i blokken, stopper den", b.kode !== 0 && /const TOPSCORER_FELTER ligger ikke i fodteknik-blokken/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+b = byg("t-trin", html.replace("function ladderTrinIVindue(", "function ladderTrinIVindueOmdoebt("));
+t("mangler function ladderTrinIVindue, stopper den med navnet", b.kode !== 0 && /mangler function ladderTrinIVindue/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+b = byg("t-kaster", html.replace("function maanedTopscorerStat(pid, maaned){", "function maanedTopscorerStat(pid, maaned){ return udefineretTopscorer;"));
+t("kan topscoreren ikke regnes i den byggede kode, stopper den - og der ligger ingen halv fil", b.kode !== 0 && /udefineretTopscorer/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+b = byg("t-forkert", html.replace("(b.point - a.point) || (b.oevelser - a.oevelser)", "(a.point - b.point) || (b.oevelser - a.oevelser)"));
+t("regner topscoreren forkert paa proeveeksemplet (faerrest point vinder), stopper den", b.kode !== 0 && /proeven paa Maanedens topscorer gav/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+b = byg("t-medaljer", html.replace("const vindue = since=>pointsInWindow(pid, since) + ladderPointsInWindow", "const vindue = since=>ladderPointsInWindow"));
+t("glemmer topscoreren medaljepointene, stopper den ogsaa", b.kode !== 0 && /proeven paa Maanedens topscorer gav/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
 rmSync(mappe, { recursive: true, force: true });
 
 console.log(`\n${ok} ok, ${fejlet} fejl`);

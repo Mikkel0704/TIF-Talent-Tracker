@@ -324,8 +324,31 @@ service cloud.firestore {
     //  - Alle aktive logins maa laese den: den staar paa ranglisten og profilen.
     match /maanedensSpiller/{postId} {
       allow read: if isActive();
-      allow create: if isActive() && !isPlayerRole()
-        && request.resource.data.keys().hasOnly(["maaned", "aargang", "vindere", "beregnet"])
+      allow create: if isActive() && !isPlayerRole() && nyKaaring(postId);
+      // Den eneste rettelse: admin maa FJERNE vindere - naar en familie beder om at faa
+      // et barn slettet. Listen skal blive kortere, og intet andet end vindere og
+      // tidsstemplet "rettet" maa roeres. Maaned, aargang og beregnet ligger fast.
+      // Serveren (sletSpiller) sender update({vindere: <kortere liste>, rettet: serverTimestamp()}).
+      allow update: if isAdmin() && kaaringKortere();
+      allow delete: if isAdmin();
+    }
+
+    // Maanedens topscorer: samme slags post som Maanedens spiller, én pr. maaned og aargang
+    // ("2026-11_2017"), med de tal, der afgjorde det (point, oevelser, svaer, mellem, let,
+    // starter). Samme regler: alle aktive logins laeser; kun admin eller en traener, der ser
+    // HELE aargangen, opretter - én gang, og foerst naar maaneden er afgjort; admin maa kun
+    // fjerne vindere (naar et barn slettes). Forskellen: posten kan ikke slettes - heller ikke
+    // af admin. En forkert post rettes kun ved at fjerne vindere.
+    match /maanedensTopscorer/{postId} {
+      allow read: if isActive();
+      allow create: if isActive() && !isPlayerRole() && nyKaaring(postId);
+      allow update: if isAdmin() && kaaringKortere();
+    }
+
+    // Formen paa en ny kaaring (begge priser): kun de fire felter, id = maaned_aargang,
+    // hoejst 30 vindere, af en der ser hele aargangen, og kun naar maaneden er afgjort.
+    function nyKaaring(postId) {
+      return request.resource.data.keys().hasOnly(["maaned", "aargang", "vindere", "beregnet"])
         && request.resource.data.maaned is string
         && request.resource.data.maaned.matches('^20[0-9]{2}-(0[1-9]|1[0-2])$')
         && request.resource.data.aargang is string
@@ -334,15 +357,14 @@ service cloud.firestore {
         && request.resource.data.vindere.size() <= 30
         && heleAargangen(request.resource.data.aargang)
         && maanedErAfgjort(request.resource.data.maaned);
-      // Den eneste rettelse: admin maa FJERNE vindere - naar en familie beder om at faa
-      // et barn slettet. Listen skal blive kortere, og intet andet end vindere og
-      // tidsstemplet "rettet" maa roeres. Maaned, aargang og beregnet ligger fast.
-      // Klienten sender setDoc(ref, {vindere: <kortere liste>, rettet: serverTimestamp()}, {merge:true}).
-      allow update: if isAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["vindere", "rettet"])
+    }
+
+    // Den eneste rettelse af en kaaring: vinderlisten bliver kortere, og kun vindere og
+    // tidsstemplet "rettet" roeres.
+    function kaaringKortere() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["vindere", "rettet"])
         && request.resource.data.vindere is list
         && request.resource.data.vindere.size() < resource.data.vindere.size();
-      allow delete: if isAdmin();
     }
 
     function heleAargangen(year) {

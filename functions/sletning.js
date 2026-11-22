@@ -14,9 +14,9 @@
 //      De slettes foerst i trin 5 - de er det eneste, der peger paa login'ene, og uden dem
 //      kunne en ny koersel hverken finde login'ene i Authentication eller deres videomapper.
 //   2. Videofilerne: de stier, databasen kender, og alt under submissions/{login-id}/.
-//   3. Dokumenterne: videolinks, indsendelser, dueller, Maanedens spiller (barnet fjernes
-//      fra vinderlisten - posten bliver staaende), klub-ranglisten, noten, stigen,
-//      fodteknikken og loggene.
+//   3. Dokumenterne: videolinks, indsendelser, dueller, Maanedens spiller og Maanedens
+//      topscorer (barnet fjernes fra vinderlisten - posten bliver staaende), klub-ranglisten,
+//      noten, stigen, fodteknikken og loggene.
 //   4. Login'ene i Authentication.
 //   5. Kun hvis intet ovenfor fejlede: users-dokumenterne, og saa spillerdokumentet,
 //      ranglistelinjen og sletteanmodningen i ét hug, og til sidst klubbens top 10.
@@ -75,7 +75,7 @@ export function formSlet(data){
 // Alt, der findes om barnet. Laeser kun.
 async function gorOp(db, bucket, id){
   const samling = n => db.collection(n);
-  const [spiller, subs, chA, chB, brugere, videoer, kaaringer, linje, anmodning, ...enkelte] = await Promise.all([
+  const [spiller, subs, chA, chB, brugere, videoer, kaaringer, topscorere, linje, anmodning, ...enkelte] = await Promise.all([
     samling("players").doc(id).get(),
     samling("submissions").where("playerId", "==", id).get(),
     samling("challenges").where("challengerId", "==", id).get(),
@@ -85,6 +85,7 @@ async function gorOp(db, bucket, id){
     // Vinderlisterne kan ikke forespoerges paa et id inde i et objekt; der er én post pr.
     // maaned og aargang, saa de laeses alle.
     samling("maanedensSpiller").get(),
+    samling("maanedensTopscorer").get(),
     samling("rangliste").doc(id).get(),
     samling("deletionRequests").doc(id).get(),
     ...ENKELTE.map(([n]) => samling(n).doc(id).get())
@@ -113,6 +114,7 @@ async function gorOp(db, bucket, id){
     udfordringer: [...udfordringer.values()],
     videoer: videoer.docs,
     kaaringer: kaaringer.docs.filter(d => Array.isArray(d.get("vindere")) && d.get("vindere").some(v => v && v.id === id)),
+    topscorere: topscorere.docs.filter(d => Array.isArray(d.get("vindere")) && d.get("vindere").some(v => v && v.id === id)),
     logins,
     filer: [...filer],
     linje: linje.exists ? linje : null,
@@ -135,6 +137,7 @@ function opgoerSvar(id, o){
     videodokumenter: o.videoer.length,
     videofiler: o.filer.length,
     kaaringer: o.kaaringer.length,
+    topscorerKaaringer: o.topscorere.length,
     logins: o.logins.map(l => ({ uid: l.uid, email: l.email })),
     rangliste: !!o.linje,
     anmodning: !!o.anmodning
@@ -177,7 +180,7 @@ export async function sletSpiller({ db, adminAuth, bucket, FieldValue, logger },
   if(f.kunOpgoer){
     const svar = opgoerSvar(id, o);
     logger?.info?.("sletSpiller opgoer", { kalder: kalder.uid, spiller: id, findes: svar.findes, indsendelser: svar.indsendelser,
-      udfordringer: svar.udfordringer, videodokumenter: svar.videodokumenter, videofiler: svar.videofiler, kaaringer: svar.kaaringer, logins: o.logins.length });
+      udfordringer: svar.udfordringer, videodokumenter: svar.videodokumenter, videofiler: svar.videofiler, kaaringer: svar.kaaringer, topscorerKaaringer: svar.topscorerKaaringer, logins: o.logins.length });
     return svar;
   }
   // Navnet tjekkes mod det, der staar paa spilleren nu. Er spilleren allerede slettet (en
@@ -188,7 +191,7 @@ export async function sletSpiller({ db, adminAuth, bucket, FieldValue, logger },
   }
 
   const fejl = [];
-  const slettet = { videofiler: 0, videodokumenter: 0, indsendelser: 0, udfordringer: 0, kaaringer: 0,
+  const slettet = { videofiler: 0, videodokumenter: 0, indsendelser: 0, udfordringer: 0, kaaringer: 0, topscorerKaaringer: 0,
     klubRangliste: 0, note: 0, stige: 0, stigelog: 0, fodteknik: 0, fodtekniklog: 0,
     logins: 0, brugerdokumenter: 0, spiller: 0, rangliste: 0, anmodning: 0 };
   const nu = () => FieldValue.serverTimestamp();
@@ -219,10 +222,12 @@ export async function sletSpiller({ db, adminAuth, bucket, FieldValue, logger },
     ...o.udfordringer.map(d => ({ art: "udfordring", id: d.id, ref: d.ref, felt: "udfordringer" })),
     ...o.enkelte.filter(e => e.snap.exists).map(e => ({ art: e.art, id, ref: e.snap.ref, felt: e.art }))
   ];
-  // Maanedens spiller: kun barnet fjernes fra vinderlisten, og "rettet" saettes. Posten
-  // bliver staaende (evt. uden vinder), saa naeste maaned stadig ved, hvem der vandt sidst.
-  const kaaringer = o.kaaringer.map(d => ({ art: "kaaring", id: d.id, ref: d.ref, felt: "kaaringer",
-    vindere: d.get("vindere").filter(v => !(v && v.id === id)) }));
+  // Maanedens spiller og Maanedens topscorer: kun barnet fjernes fra vinderlisten, og
+  // "rettet" saettes. Posten bliver staaende (evt. uden vinder), saa naeste maaned stadig
+  // ved, hvem der vandt sidst - og kaaringen ikke regnes om.
+  const udenBarnet = (d, art, felt) => ({ art, id: d.id, ref: d.ref, felt, vindere: d.get("vindere").filter(v => !(v && v.id === id)) });
+  const kaaringer = [...o.kaaringer.map(d => udenBarnet(d, "kaaring", "kaaringer")),
+    ...o.topscorere.map(d => udenBarnet(d, "topscorer", "topscorerKaaringer"))];
   for(const gruppe of [docs, kaaringer]){
     const foer = fejl.length;
     await iBatches(db, gruppe, (b, p) => (p.vindere ? b.update(p.ref, { vindere: p.vindere, rettet: nu() }) : b.delete(p.ref)), fejl, logger, kalder.uid, id);

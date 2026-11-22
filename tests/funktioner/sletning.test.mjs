@@ -135,7 +135,15 @@ await Promise.all([
   saet("maanedensSpiller/2026-11_2017", { maaned: "2026-11", aargang: "2017", beregnet: Timestamp.fromMillis(1792000000000),
     vindere: [{ id: "s1", navn: "Freja Slet", dage: 12, minutter: 18, oevelser: 12, point: 24 }] }),
   saet("maanedensSpiller/2026-09_2017", { maaned: "2026-09", aargang: "2017", beregnet: Timestamp.fromMillis(1788000000000),
-    vindere: [{ id: "s2", navn: "Bo Bliver", dage: 5, minutter: 7.5, oevelser: 5, point: 10 }] })
+    vindere: [{ id: "s2", navn: "Bo Bliver", dage: 5, minutter: 7.5, oevelser: 5, point: 10 }] }),
+  // Maanedens topscorer: Freja alene, delt med Bo, og en maaned uden Freja. Samme id'er som
+  // Maanedens spiller i en anden samling - de to maa ikke blandes sammen.
+  saet("maanedensTopscorer/2026-10_2017", { maaned: "2026-10", aargang: "2017", beregnet: Timestamp.fromMillis(1790000000000),
+    vindere: [{ id: "s1", navn: "Freja Slet", point: 90, oevelser: 20, svaer: 4, mellem: 3, let: 2, starter: 1 }] }),
+  saet("maanedensTopscorer/2026-11_2017", { maaned: "2026-11", aargang: "2017", beregnet: Timestamp.fromMillis(1792000000000),
+    vindere: [{ id: "s1", navn: "Freja Slet", point: 60, oevelser: 9, svaer: 0, mellem: 0, let: 9, starter: 0 }, { id: "s2", navn: "Bo Bliver", point: 60, oevelser: 9, svaer: 0, mellem: 0, let: 9, starter: 0 }] }),
+  saet("maanedensTopscorer/2026-09_2017", { maaned: "2026-09", aargang: "2017", beregnet: Timestamp.fromMillis(1788000000000),
+    vindere: [{ id: "x9", navn: "En Anden", point: 30, oevelser: 3, svaer: 1, mellem: 1, let: 1, starter: 0 }] })
 ]);
 const VIDEO = Buffer.from("ikke en rigtig video");
 const FREJAS_FILER = [`submissions/${freja.uid}/111_a.mp4`, `submissions/${freja.uid}/999_uden_link.mp4`,
@@ -166,8 +174,8 @@ foer = await billede();
 r = await kald({ playerId: "s1", kunOpgoer: true }, { bevis: admin.bevis });
 const opg = r.result;
 t("svaret har navn og aargang", r.status === 200 && opg?.findes === true && opg.navn === "Freja Slet" && opg.aargang === "2017", r);
-t("5 indsendelser, 2 dueller, 2 videodokumenter, 2 kaaringer",
-  opg?.indsendelser === 5 && opg.udfordringer === 2 && opg.videodokumenter === 2 && opg.kaaringer === 2, opg);
+t("5 indsendelser, 2 dueller, 2 videodokumenter, 2 kaaringer som Maanedens spiller og 2 som topscorer",
+  opg?.indsendelser === 5 && opg.udfordringer === 2 && opg.videodokumenter === 2 && opg.kaaringer === 2 && opg.topscorerKaaringer === 2, opg);
 t("5 videofiler: de 3 med en sti i databasen og de 2 uden, der ligger i loginnenes mapper - ikke Bos og ikke guides/",
   opg?.videofiler === 5, opg?.videofiler);
 t("de to logins med deres e-mails", ens((opg?.logins || []).map(l => l.email).sort(), [demo.email, freja.email].sort())
@@ -175,11 +183,11 @@ t("de to logins med deres e-mails", ens((opg?.logins || []).map(l => l.email).so
 t("note, stige, stigelog, fodteknik, fodtekniklog, klub-rangliste, ranglistelinje og anmodning findes",
   ["note", "stige", "stigelog", "fodteknik", "fodtekniklog", "klubRangliste", "rangliste", "anmodning"].every(k => opg?.[k] === true), opg);
 t("netop de felter", ens(Object.keys(opg || {}).sort(), ["aargang", "anmodning", "findes", "fodteknik", "fodtekniklog", "indsendelser", "kaaringer",
-  "klubRangliste", "logins", "navn", "note", "playerId", "rangliste", "stige", "stigelog", "udfordringer", "videodokumenter", "videofiler"].sort()), Object.keys(opg || {}).sort());
+  "klubRangliste", "logins", "navn", "note", "playerId", "rangliste", "stige", "stigelog", "topscorerKaaringer", "udfordringer", "videodokumenter", "videofiler"].sort()), Object.keys(opg || {}).sort());
 t("opgoerelsen skriver intet: ingen dokumenter, filer eller konti er roert", uroert(foer, await billede()), forskel(foer, await billede()));
 r = await kald({ playerId: "s2", kunOpgoer: true }, { bevis: admin.bevis });
-t("Bos opgoerelse: 1 indsendelse, 3 dueller, 1 videofil, 1 kaaring (den delte og hans egen = 2), 1 login",
-  r.result?.indsendelser === 1 && r.result.udfordringer === 3 && r.result.videofiler === 1 && r.result.kaaringer === 2 && r.result.logins.length === 1, r.result);
+t("Bos opgoerelse: 1 indsendelse, 3 dueller, 1 videofil, 1 kaaring (den delte og hans egen = 2), 1 topscorer (den delte), 1 login",
+  r.result?.indsendelser === 1 && r.result.udfordringer === 3 && r.result.videofiler === 1 && r.result.kaaringer === 2 && r.result.topscorerKaaringer === 1 && r.result.logins.length === 1, r.result);
 
 console.log("\nSlet spiller · forkert navn, forkerte kaldere");
 r = await kald({ playerId: "s1", navn: "Freja Slettet" }, { bevis: admin.bevis });
@@ -209,10 +217,11 @@ const frejaDocs = ["players/s1", "playerNotes/s1", "juggleLadder/s1", "juggleLog
   "deletionRequests/s1", "rangliste/s1", "submissions/sub1", "submissions/sub2", "submissions/sub3", "submissions/subD", "submissions/sub4",
   "submissionVideos/sub1", "submissionVideos/subD", "challenges/ch1", "challenges/ch2", `users/${freja.uid}`, `users/${demo.uid}`];
 const kaaringFoer = { okt: await dok("maanedensSpiller/2026-10_2017"), nov: await dok("maanedensSpiller/2026-11_2017"), sep: await dok("maanedensSpiller/2026-09_2017") };
+const topFoer = { okt: await dok("maanedensTopscorer/2026-10_2017"), nov: await dok("maanedensTopscorer/2026-11_2017"), sep: await dok("maanedensTopscorer/2026-09_2017") };
 foer = await billede();
 r = await kald({ playerId: "s1", navn: "  Freja Slet " }, { bevis: admin.bevis });
 t("navnet tjekkes trimmet, og svaret siger faerdig uden fejl", r.status === 200 && r.result?.faerdig === true && ens(r.result.fejl, []), r);
-t("svaret taeller hver slags", ens(r.result?.slettet, { videofiler: 5, videodokumenter: 2, indsendelser: 5, udfordringer: 2, kaaringer: 2,
+t("svaret taeller hver slags", ens(r.result?.slettet, { videofiler: 5, videodokumenter: 2, indsendelser: 5, udfordringer: 2, kaaringer: 2, topscorerKaaringer: 2,
   klubRangliste: 1, note: 1, stige: 1, stigelog: 1, fodteknik: 1, fodtekniklog: 1, logins: 2, brugerdokumenter: 2, spiller: 1, rangliste: 1, anmodning: 1 }), r.result?.slettet);
 const tilbage = [];
 for(const sti of frejaDocs) if(await findesDok(sti)) tilbage.push(sti);
@@ -227,10 +236,17 @@ t("begge har faaet et rettet-stempel fra serveren, og maaned, aargang og beregne
   [[okt, kaaringFoer.okt], [nov, kaaringFoer.nov]].every(([n, g]) => n.rettet instanceof Timestamp && n.maaned === g.maaned && n.aargang === g.aargang
     && n.beregnet.toMillis() === g.beregnet.toMillis() && ens(Object.keys(n).filter(k => k !== "_tid").sort(), ["aargang", "beregnet", "maaned", "rettet", "vindere"])));
 t("kaaringen uden Freja er ikke roert", (await dok("maanedensSpiller/2026-09_2017"))?._tid === kaaringFoer.sep._tid);
+const tOkt = await dok("maanedensTopscorer/2026-10_2017"), tNov = await dok("maanedensTopscorer/2026-11_2017");
+t("Maanedens topscorer: Frejas egen staar uden vinder - posten er ikke slettet", tOkt && ens(tOkt.vindere, []), tOkt);
+t("den delte: Bo staar tilbage med sine tal, praecis som foer", ens(tNov?.vindere, topFoer.nov.vindere.filter(v => v.id === "s2")), tNov?.vindere);
+t("begge topscorer-poster har kun faaet vindere og rettet aendret",
+  [[tOkt, topFoer.okt], [tNov, topFoer.nov]].every(([n, g]) => n.rettet instanceof Timestamp && n.maaned === g.maaned && n.aargang === g.aargang
+    && n.beregnet.toMillis() === g.beregnet.toMillis() && ens(Object.keys(n).filter(k => k !== "_tid").sort(), ["aargang", "beregnet", "maaned", "rettet", "vindere"])));
+t("topscoreren uden Freja er ikke roert", (await dok("maanedensTopscorer/2026-09_2017"))?._tid === topFoer.sep._tid);
 const efter = await billede();
 const aendret = forskel(foer, efter).docs.filter(k => !frejaDocs.includes(k));
 t("ellers er kun de to kaaringer og klubbens top 10 aendret - Bos spiller, linje, login, indsendelse, note, stige og duel med en anden er uroert",
-  ens(aendret.sort(), ["klubRangliste/top", "maanedensSpiller/2026-10_2017", "maanedensSpiller/2026-11_2017"]), aendret);
+  ens(aendret.sort(), ["klubRangliste/top", "maanedensSpiller/2026-10_2017", "maanedensSpiller/2026-11_2017", "maanedensTopscorer/2026-10_2017", "maanedensTopscorer/2026-11_2017"]), aendret);
 t("Bos login og de andre konti findes stadig", ens(efter.konti, foer.konti.filter(u => u !== freja.uid && u !== demo.uid)));
 
 console.log("\nSlet spiller · ranglisten efter triggerne");
@@ -248,7 +264,7 @@ t("en koersel mere lykkes og har intet at goere", r.status === 200 && r.result?.
 t("og skriver intet", uroert(foer, await billede()), forskel(foer, await billede()));
 r = await kald({ playerId: "s1", kunOpgoer: true }, { bevis: admin.bevis });
 t("opgoerelsen siger nu: findes ikke, intet tilbage", r.result?.findes === false && r.result.navn === null && r.result.indsendelser === 0
-  && r.result.videofiler === 0 && r.result.logins.length === 0 && r.result.kaaringer === 0 && r.result.rangliste === false, r.result);
+  && r.result.videofiler === 0 && r.result.logins.length === 0 && r.result.kaaringer === 0 && r.result.topscorerKaaringer === 0 && r.result.rangliste === false, r.result);
 
 console.log("\nSlet spiller · en fejl undervejs, og en koersel mere goer det faerdigt");
 const karl = await person("karl", { role: "player", active: true, playerId: "s4", years: ["2016"] });

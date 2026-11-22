@@ -104,7 +104,8 @@ function konstant(navn){
 // --- det, der skaeres ud -------------------------------------------------------------
 // 1) Hele fodteknik-blokken, praecis som tests/logik/udtraek.mjs tager den. Den rummer
 //    ogsaa dagsISO/iDagISO, juggleActiveDays, footworkStamp/footworkHusk, pointene og
-//    Maanedens spillers regler (maanederTilKaaring, maanedStat, maanedensSpillerRangering).
+//    reglerne for Maanedens spiller (maanederTilKaaring, maanedStat, maanedensSpillerRangering)
+//    og Maanedens topscorer (maanedTopscorerStat, maanedensTopscorerRangering).
 const blokStart = html.indexOf("\n// DAGLIG FODTEKNIK");
 const blokSlut = html.indexOf("\nconst POINT_BASE =");
 if(blokStart < 0 || blokSlut < 0 || blokSlut < blokStart) fejl("kunne ikke finde blokken fra // DAGLIG FODTEKNIK til const POINT_BASE");
@@ -117,6 +118,8 @@ const FUNKTIONER = [
   "juggleMainPoints", "juggleWeakPoints", "juggleTrick",
   "juggleFor", "juggleLogFor", "juggleMainStep", "juggleWeakStep", "juggleTricks",
   "ladderPoints", "totalPoints", "ladderPointsInWindow",
+  // Maanedens topscorer: trinnene paa stigen i et vindue (til "flest oevelser").
+  "ladderTrinIVindue",
   "startOfWeek", "startOfMonth", "pointsInWindow",
   // Maanedens spiller: spillerne goeres klar, som appen goer det, naar de hentes.
   "migratePlayer", "inferYearFromNote",
@@ -126,8 +129,10 @@ const FUNKTIONER = [
 // Det, blokken SKAL indeholde (ellers er den flyttet, og serveren ville regne forkert).
 const I_BLOKKEN = ["dagsISO", "iDagISO", "juggleActiveDays", "footworkHusk", "footworkPoints", "footworkPointsInWindow",
   // Maanedens spiller (kaaring.js): de samme funktioner, som kaarMaanedensSpiller() i appen bruger.
-  "maanedPlus", "forrigeMaaned", "maanedAfgoeres", "maanederTilKaaring", "maanedStat", "maanedSammenlign", "maanedensSpillerRangering"];
-const KONSTANTER_I_BLOKKEN = ["FOOTWORK_V2_FRA", "MAANEDENS_FOERSTE", "MAANEDENS_AFGOERES_DAG"];
+  "maanedPlus", "forrigeMaaned", "maanedAfgoeres", "maanederTilKaaring", "maanedStat", "maanedSammenlign", "maanedensSpillerRangering",
+  // Maanedens topscorer (kaaring.js): de samme funktioner, som kaarMaanedensSpiller() bruger.
+  "maanedTopscorerStat", "maanedTopscorerSammenlign", "maanedensTopscorerRangering", "topscorerVinder"];
+const KONSTANTER_I_BLOKKEN = ["FOOTWORK_V2_FRA", "MAANEDENS_FOERSTE", "MAANEDENS_AFGOERES_DAG", "TOPSCORER_FELTER"];
 for(const navn of I_BLOKKEN){
   if(!new RegExp("(^|\\n)function " + navn + "\\(").test(blok)) fejl(navn + " ligger ikke i fodteknik-blokken");
 }
@@ -180,13 +185,19 @@ export function saetBarn({ spiller = null, stige = null, stigelog = null, fodtek
   submissions = Array.isArray(indsendelser) ? indsendelser : [];
   footworkStamp++;
 }
-// Saet ALLE boerns data paa én gang - til Maanedens spiller, som sammenligner en hel aargang.
-// maanedStat laeser kun fodteknik-dokumenterne (dagene og jokerafgoerelserne ligger paa dem)
-// og spillerne; resten toemmes, saa intet fra et tidligere kald kan snige sig med.
-export function saetAlleBoern({ spillere = [], fodteknik = [] } = {}){
-  players = Array.isArray(spillere) ? spillere : [];
-  footwork = Array.isArray(fodteknik) ? fodteknik : [];
-  juggleLadder = []; juggleLog = []; footworkLogs = []; submissions = [];
+// Saet ALLE boerns data paa én gang - til Maanedens spiller og Maanedens topscorer, som
+// sammenligner en hel aargang. maanedStat laeser kun fodteknik-dokumenterne (dagene og
+// jokerafgoerelserne ligger paa dem) og spillerne; maanedTopscorerStat ogsaa indsendelserne,
+// stigen og stigens log. Det, der ikke gives med, toemmes, saa intet fra et tidligere kald
+// kan snige sig med.
+export function saetAlleBoern({ spillere = [], fodteknik = [], indsendelser = [], stiger = [], stigelogge = [] } = {}){
+  const liste = x => (Array.isArray(x) ? x : []);
+  players = liste(spillere);
+  footwork = liste(fodteknik);
+  submissions = liste(indsendelser);
+  juggleLadder = liste(stiger);
+  juggleLog = liste(stigelogge);
+  footworkLogs = [];
   footworkStamp++;
 }
 export {
@@ -194,7 +205,8 @@ export {
   totalPoints, ladderPoints, ladderPointsInWindow, footworkPoints, footworkPointsInWindow,
   pointsInWindow, startOfWeek, startOfMonth, FOOTWORK_V2_FRA,
   migratePlayer, normalizeYearsList, MAANEDENS_FOERSTE, MAANEDENS_AFGOERES_DAG, maanedPlus, forrigeMaaned, maanedAfgoeres,
-  maanederTilKaaring, maanedStat, maanedensSpillerRangering
+  maanederTilKaaring, maanedStat, maanedensSpillerRangering,
+  ladderTrinIVindue, maanedTopscorerStat, maanedensTopscorerRangering, topscorerVinder
 };
 `;
 // Skrives foerst ved siden af og proeves; foerst naar den kan regne, erstatter den den gamle.
@@ -220,6 +232,16 @@ try{
   const k = m.maanedensSpillerRangering([{ id: "x", name: "x", year: "2017" }], "2026-11", []);
   if(k.vindere.length !== 1 || k.vindere[0].dage !== 2) fejl("proevekaaringen gav " + JSON.stringify(k.vindere));
   if(m.maanederTilKaaring("2026-12-05").join() !== m.MAANEDENS_FOERSTE) fejl("maanederTilKaaring virker ikke som ventet");
+  // Maanedens topscorer paa et lille, haandregnet eksempel: x har en Starter-dag (2 point),
+  // et trin paa stigen (5) og en medalje godkendt i november (25); y vandt Maanedens spiller
+  // og kan ikke ogsaa vinde; z har kun én Starter-dag (2) og skal tabe til x.
+  m.saetAlleBoern({ spillere: ["x", "y", "z"].map(id => m.migratePlayer({ id, name: id, year: "U9" })),
+    fodteknik: [{ id: "x", days: { "2026-11-16": { t: 1 } } }, { id: "y", days: { "2026-11-16": { k: 9 } } }, { id: "z", days: { "2026-11-18": { t: 1 } } }],
+    stiger: [{ id: "x", mainStep: 1 }], stigelogge: [{ id: "x", entries: [{ t: "main", v: 0, at: "2026-11-20T10:00:00Z" }] }],
+    indsendelser: [{ playerId: "x", status: "approved", reviewedAt: "2026-11-30T12:00:00Z", pointsAwarded: 25 }] });
+  const ts = m.maanedensTopscorerRangering([{ id: "x", name: "x" }, { id: "y", name: "y" }, { id: "z", name: "z" }], "2026-11", ["y"]);
+  if(ts.vindere.length !== 1 || JSON.stringify(m.topscorerVinder(ts.vindere[0])) !== JSON.stringify({ id: "x", navn: "x", point: 32, oevelser: 2, svaer: 0, mellem: 0, let: 0, starter: 1 }))
+    fejl("proeven paa Maanedens topscorer gav " + JSON.stringify(ts.vindere));
 }catch(e){
   rmSync(NY, { force: true });
   throw e;

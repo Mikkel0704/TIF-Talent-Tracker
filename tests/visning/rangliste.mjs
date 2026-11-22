@@ -82,7 +82,7 @@ const forventet = [
   "submissionVideos|col||playerId==p1", "submissionVideos|col||opponentId==p1&decided==true", "submissionVideos|col||challengerId==p1&decided==true",
   "challenges|col||challengerId==p1", "challenges|col||opponentId==p1",
   "juggleLadder|doc|p1|", "juggleLog|doc|p1|", "footwork|doc|p1|", "footworkLog|doc|p1|",
-  "deletionRequests|doc|p1|", "clubConfig|doc|modules|", "clubConfig|doc|guideVideos|", "maanedensSpiller|col||"
+  "deletionRequests|doc|p1|", "clubConfig|doc|modules|", "clubConfig|doc|guideVideos|", "maanedensSpiller|col||", "maanedensTopscorer|col||"
 ].sort();
 let lyt = await a.lyt();
 t("præcis lytterne i kontraktens tabel - hverken flere eller færre", JSON.stringify([...lyt].sort()) === JSON.stringify(forventet),
@@ -194,6 +194,40 @@ await a.gaaTil("leaderboard");
 await a.klik("All-time");
 const emblem = await a.page.evaluate(() => [...document.querySelectorAll("#leaderboardArea .player")].filter(x => x.querySelector("svg.emblem")).map(x => x.querySelector("b").textContent.trim()));
 t("emblemet står ved novembers vinder på linjerne", emblem.length === 1 && /Ida Test/.test(emblem[0]), emblem);
+await a.luk();
+
+console.log("\nMånedens topscorer ved navnene: pokalen og bolden");
+const TOPSCORER_NOV = { "2026-11_2017": { maaned: "2026-11", aargang: "2017", vindere: [{ id: "p2", navn: "Bo Test", point: 120, oevelser: 30, svaer: 4, mellem: 3, let: 2, starter: 1 }] } };
+const SPILLER_NOV = { "2026-11_2017": { maaned: "2026-11", aargang: "2017", vindere: [{ id: "p3", navn: "Ida Test", dage: 9, minutter: 13.5, oevelser: 9, point: 18 }] } };
+// Emblemerne ved hvert navn: navn -> [aria-label, ...] i den orden, de står.
+const vedNavne = page => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#leaderboardArea .player")]
+  .map(x => [x.querySelector("b").childNodes[0].textContent.replace(/^\S+\s/, "").trim(), [...x.querySelectorAll("svg.emblem")].map(e => e.getAttribute("aria-label") + "|" + (e.classList.contains("pokal") ? "pokal" : e.classList.contains("bold") ? "bold" : "?"))])
+  .filter(([, e]) => e.length)));
+a = await aabn("sp", { players: OSCAR, rangliste: LINJER, klubRangliste: { top: TOP }, maanedensSpiller: SPILLER_NOV, maanedensTopscorer: TOPSCORER_NOV }, "2026-12-10T12:00:00+01:00");
+await a.gaaTil("leaderboard");
+await a.klik("All-time");
+t("årgangslisten: pokalen ved Månedens spiller, bolden ved topscoreren - ingen andre", JSON.stringify(await vedNavne(a.page))
+  === JSON.stringify({ "Bo Test": ["Månedens topscorer november 2026|bold"], "Ida Test": ["Månedens spiller november 2026|pokal"] }), await vedNavne(a.page));
+await a.klik("Hele klubben");
+t("klubbens top 10: bolden ved Bo, ingen ved de andre (Ida er ikke i top 10)", JSON.stringify(await vedNavne(a.page))
+  === JSON.stringify({ "Bo Test": ["Månedens topscorer november 2026|bold"] }), await vedNavne(a.page));
+t("ingen JS-fejl", a.fejl.length === 0, a.fejl);
+await a.luk();
+a = await aabn("tr", { players: { p1: { ...OSCAR.p1 }, p2: { name: "Bo Test", year: "2017", gender: "dreng", points: 450, passed: {}, history: [] } }, klubRangliste: { top: TOP },
+  maanedensSpiller: { "2026-11_2017": { maaned: "2026-11", aargang: "2017", vindere: [{ id: "p1", navn: "Oscar Test", dage: 9, minutter: 13.5, oevelser: 9, point: 18 }] } },
+  maanedensTopscorer: TOPSCORER_NOV }, "2026-12-10T12:00:00+01:00");
+await a.gaaTil("leaderboard");
+await a.klik("All-time");
+t("trænerens årgangsliste: pokal ved Oscar og bold ved Bo", JSON.stringify(await vedNavne(a.page))
+  === JSON.stringify({ "Bo Test": ["Månedens topscorer november 2026|bold"], "Oscar Test": ["Månedens spiller november 2026|pokal"] }), await vedNavne(a.page));
+await a.klik("Hele klubben");
+t("og i klubbens top 10", JSON.stringify(await vedNavne(a.page))
+  === JSON.stringify({ "Bo Test": ["Månedens topscorer november 2026|bold"], "Oscar Test": ["Månedens spiller november 2026|pokal"] }), await vedNavne(a.page));
+await a.luk();
+a = await aabn("sp", { players: OSCAR, rangliste: LINJER, klubRangliste: { top: TOP }, maanedensSpiller: SPILLER_NOV, maanedensTopscorer: TOPSCORER_NOV }, "2027-01-10T12:00:00+01:00");
+await a.gaaTil("leaderboard");
+await a.klik("All-time");
+t("når december er afgjort, står novembers emblemer ikke længere ved navnene", JSON.stringify(await vedNavne(a.page)) === "{}", await vedNavne(a.page));
 await a.luk();
 
 // ------------------------------------------------------------------ duel

@@ -84,6 +84,8 @@ await env.withSecurityRulesDisabled(async c => {
   await setDoc(doc(db,'clubConfig','modules'), {talentmaerke:{}});
   await setDoc(doc(db,'maanedensSpiller','2025-01_2017'), {maaned:'2025-01', aargang:'2017', beregnet:new Date(),
     vindere:[{id:'p1', navn:'A', point:60}, {id:'p2', navn:'B', point:50}, {id:'p3', navn:'C', point:40}]});
+  await setDoc(doc(db,'maanedensTopscorer','2025-01_2017'), {maaned:'2025-01', aargang:'2017', beregnet:new Date(),
+    vindere:[{id:'p2', navn:'B', point:90, oevelser:20, svaer:1, mellem:2, let:3, starter:4}]});
   await setDoc(doc(db,'deletionRequests','p1'), {playerId:'p1', status:'pending', requestedAt:new Date()});
 });
 const db = k => k === 'fremmed' ? env.authenticatedContext(FREMMED_UID).firestore() : env.authenticatedContext(B[k].uid).firestore();
@@ -113,9 +115,10 @@ const SAMLINGER = {
   clubRanking:      {id:'p1', skriv:()=>({name:'X', year:'2017', points:9999, updatedAt:serverTimestamp()})},
   clubConfig:       {id:'modules', skriv:()=>({talentmaerke:{'2017':false}}), merge:true},
   maanedensSpiller: {id:'2025-01_2017', nyId:'2025-02_2017', skriv:()=>({maaned:'2025-02', aargang:'2017', vindere:[], beregnet:serverTimestamp()})},
+  maanedensTopscorer: {id:'2025-01_2017', nyId:'2025-02_2017', skriv:()=>({maaned:'2025-02', aargang:'2017', vindere:[], beregnet:serverTimestamp()})},
   deletionRequests: {id:'p1', skriv:()=>({playerId:'p1', status:'pending', requestedAt:serverTimestamp()})},
 };
-const UDEN_AAR = new Set(['clubConfig', 'maanedensSpiller', 'deletionRequests']);
+const UDEN_AAR = new Set(['clubConfig', 'maanedensSpiller', 'maanedensTopscorer', 'deletionRequests']);
 for(const k of ['fremmed', 'lukketTraener', 'lukketSpiller']){
   for(const [s, c] of Object.entries(SAMLINGER)){
     await proev(`${k}: kan ikke læse ${s}`, 'DENY', ()=>getDoc(doc(db(k), s, c.id)));

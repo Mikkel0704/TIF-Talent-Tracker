@@ -19,8 +19,8 @@ Live: https://mikkel0704.github.io/TIF-Talent-Tracker/
 | Ranglisten, logins og sletning | Cloud Functions i `functions/`, Belgien (europe-west1). Regner hvert barns point ud og skriver én linje pr. barn - se "Ranglisten regnes på serveren". Opretter og sletter logins - se "Logins oprettes af serveren". Sletter alt om et barn - se "Slet alt om et barn". |
 | Tests | `tests/` - se `tests/README.md` |
 
-Serveren gør fire ting: den regner ranglisten ud, den kårer Månedens spiller, den opretter
-og sletter logins, og den sletter alt om et barn. Alt andet, der skal håndhæves, håndhæves i
+Serveren gør fire ting: den regner ranglisten ud, den kårer Månedens spiller og Månedens
+topscorer, den opretter og sletter logins, og den sletter alt om et barn. Alt andet, der skal håndhæves, håndhæves i
 reglerne; resten er brugerflade.
 
 ## Udrulning
@@ -99,8 +99,9 @@ administratortjek som `opretLogin`/`sletLogin`: kun en aktiv administrator (læs
   `submissions/{login-id}/` for barnets logins - serveren kan liste mapperne, appen kan ikke),
   `submissionVideos`, `submissions`, dueller som udfordrer og som udfordret, noten, stigen,
   fodteknikken og loggene, `clubRanking`, ranglistelinjen, sletteanmodningen, spilleren,
-  `users`-dokumenterne og **selve login'ene i Authentication**. I Månedens spiller fjernes
-  kun barnet fra `vindere`, og `rettet` sættes; posten bliver stående. En sti i databasen,
+  `users`-dokumenterne og **selve login'ene i Authentication**. I Månedens spiller og
+  Månedens topscorer fjernes kun barnet fra `vindere`, og `rettet` sættes; posten bliver
+  stående. Opgørelsen tæller de to slags hver for sig (`kaaringer`, `topscorerKaaringer`). En sti i databasen,
   der ikke ligger under `submissions/`, røres aldrig.
 - **Rækkefølgen** gør det sikkert at køre igen: adgangen lukkes først (`users`-dokumenterne
   sættes til `active: false`), så filer og dokumenter, så login'ene i Authentication. Kun hvis
@@ -154,7 +155,7 @@ Spillerne får en "Se video"-knap på øvelsen under Fodteknik, Jonglering og Gu
   begrundelser og bruger-id'er står.
 - **En spiller henter kun det om andre børn, som ranglisten viser.** Eget spillerdokument,
   egne registreringer, årgangens linjer i `rangliste`, `klubRangliste/top`,
-  `maanedensSpiller` og indsendelser og dueller, barnet selv er part i. Ikke andre børns
+  `maanedensSpiller`, `maanedensTopscorer` og indsendelser og dueller, barnet selv er part i. Ikke andre børns
   spillerdokumenter, træningsdage, stige eller indsendelser. Appens forespørgsler er formet
   præcis, som reglerne kan bevise dem - en bredere forespørgsel afvises som helhed.
 - **Ingen klient skriver i `rangliste` eller `klubRangliste`** - heller ikke admin.
@@ -216,7 +217,45 @@ pointkoden. De fleste dage finder den ingenting og skriver ingenting.
 - **Registreringer til og med den 4. tæller med.** Det, der først skrives ind i løbet af
   den 5., kommer ikke med.
 - `tests/funktioner/kaaring-paritet.test.mjs` lader den rigtige side kåre og sammenligner
-  det, siden skriver, felt for felt med serverens.
+  det, siden skriver, felt for felt med serverens - begge priser, i samme rækkefølge.
+
+## Månedens topscorer
+
+Den anden månedspris, kåret i samme kørsel som Månedens spiller (`maanedensKaaring`, den 5.
+kl. 05.00, første gang for november 2026) og med appens egen kode (`maanedTopscorerStat`,
+`maanedensTopscorerRangering` i `index.html`, skåret ud af `byg.mjs`).
+
+- **Flest point i måneden** i årgangen, drenge og piger sammen. Alle point tæller, som
+  "Denne måned" talte dem: medaljepoint i den måned, træneren godkendte dem (`reviewedAt`),
+  stigens trin efter datoen i loggen og fodteknikkens dage med kombi og streak-milepæle.
+  Måneden regnes som vinduet fra månedens start minus vinduet fra næste måneds start, med
+  appens egne vinduesfunktioner. En dag med en godkendt joker giver 0.
+- **Lige point** afgøres af, i rækkefølge: flest øvelser (fodteknik-gennemførelser på dage
+  i måneden uden godkendt joker + trin på stigen - hovedstige og dårligt ben - registreret i
+  måneden og stadig en del af fremdriften, hvert trin én gang; tricks tæller ikke), flest
+  svære (Grundtræning og version 1's jongleringstræning tæller som svær), flest mellem,
+  flest lette, flest starter. Stadig lige: prisen deles.
+- **Én pris pr. barn:** Månedens spiller for samme måned og årgang kan ikke også være
+  topscorer; prisen går til den bedste af resten. Findes Månedens spiller for måneden ikke
+  endnu, venter topscoreren. Har ingen andre point, gemmes en post uden vinder. Man må godt
+  være topscorer flere måneder i træk.
+- `maanedensTopscorer/{maaned}_{aargang}`: `{maaned, aargang, vindere: [{id, navn, point,
+  oevelser, svaer, mellem, let, starter}], beregnet}`. Oprettes én gang med `create()`,
+  lige efter Månedens spiller for samme måned og årgang; findes den, stopper serveren
+  årgangen (begge priser), som for Månedens spiller. Appens `kaarMaanedensSpiller` er også
+  her reserven og skriver i samme rækkefølge.
+- Serveren henter først alle børns indsendelser, stige og stigelog (og fodteknik), når der
+  er noget at kåre.
+- **Regler:** som `maanedensSpiller` - alle aktive logins læser; admin eller en træner, der
+  ser hele årgangen, opretter én gang, når måneden er afgjort; admin må kun fjerne vindere
+  (`vindere` kortere + `rettet`). Forskellen: en topscorer kan ikke slettes, heller ikke af
+  admin.
+- **Emblemerne:** Månedens spiller er nu en guldpokal (før en medalje), topscoreren en
+  sort-hvid bold i fart - tegnet i koden (`maanedensEmblem`, `topscorerEmblem`), og bolden
+  bevidst mindre end pokalen i hver størrelse.
+
+**Udrulning:** reglerne først (ellers kan appens reserve ikke oprette topscorer-poster og
+lytteren på samlingen afvises), så funktionerne (`udrul-funktioner.cjs`), så appen (v15.80).
 
 ## Point gemmes ikke
 
@@ -309,6 +348,7 @@ koden - "V-rul" hedder nu "V-rul yderside" (kode `v`), "V+L rul" hedder "L+V-rul
 | `clubRanking` | Gammelt spejl af medaljepoint. Skrives stadig af trænere, læses ikke længere af appens rangliste | Trænere i årgangen og admin |
 | `clubConfig` | Hvilke årgange kører Talentmærket (`modules`); adresserne på instruktionsvideoerne (`guideVideos`) | Hele klubben |
 | `maanedensSpiller` | Månedens spiller pr. måned og årgang: vinder(e) med navn og de tal, der afgjorde det. Oprettes én gang, ændres aldrig | Hele klubben |
+| `maanedensTopscorer` | Månedens topscorer pr. måned og årgang: vinder(e) med navn, point, antal øvelser og antal svære, mellem, lette og starter. Oprettes én gang; kun admin kan fjerne en vinder (sletning af et barn); kan ikke slettes | Hele klubben |
 | `deletionRequests` | Anmodninger om sletning | Admin og familien selv |
 | `stigeOmlaegning` | `koersel`: dato og antal for omlægningen af stigen 2026-11-20 - ingen data om børn | Ingen (kun Admin SDK) |
 

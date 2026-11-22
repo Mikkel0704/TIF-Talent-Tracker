@@ -6,8 +6,9 @@
 // aldrig udloese sig selv. Og ingen planlagt koersel af ranglisten: en linje, hvis
 // uge.fra/maaned.fra ikke er den aktuelle uge/maaned, laeses som 0 point i perioden.
 //
-// Den ene planlagte funktion er maanedensKaaring: Maanedens spiller afgoeres af serveren
-// den 5. kl. 05 dansk tid i stedet for at vente paa, at en admin aabner appen.
+// Den ene planlagte funktion er maanedensKaaring: Maanedens spiller og Maanedens topscorer
+// afgoeres af serveren den 5. kl. 05 dansk tid i stedet for at vente paa, at en admin
+// aabner appen.
 //
 // Tre kaldbare funktioner. opretLogin og sletLogin: logins oprettes og slettes af serveren,
 // saa Firebase Authentications aabne selvoprettelse kan lukkes (se logins.js). sletSpiller:
@@ -45,13 +46,14 @@ export const ranglisteFodteknik = paaBarn("footwork");
 export const ranglisteIndsendelse = onDocumentWritten("submissions/{id}", event =>
   haandter(hentDb(), [id(event.data?.before, "playerId"), id(event.data?.after, "playerId")], logger));
 
-// Maanedens spiller. Hver dag kl. 05:00 dansk tid - med vilje hver dag: koerslen goer intet,
+// Maanedens spiller og Maanedens topscorer. Hver dag kl. 05:00 dansk tid - med vilje hver dag: koerslen goer intet,
 // der allerede er gjort (create() overskriver aldrig), saa slaar koerslen den 5. fejl, tager
 // naeste morgen den. Paa alle andre dage finder den intet at goere og skriver intet.
 // Ingen genforsoeg ud over standarden.
 export const maanedensKaaring = onSchedule({ schedule: "0 5 * * *", timeZone: "Europe/Copenhagen" }, async () => {
   const svar = await kaarMaanedensSpiller(hentDb(), new Date(), logger);
-  if(svar.fejlet.length) throw new Error("maanedensSpiller: " + svar.fejlet.length + " kaaring(er) blev ikke gemt: " + svar.fejlet.join(", "));
+  const fejlet = [...svar.fejlet.map(id => "maanedensSpiller/" + id), ...svar.topscorer.fejlet.map(id => "maanedensTopscorer/" + id)];
+  if(fejlet.length) throw new Error("maanedensKaaring: " + fejlet.length + " kaaring(er) blev ikke gemt: " + fejlet.join(", "));
 });
 
 // Logins. Kaldes fra appen med httpsCallable (region europe-west1). Hvem der maa, afgoeres

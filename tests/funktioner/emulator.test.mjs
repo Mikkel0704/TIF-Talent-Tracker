@@ -10,7 +10,7 @@ import { createRequire } from "node:module";
 import { beregnLinje, linjerEns, klubTop, POINTREGLER } from "../../functions/rangliste.js";
 import * as funktioner from "../../functions/index.js";
 import { kaarMaanedensSpiller } from "../../functions/server.js";
-import { kaaringerAtOprette } from "../../functions/kaaring.js";
+import { alleKaaringerAtOprette } from "../../functions/kaaring.js";
 const { genberegn } = createRequire(import.meta.url)("../vaerktoej/genberegn-rangliste-logik.cjs");
 
 const PROJEKT = process.env.GCLOUD_PROJECT;
@@ -162,9 +162,17 @@ for(const [id, [spiller, fodteknik]] of Object.entries(boern)){
   await db.collection("players").doc(id).set({ ...spiller, points: 0 });
   if(fodteknik) await db.collection("footwork").doc(id).set(fodteknik);
 }
+// Til topscoreren: en medalje til Bo (2018) godkendt i november og et trin paa stigen i
+// december til Oscar - med rigtige Firestore-tidsstempler.
+await db.collection("submissions").doc("ks1").set({ playerId: "k4", year: "2018", status: "approved", reviewedAt: Timestamp.fromDate(new Date("2026-11-20T10:00:00+01:00")), pointsAwarded: 35 });
+await db.collection("juggleLadder").doc("k1").set({ year: "2017", mainStep: 1 });
+await db.collection("juggleLog").doc("k1").set({ year: "2017", entries: [{ t: "main", v: 0, at: "2026-12-20T10:00:00+01:00" }] });
 const KNU = new Date("2027-01-07T05:00:00+01:00");
 const laesAlle = async navn => (await db.collection(navn).get()).docs.map(d => ({ id: d.id, ...d.data() }));
-const forventet_ = kaaringerAtOprette({ spillere: await laesAlle("players"), fodteknik: await laesAlle("footwork"), kaaringer: await laesAlle("maanedensSpiller") }, KNU);
+const alleData = async () => ({ spillere: await laesAlle("players"), fodteknik: await laesAlle("footwork"), indsendelser: await laesAlle("submissions"),
+  stiger: await laesAlle("juggleLadder"), stigelogge: await laesAlle("juggleLog"), kaaringer: await laesAlle("maanedensSpiller"), topscorere: await laesAlle("maanedensTopscorer") });
+const forventetAlle = alleKaaringerAtOprette(await alleData(), KNU);
+const forventet_ = forventetAlle.filter(k => k.samling === "maanedensSpiller");
 const logbog = [];
 const logger = { info: (...a) => logbog.push(a), error: (...a) => logbog.push(a) };
 let ks = await kaarMaanedensSpiller(fdb, KNU, logger);
@@ -179,10 +187,23 @@ t("Ida vinder november, Oscar december (Ida sprunget over); Carls jokerdag taell
   poster["2026-11_2017"]?.data.vindere.map(v => v.id).join() === "k2" && poster["2026-12_2017"]?.data.vindere.map(v => v.id).join() === "k1"
   && poster["2026-11_2016"]?.data.vindere[0]?.dage === 1 && poster["2026-11_2018"]?.data.vindere.length === 0);
 t("loggen naevner ingen navne", !/Kaaring"|Oscar|Ida|Carl|Bo /.test(JSON.stringify(logbog)), logbog.slice(-2));
+const topPoster = Object.fromEntries((await db.collection("maanedensTopscorer").get()).docs.map(d => [d.id, { data: d.data(), tid: d.updateTime.toMillis() }]));
+t("Maanedens topscorer: samme koersel opretter november og december for hver aargang",
+  JSON.stringify(ks.topscorer.oprettet) === JSON.stringify(ks.oprettet) && !ks.topscorer.fejlet.length && Object.keys(topPoster).length === 6, ks.topscorer);
+t("topscorer-posterne i databasen er dem, beregningen giver (felt for felt, undtagen beregnet), med servertidsstempel",
+  forventetAlle.filter(k => k.samling === "maanedensTopscorer").every(k => { const { beregnet, ...rest } = topPoster[k.id]?.data || {}; return JSON.stringify(rest) === JSON.stringify(k.post) && beregnet instanceof Timestamp; }),
+  Object.fromEntries(Object.entries(topPoster).map(([id, p]) => [id, p.data.vindere])));
+t("november 2017: Ida er Maanedens spiller, Oscar topscorer; december: Oscar er Maanedens spiller, Ida topscorer",
+  topPoster["2026-11_2017"]?.data.vindere.map(v => v.id).join() === "k1" && topPoster["2026-12_2017"]?.data.vindere.map(v => v.id).join() === "k2");
+t("2018: Bo traener ikke fodteknik og er ikke Maanedens spiller, men hans medalje (35, et rigtigt tidsstempel) goer ham til topscorer i november",
+  JSON.stringify(topPoster["2026-11_2018"]?.data.vindere) === JSON.stringify([{ id: "k4", navn: "Bo Kaaring", point: 35, oevelser: 0, svaer: 0, mellem: 0, let: 0, starter: 0 }])
+  && JSON.stringify(topPoster["2026-12_2018"]?.data.vindere) === "[]", [topPoster["2026-11_2018"]?.data.vindere, topPoster["2026-12_2018"]?.data.vindere]);
 await sov(1000);
 ks = await kaarMaanedensSpiller(fdb, new Date("2027-01-08T05:00:00+01:00"), logger);
 const efter = Object.fromEntries((await db.collection("maanedensSpiller").get()).docs.map(d => [d.id, d.updateTime.toMillis()]));
-t("anden koersel skriver intet", ks.oprettet.length === 0 && Object.entries(poster).every(([id, p]) => efter[id] === p.tid), ks);
+const topEfter = Object.fromEntries((await db.collection("maanedensTopscorer").get()).docs.map(d => [d.id, d.updateTime.toMillis()]));
+t("anden koersel skriver intet - hverken Maanedens spiller eller topscorer", ks.oprettet.length === 0 && ks.topscorer.oprettet.length === 0
+  && Object.entries(poster).every(([id, p]) => efter[id] === p.tid) && Object.entries(topPoster).every(([id, p]) => topEfter[id] === p.tid), ks);
 
 // En admins browser naar det foerst: posten skrives, efter at serveren har regnet, men foer
 // den opretter. create() maa ikke overskrive den - heller ikke naar indholdet er et andet.
@@ -206,14 +227,43 @@ ks = await kaarMaanedensSpiller(fdb, KNU, logger);
 const dec15 = (await db.collection("maanedensSpiller").doc("2026-12_2015").get()).data();
 t("naeste koersel bygger videre paa den gemte november: december 2015 uden vindere (k5 vandt november)",
   JSON.stringify(ks.oprettet) === '["2026-12_2015"]' && JSON.stringify(dec15?.vindere) === "[]", { ks, dec15 });
+t("og topscorerne for 2015 kommer nu: november paa den GEMTE Maanedens spiller (k5) -> ingen andre med point, ingen topscorer",
+  JSON.stringify(ks.topscorer.oprettet) === '["2026-11_2015","2026-12_2015"]'
+  && JSON.stringify((await db.collection("maanedensTopscorer").doc("2026-11_2015").get()).data()?.vindere) === "[]", ks.topscorer);
+
+// Det samme kaploeb paa topscoreren: browseren naar at gemme den, efter at serveren har
+// regnet, men foer den opretter. create() overskriver den ikke, og aargangen stopper.
+await db.collection("players").doc("k6").set({ name: "Tidlig Kaaring", year: "2014", points: 0 });
+await db.collection("players").doc("k7").set({ name: "Anden Kaaring", year: "2014", points: 0 });
+await db.collection("footwork").doc("k6").set({ year: "2014", days: dage("2026-11", 1, 5) });
+await db.collection("footwork").doc("k7").set({ year: "2014", days: dage("2026-11", 1, 2) });
+const browserensTop = { maaned: "2026-11", aargang: "2014", vindere: [{ id: "k7", navn: "Anden Kaaring", point: 999, oevelser: 1, svaer: 0, mellem: 0, let: 0, starter: 0 }], beregnet: FieldValue.serverTimestamp() };
+const kaploebTop = { collection: navn => {
+  const c = fdb.collection(navn);
+  if(navn !== "maanedensTopscorer") return c;
+  return { get: () => c.get(), doc: id => ({ create: async d => {
+    if(id === "2026-11_2014") await db.collection(navn).doc(id).set(browserensTop);
+    return c.doc(id).create(d);
+  } }) };
+} };
+ks = await kaarMaanedensSpiller(kaploebTop, KNU, logger);
+const t14 = (await db.collection("maanedensTopscorer").doc("2026-11_2014").get()).data();
+t("findes topscoreren allerede ved create(), overskrives den ikke (999 point staar der stadig)", t14?.vindere?.[0]?.point === 999, t14);
+t("Maanedens spiller for november 2014 blev skrevet lige foer, og aargangen stopper derefter: december 2014 venter",
+  JSON.stringify(ks.oprettet) === '["2026-11_2014"]' && JSON.stringify(ks.topscorer.findesAllerede) === '["2026-11_2014"]' && !ks.topscorer.fejlet.length
+  && !(await db.collection("maanedensSpiller").doc("2026-12_2014").get()).exists, ks);
+ks = await kaarMaanedensSpiller(fdb, KNU, logger);
+t("naeste koersel goer december 2014 faerdig - begge priser", JSON.stringify(ks.oprettet) === '["2026-12_2014"]' && JSON.stringify(ks.topscorer.oprettet) === '["2026-12_2014"]', ks);
 
 // Selve den planlagte funktion, kaldt direkte (som Cloud Scheduler ville). I dag (testens
 // rigtige ur) er alt afgjort allerede kaaret, saa den skal intet skrive - og ikke fejle.
-const foerKald = Object.fromEntries((await db.collection("maanedensSpiller").get()).docs.map(d => [d.id, d.updateTime.toMillis()]));
+const tider = async () => Object.fromEntries([...(await db.collection("maanedensSpiller").get()).docs.map(d => ["S " + d.id, d.updateTime.toMillis()]),
+  ...(await db.collection("maanedensTopscorer").get()).docs.map(d => ["T " + d.id, d.updateTime.toMillis()])]);
+const foerKald = await tider();
 let kastet = null;
 try{ await funktioner.maanedensKaaring.run({ scheduleTime: new Date().toISOString() }); }catch(e){ kastet = String(e?.message || e); }
-const efterKald = Object.fromEntries((await db.collection("maanedensSpiller").get()).docs.map(d => [d.id, d.updateTime.toMillis()]));
-const afgjorte = kaaringerAtOprette({ spillere: await laesAlle("players"), fodteknik: await laesAlle("footwork"), kaaringer: [] }, new Date()).length;
+const efterKald = await tider();
+const afgjorte = alleKaaringerAtOprette({ ...(await alleData()), kaaringer: [], topscorere: [] }, new Date()).length;
 t("den planlagte funktions handler koerer mod emulatoren uden fejl og skriver kun det, der mangler",
   kastet === null && Object.entries(foerKald).every(([id, tid]) => efterKald[id] === tid)
   && Object.keys(efterKald).length === Math.max(Object.keys(foerKald).length, afgjorte) , { kastet, foer: Object.keys(foerKald).length, efter: Object.keys(efterKald).length, afgjorte });

@@ -1,10 +1,11 @@
 // Det, funktionerne goer mod databasen: regn ét barns linje ud i en transaktion og hold
-// klubbens top 10 i takt (triggerne), og kaar Maanedens spiller (den planlagte funktion).
+// klubbens top 10 i takt (triggerne), og kaar Maanedens spiller og Maanedens topscorer
+// (den planlagte funktion).
 // Skrives kun, naar noget har aendret sig.
 import "./tid.js";
 import { FieldValue } from "firebase-admin/firestore";
 import { beregnLinje, linjerEns, klubTop, topEns, POINTREGLER, CLUB_TOP_N } from "./rangliste.js";
-import { kaaringerAtOprette } from "./kaaring.js";
+import { alleKaaringerAtOprette } from "./kaaring.js";
 
 const medId = s => (s && s.exists ? { id: s.id, ...s.data() } : null);
 
@@ -70,45 +71,51 @@ export async function haandter(db, ider, logger){
   }
 }
 
-// Maanedens spiller: opret de kaaringer, der mangler. Praecis som kaarMaanedensSpiller() i
-// appen (se kaaring.js) - og appen goer det stadig, hvis den kommer foerst.
+// Maanedens spiller og Maanedens topscorer: opret de kaaringer, der mangler. Praecis som
+// kaarMaanedensSpiller() i appen (se kaaring.js) - og appen goer det stadig, hvis den kommer
+// foerst. For hver aargang og maaned skrives Maanedens spiller og lige efter topscoreren.
 // Hver kaaring skrives med create(), saa en eksisterende post ALDRIG overskrives. Findes
-// den allerede (en admins browser naaede det foerst), stopper aargangen, ligesom i appen,
-// og naeste koersel fortsaetter med den gemte post som forrige maaned.
+// den allerede (en admins browser naaede det foerst), stopper aargangen - for begge slags,
+// ligesom i appen - og naeste koersel fortsaetter med den gemte post.
+// Indsendelser, stige og stigelog (til topscoreren) og fodteknik hentes kun, naar noget mangler.
 // Logger kun id'er og antal - aldrig navne.
-// Svar: {oprettet: [id'er], findesAllerede: [id'er], fejlet: [id'er]}
+// Svar: {oprettet, findesAllerede, fejlet: [id'er paa Maanedens spiller],
+//        topscorer: {oprettet, findesAllerede, fejlet: [id'er paa Maanedens topscorer]}}
 export async function kaarMaanedensSpiller(db, nu = new Date(), logger){
-  const svar = { oprettet: [], findesAllerede: [], fejlet: [] };
+  const svar = { oprettet: [], findesAllerede: [], fejlet: [], topscorer: { oprettet: [], findesAllerede: [], fejlet: [] } };
   const alle = async navn => (await db.collection(navn).get()).docs.map(d => ({ id: d.id, ...d.data() }));
-  const [spillere, kaaringer] = await Promise.all([alle("players"), alle("maanedensSpiller")]);
+  const [spillere, kaaringer, topscorere] = await Promise.all([alle("players"), alle("maanedensSpiller"), alle("maanedensTopscorer")]);
   // Hvilke poster, der mangler, afhaenger kun af spillernes aargange og de gemte kaaringer -
-  // ikke af fodteknikken. Saa de fleste dage hentes fodteknikken slet ikke.
-  if(!kaaringerAtOprette({ spillere, kaaringer }, nu).length){
-    logger?.info?.("maanedensSpiller", { spillere: spillere.length, kaaringer: kaaringer.length, oprettet: 0 });
+  // ikke af registreringerne. Saa de fleste dage hentes de slet ikke.
+  if(!alleKaaringerAtOprette({ spillere, kaaringer, topscorere }, nu).length){
+    logger?.info?.("maanedensSpiller", { spillere: spillere.length, kaaringer: kaaringer.length, topscorere: topscorere.length, oprettet: 0 });
     return svar;
   }
-  const fodteknik = await alle("footwork");
+  const [fodteknik, indsendelser, stiger, stigelogge] = await Promise.all([alle("footwork"), alle("submissions"), alle("juggleLadder"), alle("juggleLog")]);
   // Ingen await herfra og til listen er regnet ud (se kaaring.js).
-  const nye = kaaringerAtOprette({ spillere, fodteknik, kaaringer }, nu);
+  const nye = alleKaaringerAtOprette({ spillere, fodteknik, indsendelser, stiger, stigelogge, kaaringer, topscorere }, nu);
   const stoppet = new Set();
   for(const k of nye){
     if(stoppet.has(k.aargang)) continue;
+    const ud = k.samling === "maanedensTopscorer" ? svar.topscorer : svar;
     try{
-      await db.collection("maanedensSpiller").doc(k.id).create({ ...k.post, beregnet: FieldValue.serverTimestamp() });
-      svar.oprettet.push(k.id);
-      logger?.info?.("maanedensSpiller oprettet", { id: k.id, vindere: k.post.vindere.length });
+      await db.collection(k.samling).doc(k.id).create({ ...k.post, beregnet: FieldValue.serverTimestamp() });
+      ud.oprettet.push(k.id);
+      logger?.info?.(k.samling + " oprettet", { id: k.id, vindere: k.post.vindere.length });
     }catch(e){
       stoppet.add(k.aargang);
       if(e?.code === 6 || e?.code === "already-exists"){
-        svar.findesAllerede.push(k.id);
-        logger?.info?.("maanedensSpiller fandtes allerede", { id: k.id });
+        ud.findesAllerede.push(k.id);
+        logger?.info?.(k.samling + " fandtes allerede", { id: k.id });
       }else{
-        svar.fejlet.push(k.id);
-        logger?.error?.("maanedensSpiller blev ikke gemt", { id: k.id, kode: e?.code ?? null, fejl: String(e?.message || e) });
+        ud.fejlet.push(k.id);
+        logger?.error?.(k.samling + " blev ikke gemt", { id: k.id, kode: e?.code ?? null, fejl: String(e?.message || e) });
       }
     }
   }
-  logger?.info?.("maanedensSpiller", { spillere: spillere.length, fodteknik: fodteknik.length, kaaringer: kaaringer.length,
-    oprettet: svar.oprettet.length, findesAllerede: svar.findesAllerede.length, fejlet: svar.fejlet.length });
+  logger?.info?.("maanedensSpiller", { spillere: spillere.length, fodteknik: fodteknik.length, indsendelser: indsendelser.length,
+    stiger: stiger.length, stigelogge: stigelogge.length, kaaringer: kaaringer.length, topscorere: topscorere.length,
+    oprettet: svar.oprettet.length, findesAllerede: svar.findesAllerede.length, fejlet: svar.fejlet.length,
+    topscorerOprettet: svar.topscorer.oprettet.length, topscorerFindesAllerede: svar.topscorer.findesAllerede.length, topscorerFejlet: svar.topscorer.fejlet.length });
   return svar;
 }
