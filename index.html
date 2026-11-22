@@ -723,7 +723,7 @@ const JUGGLE_WEAK = [2,3,5, 7,10,15, 20,30,40, 50,75,100];
 // Hovedstigen har fire faser med fire trin i hver (JUGGLE_PHASES): Find kontakten (trin 1-4)
 // 5 point pr. trin, Rytme (5-8) 10, Kontrol (9-12) 15 og Udholdenhed (13-16) 20 = 200.
 // Daarligt ben gaar samme trappe op med tre trin i hver fase (JUGGLE_WEAK_PHASES): trin 1-3
-// 5, trin 4-6 10, trin 7-9 15 og trin 10-12 20 = 150. Med tricks (75) er hele stigen 425.
+// 5, trin 4-6 10, trin 7-9 15 og trin 10-12 20 = 150. Med tricks (240) er hele stigen 590.
 //
 // Hvorfor saa lidt: trinnene registreres paa tillid, uden video og uden godkendelse. Saa
 // skal et trin vaere mindre vaerd end en medalje i Talentmaerket (25-80 point, som en
@@ -747,13 +747,42 @@ function juggleWeakPoints(i){ return JUGGLE_WEAK_POINT[i] || 0; }
 // Opløft er en PORT, ikke bare et trick: fra trin 4 skal bolden vippes op fra
 // jorden, saa den faerdighed skal sidde foerst. Samme startregel som medaljerne.
 const JUGGLE_GATE_AFTER = 3;
+// Tricks i tre svaerhedsgrader (JUGGLE_TRICK_NIVEAUER): Let 10 point, Mellem 15 og Svaer 20.
+// 5 + 6 + 5 tricks = 50 + 90 + 100 = 240. Pointene staar paa hvert trick, fordi det er dem,
+// ladderPoints og serveren laeser (juggleTrick(id).point) - testene tjekker, at de passer til
+// niveauet.
+//
+// Der gemmes kun id'er (juggleLadder.tricks og v/trick i juggleLog). De seks foerste id'er
+// betyder det samme som foer - Jorden rundt er bare flyttet fra 15 til 20 point, og det
+// gaelder ogsaa de boern, der allerede har den. Skift ALDRIG betydningen af et id; laeg et
+// nyt til. Firestore-reglerne loefter hoejst 16 tricks (se juggleLadder i firestore.rules).
+//
+// "kraever": serierne tages i raekkefoelge - Inderside 5 -> 10 -> 20, Yderside 5 -> 10 -> 20
+// og Haelen bagom 3 -> 5. Et trick med "kraever" kan foerst registreres, naar det forrige i
+// serien er klaret, og fortrydes eller fjernes et trick, ryger de senere i serien med
+// (juggleTrickEfterfoelgere) - samme tanke som Oploeft og hovedstigen.
 const JUGGLE_TRICKS = [
-  {id:"oploft",      navn:"Opløft",            point:10, tekst:"Vip bolden op fra jorden med foden, og tag mindst 1 berøring mere."},
-  {id:"vrist",       navn:"Stop på vristen",   point:10, tekst:"Stop bolden på vristen, og hold den i 2 sekunder."},
-  {id:"skiftefod",   navn:"Skiftefod",         point:10, tekst:"10 i træk, skiftevis højre og venstre fod."},
-  {id:"laarfod",     navn:"Lår-fod-lår-fod",   point:15, tekst:"10 i træk."},
-  {id:"hoved",       navn:"3 hovedstød",       point:15, tekst:"3 hovedstød i træk."},
-  {id:"jordenrundt", navn:"Jorden rundt",      point:15, tekst:"Før foden hele vejen rundt om bolden i luften, og jongler videre."}
+  {id:"oploft",      niveau:"let",    point:10, navn:"Opløft",                tekst:"Vip bolden op fra jorden med foden, og tag mindst 1 berøring mere."},
+  {id:"vrist",       niveau:"let",    point:10, navn:"Stop på vristen",       tekst:"Stop bolden på vristen, og hold den i 2 sekunder."},
+  {id:"skiftefod",   niveau:"let",    point:10, navn:"Skiftefod",             tekst:"10 i træk, skiftevis højre og venstre fod."},
+  {id:"inderside5",  niveau:"let",    point:10, navn:"Inderside 5",           tekst:"5 i træk med indersiden af foden."},
+  {id:"yderside5",   niveau:"let",    point:10, navn:"Yderside 5",            tekst:"5 i træk med ydersiden af foden."},
+  {id:"laarfod",     niveau:"mellem", point:15, navn:"Lår-fod-lår-fod",       tekst:"10 i træk."},
+  {id:"hoved",       niveau:"mellem", point:15, navn:"3 hovedstød",           tekst:"3 hovedstød i træk."},
+  {id:"gribfod",     niveau:"mellem", point:15, navn:"Grib bolden på foden",  tekst:"Stop bolden på vristen, hold den i 5 sekunder, og jonglér videre."},
+  {id:"inderside10", niveau:"mellem", point:15, navn:"Inderside 10",          tekst:"10 i træk med indersiden af foden.", kraever:"inderside5"},
+  {id:"yderside10",  niveau:"mellem", point:15, navn:"Yderside 10",           tekst:"10 i træk med ydersiden af foden.", kraever:"yderside5"},
+  {id:"haelbagom3",  niveau:"mellem", point:15, navn:"Hælen bagom 3",         tekst:"3 gange med hælen bag om støttebenet i én jongleringsserie - de behøver ikke komme i træk."},
+  {id:"jordenrundt", niveau:"svaer",  point:20, navn:"Jorden rundt",          tekst:"Før foden hele vejen rundt om bolden i luften, og jonglér videre."},
+  {id:"hoved10",     niveau:"svaer",  point:20, navn:"10 hovedstød",          tekst:"10 hovedstød i træk."},
+  {id:"inderside20", niveau:"svaer",  point:20, navn:"Inderside 20",          tekst:"20 i træk med indersiden af foden.", kraever:"inderside10"},
+  {id:"yderside20",  niveau:"svaer",  point:20, navn:"Yderside 20",           tekst:"20 i træk med ydersiden af foden.", kraever:"yderside10"},
+  {id:"haelbagom5",  niveau:"svaer",  point:20, navn:"Hælen bagom 5",         tekst:"5 gange med hælen bag om støttebenet i én jongleringsserie - de behøver ikke komme i træk.", kraever:"haelbagom3"}
+];
+const JUGGLE_TRICK_NIVEAUER = [
+  {id:"let",    navn:"Let",    point:10},
+  {id:"mellem", navn:"Mellem", point:15},
+  {id:"svaer",  navn:"Svær",   point:20}
 ];
 const JUGGLE_PHASES = [
   {til:4,  navn:"Find kontakten", tekst:"Lås anklen, tåen lidt op, ram bolden midt under. Bolden højst i knæhøjde."},
@@ -771,9 +800,25 @@ const JUGGLE_RULES = [
   "Et trin er klaret, når du har gjort det én gang.",
   "Trinnene tages i rækkefølge, og hvert trin og trick giver kun point én gang.",
   "Point: 5 point pr. trin i Find kontakten, 10 i Rytme, 15 i Kontrol og 20 i Udholdenhed. Dårligt ben følger samme trappe: 5, 10, 15 og 20.",
-  "Hver fase giver flere point pr. trin end den forrige - så det kan betale sig at blive ved."
+  "Hver fase giver flere point pr. trin end den forrige - så det kan betale sig at blive ved.",
+  "Tricks: Let giver 10 point, Mellem 15 og Svær 20. Inderside, Yderside og Hælen bagom er serier, der tages i rækkefølge - fx Inderside 5 før Inderside 10."
 ];
 function juggleTrick(id){ return JUGGLE_TRICKS.find(t=>t.id===id) || null; }
+// Det trick, der skal klares foer dette (forrige trin i serien), eller null.
+function juggleTrickForrige(id){ return juggleTrick(juggleTrick(id)?.kraever) || null; }
+// De senere tricks i samme serie, i raekkefoelge: Inderside 5 -> [Inderside 10, Inderside 20].
+function juggleTrickEfterfoelgere(id){
+  const ud = [];
+  for(let t = JUGGLE_TRICKS.find(x=>x.kraever===id); t && !ud.includes(t); t = JUGGLE_TRICKS.find(x=>x.kraever===t.id)) ud.push(t);
+  return ud;
+}
+// Det trick, der mangler, foer spilleren maa tage dette - eller null, hvis det er aabent.
+function juggleTrickSpaerret(pid, id){
+  const forrige = juggleTrickForrige(id);
+  return forrige && !juggleTricks(pid).includes(forrige.id) ? forrige : null;
+}
+// "A", "A og B", "A, B og C".
+function juggleOgListe(xs){ return xs.length < 2 ? (xs[0] || "") : xs.slice(0, -1).join(", ") + " og " + xs[xs.length-1]; }
 // Naeste trin, eller null naar stigen er faerdig. Raekkefoelgen er indbygget i, at vi
 // kun gemmer HVOR LANGT man er - ikke hvilke trin der er krydset af. Saa kan man ikke
 // springe et over, og et trin kan ikke give point to gange.
@@ -826,6 +871,8 @@ async function registerJuggle(kind, value){
     const t = juggleTrick(value);
     if(!t) return;
     if(juggleTricks(pid).includes(t.id)) return besked("Det trick er allerede registreret.");
+    const mangler = juggleTrickSpaerret(pid, t.id);
+    if(mangler) return besked(`"${t.navn}" er låst.\n\nTag ${mangler.navn} først - serien tages i rækkefølge.`);
     progress = {tricks: [...juggleTricks(pid), t.id]};
     hvad = t.navn;
   }
@@ -877,17 +924,25 @@ async function undoJuggleTrick(trickId){
   // maa foelge med tilbage - ellers stod der trin, der kraever en faerdighed, spilleren
   // lige har sagt, den ikke har. Samme opraydning som i traenerens rettelse.
   const lukkerPorten = trickId === "oploft" && juggleMainStep(pid) > JUGGLE_GATE_AFTER;
-  let tabt = t.point;
+  // Det samme for serierne: Inderside 10 bygger paa Inderside 5. Fortryder man 5'eren,
+  // ryger de senere tricks i serien med - ellers stod der et trick, hvis forudsaetning
+  // spilleren lige har sagt, den ikke har.
+  const ogsaa = juggleTrickEfterfoelgere(trickId).filter(x=>juggleTricks(pid).includes(x.id));
+  let tabt = t.point + ogsaa.reduce((n, x)=>n + x.point, 0);
   if(lukkerPorten) for(let i = JUGGLE_GATE_AFTER; i < juggleMainStep(pid); i++) tabt += juggleMainPoints(i);
   if(!await spoerg(`Fortryd "${t.navn}"?\n\n`
     + (lukkerPorten
         ? `Opløft åbner trin 4 og opefter. Fortryder du den, ruller hovedstigen tilbage til trin ${JUGGLE_GATE_AFTER}, og du mister ${tabt} point i alt.`
-        : `Du mister ${t.point} point.`))) return;
-  const progress = {tricks: juggleTricks(pid).filter(x=>x!==trickId)};
+        : ogsaa.length
+          ? `${juggleOgListe(ogsaa.map(x=>x.navn))} bygger på ${t.navn} og bliver også fortrudt. Du mister ${tabt} point i alt.`
+          : `Du mister ${t.point} point.`))) return;
+  const fjern = [trickId, ...ogsaa.map(x=>x.id)];
+  const progress = {tricks: juggleTricks(pid).filter(x=>!fjern.includes(x))};
   if(lukkerPorten) progress.mainStep = JUGGLE_GATE_AFTER;
   try{
     await writeJuggle(pid, p, progress,
-      {t: "undo", stige: "trick", trick: trickId, at: new Date().toISOString(), by: currentUser?.uid || ""});
+      Object.assign({t: "undo", stige: "trick", trick: trickId, at: new Date().toISOString(), by: currentUser?.uid || ""},
+        ogsaa.length ? {ogsaa: ogsaa.map(x=>x.id)} : {}));
   }catch(e){ console.error(e); besked("Kunne ikke fortryde: " + (e.message || "ukendt fejl")); }
 }
 
