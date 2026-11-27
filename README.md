@@ -360,7 +360,8 @@ har.
   måned", serverens linjer (`rangliste/{id}`: `total`, `uge`, `maaned`), klubbens top 10,
   rangtrinnene (Debutant, Klubspiller, ... - grænserne er de samme) og Månedens topscorer.
   Månedens spiller talte i forvejen kun fodteknik og er uændret. Rangtrinnene nås nu kun
-  gennem fodteknik og stigen; hele stigen er 590 point (Talent).
+  gennem fodteknik og stigen; hele stigen er 570 point (Talent; 590 før pointreglerne
+  2026-11-28).
 - **Ét sted i koden:** `totalPoints(p)` = `ladderPoints` + `footworkPoints` og
   `rangPointIVindue(pid, since)` = `ladderPointsInWindow` + `footworkPointsInWindow` i
   `index.html`. Siden, serveren (`functions/rangliste.js`) og topscoreren
@@ -389,40 +390,74 @@ før.
 ## Jongleringsstigen: point og trin
 
 Stigens point står ét sted: `JUGGLE_MAIN_POINT` og `JUGGLE_WEAK_POINT` i `index.html`
-(`juggleMainPoints`/`juggleWeakPoints`) og på hvert trick i `JUGGLE_TRICKS`. Fra
-pointreglerne **2026-11-23**:
+(`juggleMainPoints`/`juggleWeakPoints`) og på hvert trick i `JUGGLE_TRICKS`. Trinnene er fra
+pointreglerne **2026-11-23**, tricksene fra **2026-11-28** (app v15.84):
 
 - **Hovedstigen**, 16 trin med fire i hver fase: Find kontakten (3, 5, 7, 10) 5 point pr.
   trin, Rytme (15, 20, 30, 40) 10, Kontrol (50, 75, 100, 125) 15 og Udholdenhed
   (150, 200, 250, 300) 20 - i alt 200.
 - **Dårligt ben**, 12 trin med tre i hver fase: (2, 3, 5) 5, (7, 10, 15) 10,
   (20, 30, 40) 15 og (50, 75, 100) 20 - i alt 150.
-- **Tricks**, 16 i tre grupper: **Let** 10 point (Opløft, Stop på vristen, Skiftefod,
-  Inderside 5, Yderside 5) = 50, **Mellem** 15 (Lår-fod-lår-fod, 3 hovedstød, Grib bolden
-  på foden, Inderside 10, Yderside 10, Hælen bagom 3) = 90 og **Svær** 20 (Jorden rundt,
-  10 hovedstød, Inderside 20, Yderside 20, Hælen bagom 5) = 100 - i alt 240. Hele stigen
-  giver 200 + 150 + 240 = **590**.
+- **Tricks**, 14 i tre grupper: **Let** 10 point (Opløft, Stop på vristen, Skiftefod) = 30,
+  **Mellem** 15 (Lår-fod-lår-fod, 3 hovedstød, Grib bolden på foden, Inderside 3,
+  Yderside 3, Hælen bagom 3) = 90 og **Svær** 20 (Jorden rundt, 10 hovedstød, Inderside 5,
+  Yderside 5, Hælen bagom 5) = 100 - i alt 220. Hele stigen giver 200 + 150 + 220 = **570**.
 
 Tricksene gemmes som id'er (`juggleLadder.tricks`). De seks oprindelige id'er (`oploft`,
 `vrist`, `skiftefod`, `laarfod`, `hoved`, `jordenrundt`) betyder det samme som før, så der
 skal ingen data lægges om. Kun Jorden rundt har fået nye point (15 → 20), og fordi point
-aldrig gemmes, gælder det også børn, der allerede har den.
+aldrig gemmes, gælder det også børn, der allerede har den. `inderside5` og `yderside5`
+betyder stadig "5 i træk" - de var Let fra 2026-11-23 og er Svær fra 2026-11-28.
 
-**Serierne tages i rækkefølge** (`kraever` på tricket): Inderside 5 → 10 → 20, Yderside
-5 → 10 → 20 og Hælen bagom 3 → 5. Et låst trick vises med grunden ("Tag Inderside 5
-først") og kan ikke registreres. Fortryder spilleren et trick, som et senere i serien
-bygger på, ryger de senere med - dialogen nævner dem og det samlede pointtab, som når
-Opløft ruller hovedstigen tilbage. Fjerner træneren et trick, sker det samme; giver
-træneren et trick, gives de forrige i serien, barnet mangler, med. 3 hovedstød og 10
-hovedstød er ikke en serie. Rækkefølgen håndhæves i appen; `firestore.rules` tjekker kun,
-at `tricks` er en liste med højst 16 elementer, ikke hvilke id'er den rummer - ukendte
-id'er tæller ikke (`juggleTricks`).
+**Serierne tages i rækkefølge** (`kraever` på tricket): Inderside 3 → 5, Yderside 3 → 5 og
+Hælen bagom 3 → 5. Et låst trick vises med grunden ("Tag Inderside 3 først") og kan ikke
+registreres. Fortryder spilleren et trick, som et senere i serien bygger på, ryger de senere
+med - dialogen nævner dem og det samlede pointtab, som når Opløft ruller hovedstigen
+tilbage. Fjerner træneren et trick, sker det samme; giver træneren et trick, gives de
+forrige i serien, barnet mangler, med. 3 hovedstød og 10 hovedstød er ikke en serie.
+Rækkefølgen håndhæves i appen; `firestore.rules` tjekker kun, at `tricks` er en liste med
+højst 16 elementer, ikke hvilke id'er den rummer - ukendte id'er tæller ikke (`juggleTricks`).
+
+**Udgåede id'er og hele serier (pointreglerne 2026-11-28) - ingen omlægning af data.**
+Fra 2026-11-22 til 2026-11-28 fandtes Inderside 10/20 og Yderside 10/20 (`inderside10`,
+`inderside20`, `yderside10`, `yderside20`), og børn kan have dem gemt på `juggleLadder.tricks`
+og i `juggleLog`. Intet skrives om; det klares, når der læses, ét sted (`juggleTricksAf`, som
+`juggleTricks` og dermed alt andet bruger - også serveren via `functions/byg.mjs`):
+
+- **Alias** (`JUGGLE_TRICK_ALIAS`): `inderside10` og `inderside20` tæller som `inderside5`,
+  `yderside10` og `yderside20` som `yderside5`. Dubletter tæller én gang.
+- **Hele serier:** har barnet et senere trick i en serie, har det også de forrige
+  (Inderside 5 ⇒ Inderside 3, Yderside 5 ⇒ Yderside 3, Hælen bagom 5 ⇒ 3). Et gemt
+  `inderside10` giver altså Inderside 3 + 5 = 35 point; et gemt `inderside5` alene (fra da
+  den var let) også 35.
+- **Uge og måned:** en log-linje med et udgået id tæller som sit alias, første gang
+  (`ladderFoersteGang`). Et trick, barnet kun har, fordi serien gøres hel, har ingen
+  log-linje og tæller derfor i alt, men ikke i nogen uge eller måned (og ikke i Månedens
+  topscorer) - vi ved ikke, hvornår det blev nået. Tricks er stadig aldrig "øvelser" hos
+  topscoreren (`ladderTrinIVindue`).
+- **Skrivninger** (registrering, fortryd, trænerens rettelse) gemmer listen fra
+  `juggleTricks` - kun nye id'er, højst 14. Et udgået id forsvinder derfor ved barnets
+  næste skrivning; fortryder barnet Inderside 5, forsvinder et gemt `inderside10` med, så
+  5'eren ikke kommer tilbage via aliaset. Fortryd og fjern tager de senere i serien med,
+  men lader de forrige stå (fortryd Inderside 5 → Inderside 3 bliver).
+- **Loftet på 16** i `firestore.rules` er uændret: en gammel fuld liste (16 id'er) kan stå,
+  og en ny skrivning har højst 14. (En gammel liste plus de to nye id'er ville være 18 -
+  derfor skriver appen aldrig den gamle liste videre.)
+- Trænerens log viser et udgået id som fx "Inderside 10 (tæller som Inderside 5)".
+  Instruktionsvideoer på pladserne `t_inderside10` osv. vises ikke længere (pladserne findes
+  ikke); filerne ligger, til en administrator sletter dem.
+
+**Udrulning af pointreglerne 2026-11-28 (app v15.84, ingen regelændring):** funktionerne
+(`node vaerktoej/udrul-funktioner.cjs`), så appen, og til sidst
+`node vaerktoej/genberegn-rangliste.cjs --udfoer`. Admin-kortet "Ranglisten på serveren"
+advarer, indtil serveren regner med pointreglerne 2026-11-28. Rul ud før den 5. december, så
+Månedens topscorer for november kåres med de nye trick-point.
 
 **Udrulning af pointreglerne 2026-11-23 (app v15.81):** `firestore.rules` (loftet på
 `tricks` er hævet fra 6 til 16 - ellers kan et barn ikke gemme sit 7. trick), så
 funktionerne (`node vaerktoej/udrul-funktioner.cjs`), så appen, og til sidst
 `node vaerktoej/genberegn-rangliste.cjs --udfoer`. Admin-kortet advarer, indtil serveren
-regner med de nyeste pointregler (nu 2026-11-25, se "Talentmærket og dueller giver ingen point").
+regner med de nyeste pointregler (nu 2026-11-28, se ovenfor).
 
 **Pointreglerne 2026-11-24 (også app v15.81):** totalerne er de samme; kun uge og måned (og
 dermed Månedens topscorer) er rettet, og kun når data er usædvanlige:

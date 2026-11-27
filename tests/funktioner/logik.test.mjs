@@ -92,21 +92,34 @@ t("ugen: trin 1 og 2 og oploeft én gang hver = 20", l.uge.point === 20, l.uge);
 t("maaneden: + daarligt ben trin 2 (5) = 25", l.maaned.point === 25, l.maaned);
 t("spillerens point (players.points) laegges IKKE til stigen", linje({ player: spiller({ points: 10 }), juggleLadderDoc: stige, juggleLogDoc: stigelog }).total === 35);
 
-console.log("\nDe 16 tricks (pointreglerne 2026-11-23)");
-const ALLE_TRICKS = ["oploft", "vrist", "skiftefod", "inderside5", "yderside5", "laarfod", "hoved", "gribfod", "inderside10", "yderside10",
+console.log("\nDe 14 tricks (pointreglerne 2026-11-28)");
+const ALLE_TRICKS = ["oploft", "vrist", "skiftefod", "laarfod", "hoved", "gribfod", "inderside3", "yderside3",
+  "haelbagom3", "jordenrundt", "hoved10", "inderside5", "yderside5", "haelbagom5"];
+// Den fulde liste fra pointreglerne 2026-11-23 - kan staa gemt hos et barn.
+const GAMLE_TRICKS = ["oploft", "vrist", "skiftefod", "inderside5", "yderside5", "laarfod", "hoved", "gribfod", "inderside10", "yderside10",
   "haelbagom3", "jordenrundt", "hoved10", "inderside20", "yderside20", "haelbagom5"];
-t("Jorden rundt giver 20 paa serveren (foer 15)", linje({ player: spiller(), juggleLadderDoc: { tricks: ["jordenrundt"] } }).total === 20);
-t("de seks gamle tricks = 80 (foer 75)", linje({ player: spiller(), juggleLadderDoc: { tricks: ALLE_TRICKS.filter(x => ["oploft", "vrist", "skiftefod", "laarfod", "hoved", "jordenrundt"].includes(x)) } }).total === 80);
-t("alle 16 tricks = 50 + 90 + 100 = 240", linje({ player: spiller(), juggleLadderDoc: { tricks: ALLE_TRICKS } }).total === 240);
-t("hele stigen = 200 + 150 + 240 = 590", linje({ player: spiller(), juggleLadderDoc: { mainStep: 16, weakStep: 12, tricks: ALLE_TRICKS } }).total === 590);
+const total = tricks => linje({ player: spiller(), juggleLadderDoc: { tricks } }).total;
+t("Jorden rundt giver 20 paa serveren (foer 15)", total(["jordenrundt"]) === 20);
+t("de seks gamle tricks = 80 (foer 75)", total(ALLE_TRICKS.filter(x => ["oploft", "vrist", "skiftefod", "laarfod", "hoved", "jordenrundt"].includes(x))) === 80);
+t("alle 14 tricks = 30 + 90 + 100 = 220", total(ALLE_TRICKS) === 220);
+t("hele stigen = 200 + 150 + 220 = 570", linje({ player: spiller(), juggleLadderDoc: { mainStep: 16, weakStep: 12, tricks: ALLE_TRICKS } }).total === 570);
+t("en gammel fuld liste (16 id'er) = de samme 220", total(GAMLE_TRICKS) === 220, total(GAMLE_TRICKS));
+t("gemt inderside10 = Inderside 5 + 3 = 35", total(["inderside10"]) === 35, total(["inderside10"]));
+t("gemt inderside5 alene = 35", total(["inderside5"]) === 35);
+t("gemt inderside20 + yderside10 = 70", total(["inderside20", "yderside10"]) === 70);
+t("gemt haelbagom5 alene = 35; inderside3 alene = 15", total(["haelbagom5"]) === 35 && total(["inderside3"]) === 15);
 l = linje({ player: spiller(), juggleLadderDoc: { mainStep: 1, tricks: ["inderside5", "inderside10", "hoved10"] }, juggleLogDoc: { entries: [
-  { t: "trick", v: "inderside5", at: "2026-11-10T09:00:00Z" },    // forrige uge
-  { t: "trick", v: "inderside10", at: "2026-11-17T09:00:00Z" },   // denne uge
+  { t: "trick", v: "inderside5", at: "2026-11-10T09:00:00Z" },    // forrige uge: Inderside 5 naaet foerste gang
+  { t: "trick", v: "inderside10", at: "2026-11-17T09:00:00Z" },   // denne uge, men = Inderside 5: allerede naaet
   { t: "trick", v: "hoved10", at: "2026-11-17T10:00:00Z" },
-  { t: "trick", v: "inderside20", at: "2026-11-17T11:00:00Z" },   // fortrudt igen: ikke i tricks, taeller ikke
+  { t: "trick", v: "inderside20", at: "2026-11-17T11:00:00Z" },   // ogsaa = Inderside 5
   { t: "main", v: 0, at: "2026-11-17T09:00:00Z" }
 ] } });
-t("nye tricks i vinduet efter loggens dato: uge 15 + 20 + trin 5 = 40, maaned + 10 = 50", l.uge.point === 40 && l.maaned.point === 50, [l.uge, l.maaned]);
+t("udgaaede id'er i loggen taeller som deres alias, foerste gang: uge 10 hovedstoed 20 + trin 5 = 25, maaned + Inderside 5 20 = 45",
+  l.uge.point === 25 && l.maaned.point === 45, [l.uge, l.maaned]);
+t("Inderside 3 (kun fordi serien goeres hel, ingen log-linje) taeller i alt, ikke i uge/maaned: total 5 + 35 + 20 = 60", l.total === 60, l.total);
+l = linje({ player: spiller(), juggleLadderDoc: { tricks: ["yderside20"] }, juggleLogDoc: { entries: [{ t: "trick", v: "yderside20", at: "2026-11-17T09:00:00Z" }] } });
+t("gemt og logget yderside20 i ugen: uge 20 (Yderside 5), total 35", l.uge.point === 20 && l.maaned.point === 20 && l.total === 35, l);
 
 console.log("\nDaglig fodteknik");
 l = linje({ player: spiller(), footworkDoc: { days: { "2026-11-10": { t: 3, x: 2 } } } });
@@ -229,6 +242,15 @@ b = byg("blok", html.replace("// DAGLIG FODTEKNIK", "// FODTEKNIK"));
 t("er fodteknik-blokken flyttet, stopper den", b.kode !== 0 && /DAGLIG FODTEKNIK/.test(b.tekst), b.tekst.slice(0, 300));
 b = byg("flyttet", html.replace("function iDagISO(", "function iDagISO2(") .replace("\nconst CHALLENGE_BONUS", "\nfunction iDagISO(){ return dagsISO(new Date()); }\nconst CHALLENGE_BONUS"));
 t("ligger iDagISO ikke i blokken laengere, stopper den", b.kode !== 0 && /iDagISO ligger ikke i fodteknik-blokken/.test(b.tekst), b.tekst.slice(0, 300));
+// Pointreglerne 2026-11-28: aliaserne og de hele serier skal med til serveren.
+for(const navn of ["juggleTrickKanonisk", "juggleTrickForrige", "juggleTricksAf"]){
+  b = byg("a-" + navn, html.replace("function " + navn + "(", "function " + navn + "Omdoebt("));
+  t(`mangler function ${navn}, stopper den med navnet`, b.kode !== 0 && new RegExp("mangler function " + navn).test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+}
+b = byg("a-JUGGLE_TRICK_ALIAS", html.replace("const JUGGLE_TRICK_ALIAS =", "const JUGGLE_TRICK_ALIAS_OMDOEBT ="));
+t("mangler const JUGGLE_TRICK_ALIAS, stopper den", b.kode !== 0 && /mangler const JUGGLE_TRICK_ALIAS/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
+b = byg("a-uden-alias", html.replace('  inderside10: {til:"inderside5", navn:"Inderside 10"},\n', ""));
+t("taeller et gemt inderside10 ikke laengere som Inderside 5 + 3, stopper proeveberegningen den", b.kode !== 0 && /inderside10 gav/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
 b = byg("kaster", html.replace("function totalPoints(p){", "function totalPoints(p){ return udefineretNavn;"));
 t("kan den byggede kode ikke regne, stopper den ogsaa - og der ligger ingen halv fil", b.kode !== 0 && /udefineretNavn/.test(b.tekst) && !b.skrevet, b.tekst.slice(0, 300));
 
