@@ -426,7 +426,7 @@ const vaelgFil = async (a, navn, fil) => {
 a = await start("u-admin");
 await a.page.evaluate(() => { window.__maerker = { admin: true }; });
 await aabnAdmin(a);
-t("alle 41 pladser står der (20 fodteknik, 16 tricks, 5 til Talentmærket)", (await a.page.evaluate(() => document.querySelectorAll("#guideVideoAdminArea .coachrow").length)) === 41);
+t("alle 39 pladser står der (20 fodteknik, 14 tricks, 5 til Talentmærket)", (await a.page.evaluate(() => document.querySelectorAll("#guideVideoAdminArea .coachrow").length)) === 39);
 t("en tom plads har kun 'Læg op'", JSON.stringify((await raekke(a, "Toe-taps"))?.knapper) === JSON.stringify(["Læg op"]));
 await vaelgFil(a, "Toe-taps", klip.pathname);
 w = await a.skrivninger();

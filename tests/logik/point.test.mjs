@@ -65,10 +65,14 @@ afsnit("Rangtrinnet følger det nye tal");
 K.saetBarn(data);
 t("X med 36 point er Debutant (med de 500 ville det have været Talent)", R.tierForPoints(K.totalPoints(spiller)).name, "Debutant");
 t("næste trin for X er Klubspiller om 114 point", [R.nextTier(K.totalPoints(spiller)).name, R.nextTier(K.totalPoints(spiller)).min - K.totalPoints(spiller)], ["Klubspiller", 114]);
-// Hele stigen (590) og hele medaljeforløbet (2325 på spilleren): Talent - ikke Superliga.
+// Hele stigen (570, pointreglerne 2026-11-28) og hele medaljeforløbet (2325 på spilleren):
+// Talent - ikke Superliga. Først de 14 nye tricks, så en gammel liste med alle 16 id'er fra
+// 2026-11-23 - de udgåede tæller som deres alias, så det er den samme fulde stige.
 const fuld = { id: "F", name: "F", year: "2017", points: 2325 };
+K.saetBarn({ spiller: fuld, stige: { id: "F", mainStep: 16, weakStep: 12, tricks: ["oploft", "vrist", "skiftefod", "laarfod", "hoved", "gribfod", "inderside3", "yderside3", "haelbagom3", "jordenrundt", "hoved10", "inderside5", "yderside5", "haelbagom5"] } });
+t("hele stigen er 570", K.totalPoints(fuld), 570);
 K.saetBarn({ spiller: fuld, stige: { id: "F", mainStep: 16, weakStep: 12, tricks: ["oploft", "vrist", "skiftefod", "inderside5", "yderside5", "laarfod", "hoved", "gribfod", "inderside10", "yderside10", "haelbagom3", "jordenrundt", "hoved10", "inderside20", "yderside20", "haelbagom5"] } });
-t("hele stigen er 590", K.totalPoints(fuld), 590);
+t("og en gammel fuld liste (16 id'er) er også 570", K.totalPoints(fuld), 570);
 t("hele stigen + alle medaljer er Talent - medaljerne løfter ikke", R.tierForPoints(K.totalPoints(fuld)).name, "Talent");
 
 console.log(`\n${ok} ok, ${fejl} fejl`);

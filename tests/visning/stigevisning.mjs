@@ -67,7 +67,7 @@ t("ingen point tæller dobbelt længere", !/dobbelt/i.test(tekst));
 t("dårligt ben forklarer trappen", tekst.includes("Trinnene giver 5, 10, 15 og 20 point - samme trappe som hovedstigen."));
 // Fikstur: hovedstige 10 (5x4 + 10x4 + 15x2 = 90), dårligt ben 4 (3x5 + 10 = 25), opløft + vrist (20).
 t("totalen står øverst: 90 + 25 + 20 = 135", /(^|\n)135 point fra stigen/.test(tekst));
-t("og fremdriften er 10/16, 4/12 og 2/16 tricks", tekst.includes("Hovedstigen 10/16 · Dårligt ben 4/12 · Tricks 2/16"));
+t("og fremdriften er 10/16, 4/12 og 2/14 tricks", tekst.includes("Hovedstigen 10/16 · Dårligt ben 4/12 · Tricks 2/14"));
 const regler = await p.evaluate(()=>document.getElementById("juggleRulesArea").innerText);
 t("reglerne forklarer de nye point",
   regler.includes("Point: 5 point pr. trin i Find kontakten, 10 i Rytme, 15 i Kontrol og 20 i Udholdenhed. Dårligt ben følger samme trappe: 5, 10, 15 og 20."));
@@ -113,46 +113,60 @@ const trickInfo = () => p.evaluate(()=>{
   return ud;
 });
 let info = await trickInfo();
-t("tre grupper med de rigtige tricks", JSON.stringify(Object.fromEntries(Object.entries(info).map(([g, xs])=>[g, xs.map(x=>x.navn)]))) === JSON.stringify({
-  "Let · 10 point pr. trick": ["Opløft","Stop på vristen","Skiftefod","Inderside 5","Yderside 5"],
-  "Mellem · 15 point pr. trick": ["Lår-fod-lår-fod","3 hovedstød","Grib bolden på foden","Inderside 10","Yderside 10","Hælen bagom 3"],
-  "Svær · 20 point pr. trick": ["Jorden rundt","10 hovedstød","Inderside 20","Yderside 20","Hælen bagom 5"]}));
+t("tre grupper med de rigtige tricks (Let 3, Mellem 6, Svær 5)", JSON.stringify(Object.fromEntries(Object.entries(info).map(([g, xs])=>[g, xs.map(x=>x.navn)]))) === JSON.stringify({
+  "Let · 10 point pr. trick": ["Opløft","Stop på vristen","Skiftefod"],
+  "Mellem · 15 point pr. trick": ["Lår-fod-lår-fod","3 hovedstød","Grib bolden på foden","Inderside 3","Yderside 3","Hælen bagom 3"],
+  "Svær · 20 point pr. trick": ["Jorden rundt","10 hovedstød","Inderside 5","Yderside 5","Hælen bagom 5"]}));
 t("hvert trick viser sin gruppes point", Object.entries(info).every(([g, xs])=>xs.every(x=>g.includes(" " + x.point + " point"))));
 const alle = () => Object.values(info).flat(), hent = id => alle().find(x=>x.id === id);
-t("de låste viser grunden", ["inderside10","yderside10","inderside20","yderside20","haelbagom5"].map(id=>hent(id).laast).join(" | ")
-  === "Tag Inderside 5 først | Tag Yderside 5 først | Tag Inderside 10 først | Tag Yderside 10 først | Tag Hælen bagom 3 først");
-t("og har ingen knap", ["inderside10","yderside10","inderside20","yderside20","haelbagom5"].every(id=>hent(id).knap === null));
-t("præcis fem er låst", alle().filter(x=>x.laast).length === 5);
+t("de låste viser grunden", ["inderside5","yderside5","haelbagom5"].map(id=>hent(id).laast).join(" | ")
+  === "Tag Inderside 3 først | Tag Yderside 3 først | Tag Hælen bagom 3 først");
+t("og har ingen knap", ["inderside5","yderside5","haelbagom5"].every(id=>hent(id).knap === null));
+t("præcis tre er låst", alle().filter(x=>x.laast).length === 3);
 t("10 hovedstød er åbent uden 3 hovedstød", hent("hoved10").knap === "Klaret" && !hent("hoved10").laast);
-t("Inderside 5 og Hælen bagom 3 kan tages", hent("inderside5").knap === "Klaret" && hent("haelbagom3").knap === "Klaret");
-t("teksterne står der", /5 gange med hælen bag om støttebenet i én jongleringsserie - de behøver ikke komme i træk\. · 20 point/.test(tekst)
+t("Inderside 3, Yderside 3 og Hælen bagom 3 kan tages", ["inderside3","yderside3","haelbagom3"].every(id=>hent(id).knap === "Klaret"));
+t("teksterne står der", /3 i træk med indersiden af foden\. · 15 point/.test(tekst) && /5 i træk med ydersiden af foden\. · 20 point/.test(tekst)
+  && /5 gange med hælen bag om støttebenet i én jongleringsserie - de behøver ikke komme i træk\. · 20 point/.test(tekst)
   && /Stop bolden på vristen, hold den i 5 sekunder, og jonglér videre\. · 15 point/.test(tekst)
   && /Før foden hele vejen rundt om bolden i luften, og jonglér videre\. · 20 point/.test(tekst));
 t("forklaringen nævner serierne", tekst.includes("Engangsudfordringer. Tag dem i den rækkefølge, du vil - men Inderside, Yderside og Hælen bagom er serier, der tages i rækkefølge."));
-t("reglerne nævner tricksenes point", regler.includes("Tricks: Let giver 10 point, Mellem 15 og Svær 20."));
+t("reglerne nævner tricksenes point og serien med det nye eksempel", regler.includes("Tricks: Let giver 10 point, Mellem 15 og Svær 20. Inderside, Yderside og Hælen bagom er serier, der tages i rækkefølge - fx Inderside 3 før Inderside 5."));
 const bred = async () => p.evaluate(()=>document.documentElement.scrollWidth <= window.innerWidth + 1);
 t("ingen vandret scroll ved 390 px", await bred());
 
 console.log("\nRegistrér serien i rækkefølge, og fortryd den");
 const klik = async (id, tekstPaaKnap) => { await p.click(`#juggleArea [data-trick="${id}"] button:has-text("${tekstPaaKnap}")`); await p.waitForTimeout(50); };
 const dialog = () => p.evaluate(()=>window.__dialoger[window.__dialoger.length-1]);
+await klik("inderside3", "Klaret");
+t("Inderside 3: dialogen lover 15 point", /Registrér "Inderside 3"\?\n\nDet giver 15 point/.test(await dialog()));
+info = await trickInfo();
+t("Inderside 3 er klaret, og Inderside 5 er åbnet", hent("inderside3").klaret && hent("inderside5").knap === "Klaret" && !hent("inderside5").laast);
+t("Yderside 5 er stadig låst", hent("yderside5").laast === "Tag Yderside 3 først");
 await klik("inderside5", "Klaret");
-t("Inderside 5: dialogen lover 10 point", /Registrér "Inderside 5"\?\n\nDet giver 10 point/.test(await dialog()));
+t("Inderside 5: dialogen lover 20 point", /Registrér "Inderside 5"\?\n\nDet giver 20 point/.test(await dialog()));
 info = await trickInfo();
-t("Inderside 5 er klaret, og Inderside 10 er åbnet", hent("inderside5").klaret && hent("inderside10").knap === "Klaret" && !hent("inderside10").laast);
-t("Inderside 20 er stadig låst - nu bag Inderside 10", hent("inderside20").laast === "Tag Inderside 10 først");
-await klik("inderside10", "Klaret");
-t("Inderside 10: dialogen lover 15 point", /Registrér "Inderside 10"\?\n\nDet giver 15 point/.test(await dialog()));
-await klik("inderside20", "Klaret");
+t("hele inderside-serien er klaret", ["inderside3","inderside5"].every(id=>hent(id).klaret));
+t("totalen er steget med 15 + 20", /(^|\n)170 point fra stigen/.test(await p.evaluate(()=>document.getElementById("juggleArea").innerText)));
+await klik("inderside3", "Fortryd");
+t("fortryd Inderside 3: dialogen nævner Inderside 5 og 35 point",
+  await dialog() === 'Fortryd "Inderside 3"?\n\nInderside 5 bygger på Inderside 3 og bliver også fortrudt. Du mister 35 point i alt.');
 info = await trickInfo();
-t("hele inderside-serien er klaret", ["inderside5","inderside10","inderside20"].every(id=>hent(id).klaret));
-t("totalen er steget med 10 + 15 + 20", /(^|\n)180 point fra stigen/.test(await p.evaluate(()=>document.getElementById("juggleArea").innerText)));
-await klik("inderside5", "Fortryd");
-t("fortryd Inderside 5: dialogen nævner 10 og 20 og 45 point",
-  await dialog() === 'Fortryd "Inderside 5"?\n\nInderside 10 og Inderside 20 bygger på Inderside 5 og bliver også fortrudt. Du mister 45 point i alt.');
-info = await trickInfo();
-t("bagefter er hele serien væk igen, og 10 og 20 er låst", !hent("inderside5").klaret && hent("inderside10").laast === "Tag Inderside 5 først" && hent("inderside20").laast === "Tag Inderside 10 først");
+t("bagefter er hele serien væk igen, og 5 er låst", !hent("inderside3").klaret && !hent("inderside5").klaret && hent("inderside5").laast === "Tag Inderside 3 først");
 t("og de andre tricks er urørte", hent("oploft").klaret && hent("vrist").klaret);
+
+console.log("\nEt barn med gemte udgåede id'er (inderside10, yderside20) - intet skrives om");
+await p.evaluate(()=>{ juggleLadder[0].tricks = ["oploft","vrist","inderside10","yderside20"]; renderJuggle(); });
+info = await trickInfo();
+const tekst2 = await p.evaluate(()=>document.getElementById("juggleArea").innerText);
+t("Inderside 3 og 5 og Yderside 3 og 5 står som klaret, med fortryd", ["inderside3","inderside5","yderside3","yderside5"].every(id=>hent(id).klaret && hent(id).knap === "Fortryd"));
+t("ingen af dem er låst, og de udgåede id'er vises ikke for sig", !hent("inderside5").laast && !hent("yderside5").laast && !/Inderside 10|Inderside 20|Yderside 10|Yderside 20/.test(tekst2));
+t("totalen: 135 + 35 + 35 = 205, og 6/14 tricks", /(^|\n)205 point fra stigen/.test(tekst2) && tekst2.includes("Tricks 6/14"));
+await klik("inderside5", "Fortryd");
+t("fortryd Inderside 5: kun dens 20 point", (await dialog()).endsWith("Du mister 20 point."));
+info = await trickInfo();
+t("bagefter: Inderside 3 klaret, Inderside 5 åben igen (inderside10 er væk, så den kommer ikke tilbage)",
+  hent("inderside3").klaret && !hent("inderside5").klaret && hent("inderside5").knap === "Klaret"
+  && JSON.stringify(await p.evaluate(()=>juggleLadder[0].tricks)) === JSON.stringify(["oploft","vrist","inderside3","yderside3","yderside5"]));
 t("stadig ingen vandret scroll", await bred());
 t("stadig ingen JS-fejl", fejl.length===0);
 await p.evaluate(()=>{ juggleLadder[0].tricks = ["oploft","vrist","inderside5"]; renderJuggle(); });

@@ -53,9 +53,10 @@ const DATA = () => ({
     p5: { year: "2016", gender: "pige", days: { "2026-12-09": { t: 1 } } }
   },
   footworkLog: { p1: { year: "2017", gender: "pige", entries: [], reasons: { "2026-12-05": { tekst: "syg", at: "2026-12-05T10:00:00Z" } } } },
-  // Ida: 5 trin paa hovedstigen, 2 paa daarligt ben, Opløft og Yderside 5 - Inderside 10 er laast.
+  // Ida: 5 trin paa hovedstigen, 2 paa daarligt ben, Opløft og et gemt udgaaet id (yderside10,
+  // pointreglerne 2026-11-28), som taeller som Yderside 5 + Yderside 3 - Inderside 5 er laast.
   juggleLadder: {
-    p1: { year: "2017", gender: "pige", mainStep: 5, weakStep: 2, tricks: ["oploft", "yderside5"], days: ["2026-12-09"] },
+    p1: { year: "2017", gender: "pige", mainStep: 5, weakStep: 2, tricks: ["oploft", "yderside10"], days: ["2026-12-09"] },
     p2: { year: "2017", gender: "dreng", mainStep: 2, weakStep: 0, tricks: [], days: ["2026-12-10"] }
   },
   juggleLog: { p1: { year: "2017", gender: "pige", entries: [] } },
@@ -136,7 +137,8 @@ console.log("\nBarnet selv (det, visningen skal ligne)");
 let a = await aabn("ida");
 const IDA = await fang(a);
 t("Ida: tre dage i træk og 3 toe-taps i dag", /3 dage\s+aktuel streak/.test(IDA.fodteknik) && /I dag\s*3 ✓/.test(IDA.fodteknik), IDA.fodteknik.slice(0, 300));
-t("Ida: stigen står på 5/16, 2/12 og 2 tricks", IDA.stige.includes("Hovedstigen 5/16 · Dårligt ben 2/12 · Tricks 2/16"));
+t("Ida: stigen står på 5/16, 2/12 og 3 tricks (yderside10 = Yderside 5 + 3)", IDA.stige.includes("Hovedstigen 5/16 · Dårligt ben 2/12 · Tricks 3/14"), IDA.stige.slice(0, 200));
+t("Ida: 30 + 10 + Opløft 10 + Yderside 3 og 5 (35) = 85 point fra stigen", /(^|\n)85 point fra stigen/.test(IDA.stige));
 t("Ida: ranglisten er pigerne i 2017", ens(navneI(IDA.alle), ["Ida Test", "Anna Test"]), navneI(IDA.alle));
 t("Ida: ingen JS-fejl", a.fejl.length === 0, a.fejl);
 await a.luk();
@@ -175,8 +177,9 @@ for (const [k, navn] of [["fodteknik", "Daglig fodteknik"], ["stige", "Jonglerin
   t(`${navn}: ordret det samme, som Ida selv ser`, VIS[k] === IDA[k], { vis: VIS[k].slice(0, 300), ida: IDA[k].slice(0, 300) });
 t("fodteknikken har Idas dag: 3 toe-taps og streaken på 3 dage", /3 dage\s+aktuel streak/.test(VIS.fodteknik) && /I dag\s*3 ✓/.test(VIS.fodteknik));
 t("og Idas joker, der venter", /afventer/.test(VIS.fodteknik));
-t("stigen: Hovedstigen 5/16, Dårligt ben 2/12, Tricks 2/16", VIS.stige.includes("Hovedstigen 5/16 · Dårligt ben 2/12 · Tricks 2/16"));
-t("det låste trick står med grunden: Tag Inderside 5 først", /Inderside 10[\s\S]*Tag Inderside 5 først/.test(VIS.stige));
+t("stigen: Hovedstigen 5/16, Dårligt ben 2/12, Tricks 3/14", VIS.stige.includes("Hovedstigen 5/16 · Dårligt ben 2/12 · Tricks 3/14"));
+t("det låste trick står med grunden: Tag Inderside 3 først", /Inderside 5[\s\S]*Tag Inderside 3 først/.test(VIS.stige));
+t("og Yderside 3 og 5 står som klaret (yderside10 gemt)", /✓ Yderside 3/.test(VIS.stige) && /✓ Yderside 5/.test(VIS.stige) && !/Yderside 10/.test(VIS.stige));
 t("ranglisten er kun Idas årgang og køn (login begrænset til piger)", ens(navneI(VIS.alle), ["Ida Test", "Anna Test"]), navneI(VIS.alle));
 t("denne uge: Anna 40 over Ida 30", /Anna Test[\s\S]*40 point[\s\S]*Ida Test[\s\S]*30 point/.test(VIS.uge), VIS.uge);
 t("klubbens top 10 er klubbens", ens(navneI(VIS.klub), ["Oscar Test", "Ida Test", "Mads Test"]), navneI(VIS.klub));
@@ -220,7 +223,7 @@ await a.lukDialog();
 const direkte = [
   ["registerFootwork", "registerFootwork('t', 1)"], ["registerFootwork(-1)", "registerFootwork('t', -1)"],
   ["requestFootworkJoker", "requestFootworkJoker()"], ["cancelFootworkJoker", "cancelFootworkJoker()"],
-  ["registerJuggle(main)", "registerJuggle('main', 5)"], ["registerJuggle(weak)", "registerJuggle('weak', 2)"], ["registerJuggle(trick)", "registerJuggle('trick', 'yderside10')"],
+  ["registerJuggle(main)", "registerJuggle('main', 5)"], ["registerJuggle(weak)", "registerJuggle('weak', 2)"], ["registerJuggle(trick)", "registerJuggle('trick', 'inderside3')"],
   ["undoJuggle", "undoJuggle('main')"], ["undoJuggleTrick", "undoJuggleTrick('oploft')"],
   ["createChallenge", "createChallenge('p1')"], ["respondChallenge", "respondChallenge('x', true)"], ["submitChallengeVideo", "submitChallengeVideo('x')"],
   ["submitTraining", "submitTraining('p1', 0, 'x')"], ["requestOwnDeletion", "requestOwnDeletion()"], ["cancelOwnDeletionRequest", "cancelOwnDeletionRequest()"],
@@ -264,7 +267,7 @@ t("banneret: Oscar Test (2017)", (await a.tekst("#seSomSpillerBanner")).includes
 const VO = await fang(a);
 t("ranglisten viser begge køn i 2017 - som Oscars eget login", ens(navneI(VO.alle), ["Oscar Test", "Ida Test", "Anna Test", "Bo Test"]), navneI(VO.alle));
 for (const k of ["fodteknik", "stige", "maaned", "alle", "uge", "maanedPoint", "klub"]) t(`Oscar · ${k}: ordret som Oscars eget login`, VO[k] === OSCAR[k], { vis: VO[k].slice(0, 200), oscar: OSCAR[k].slice(0, 200) });
-t("Oscars stige er hans egen: Hovedstigen 2/16", VO.stige.includes("Hovedstigen 2/16 · Dårligt ben 0/12 · Tricks 0/16"));
+t("Oscars stige er hans egen: Hovedstigen 2/16", VO.stige.includes("Hovedstigen 2/16 · Dårligt ben 0/12 · Tricks 0/14"));
 await a.klik("#seSomSpillerBanner", "Tilbage til admin");
 
 // ---- Lis: intet login

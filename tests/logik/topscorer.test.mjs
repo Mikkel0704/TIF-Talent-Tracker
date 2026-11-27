@@ -75,6 +75,22 @@ t("et trin, der er registreret i både november og december (fortrudt og taget i
     return [tal(stat([b], "A")).slice(0, 2), tal(K.maanedTopscorerStat("A", NOV)).slice(0, 2)]; })(), [[0, 0], [5, 1]]);
 t("rettes stigen ned, tæller de fjernede trin ikke længere",
   tal(stat([{ ...stigebarn, stige: { mainStep: 1, weakStep: 0, tricks: [] } }], "A")).slice(0, 2), [0, 0]);
+// Pointreglerne 2026-11-28: gemte udgåede id'er (inderside10/20, yderside10/20) tæller som
+// Inderside 5/Yderside 5 efter loggens dato; Inderside 3/Yderside 3, som barnet kun har, fordi
+// serien gøres hel, har ingen log-linje og giver intet i måneden. Tricks er aldrig øvelser.
+const aliasbarn = { id: "A", stige: { mainStep: 1, tricks: ["inderside20", "yderside10", "inderside5"] }, log: [
+  { t: "trick", v: "inderside20", at: kl(dag(14)) },
+  { t: "trick", v: "yderside10", at: kl(dag(10)) },
+  { t: "trick", v: "inderside5", at: kl("2026-11-25") },    // Inderside 5 blev nået i november
+  { t: "main", v: 0, at: kl(dag(2)) }
+] };
+s = stat([aliasbarn], "A");
+t("december: Yderside 5 (yderside10, 20) + trin 1 (5) = 25 - inderside20 er Inderside 5, nået i november", s.point, 25);
+t("og øvelserne er kun trinnet - tricks (også de udgåede id'er) tæller ikke", s.oevelser, 1);
+t("november: Inderside 5 (20), 0 øvelser", tal(K.maanedTopscorerStat("A", NOV)).slice(0, 2), [20, 0]);
+t("i alt: trin 5 + Inderside 3 og 5 (35) + Yderside 3 og 5 (35) = 75", K.totalPoints({ id: "A" }), 75);
+t("de samme tricks uden log giver 0 point og 0 øvelser i måneden",
+  tal(stat([{ id: "A", stige: { tricks: ["inderside20", "yderside10", "haelbagom5"] } }], "A")).slice(0, 2), [0, 0]);
 
 afsnit("Point i måneden: fodteknik med kombi og streak, som \"Denne måned\"");
 s = stat([{ id: "A", dage: { [dag(1)]: { t: 3 } } }], "A");

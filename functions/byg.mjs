@@ -113,11 +113,16 @@ const blok = html.slice(blokStart + 1, blokSlut);
 
 // 2) Jongleringsstigen og resten, enkeltvis efter navn.
 const KONSTANTER = ["POINTREGLER", "CLUB_TOP_N", "JUGGLE_MAIN", "JUGGLE_WEAK", "JUGGLE_MAIN_POINT", "JUGGLE_WEAK_POINT", "JUGGLE_GATE_AFTER", "JUGGLE_TRICKS",
+  // Pointreglerne 2026-11-28: udgaaede trick-id'er og det trick, de taeller som.
+  "JUGGLE_TRICK_ALIAS",
   // Morgenoprydningen (oprydning.js): videoernes frister.
   "CHALLENGE_VIDEO_MAX_AGE_MS", "VIDEO_MAX_AGE_MS", "VIDEO_SET_RYDDES_EFTER_MS"];
 const FUNKTIONER = [
   "normalizeYearValue",
   "juggleMainPoints", "juggleWeakPoints", "juggleTrick",
+  // juggleTricks goer serierne hele (juggleTrickForrige) og laeser udgaaede id'er som deres
+  // alias (juggleTrickKanonisk - ogsaa i loggen, se ladderFoersteGang).
+  "juggleTrickKanonisk", "juggleTrickForrige", "juggleTricksAf",
   "juggleFor", "juggleLogFor", "juggleMainStep", "juggleWeakStep", "juggleTricks",
   // totalPoints og rangPointIVindue: kun fodteknik og stige (pointreglerne 2026-11-25 -
   // Talentmaerket og dueller giver ingen point, se proeven nedenfor).
@@ -269,6 +274,13 @@ try{
   if(!Number.isFinite(udenIndsendelser) || m.rangPointIVindue("x", fra) !== udenIndsendelser
     || udenIndsendelser !== m.ladderPointsInWindow("x", fra) + m.footworkPointsInWindow("x", fra))
     fejl("rangPointIVindue taeller Talentmaerkets eller duellernes point (submissions.pointsAwarded) med - det maa den ikke");
+  // Pointreglerne 2026-11-28: et gemt udgaaet id (inderside10) taeller som Inderside 5, og
+  // serien goeres hel med Inderside 3: 20 + 15 = 35 - ogsaa i ugen, hvor loggen siger, det
+  // blev taget (dér kun 5'erens 20: Inderside 3 har ingen log-linje).
+  m.saetBarn({ spiller: { id: "x", name: "x", year: "U9" }, stige: { id: "x", tricks: ["inderside10"] },
+    stigelog: { id: "x", entries: [{ t: "trick", v: "inderside10", at: "2026-11-24T10:00:00Z" }] } });
+  if(m.ladderPoints("x") !== 35 || m.ladderPointsInWindow("x", new Date(2026, 10, 23)) !== 20)
+    fejl("et gemt inderside10 gav " + m.ladderPoints("x") + " i alt og " + m.ladderPointsInWindow("x", new Date(2026, 10, 23)) + " i ugen (ventede 35 og 20)");
   // Maanedens spiller paa et lille, haandregnet eksempel: to dage i november, ét barn.
   m.saetAlleBoern({ spillere: [m.migratePlayer({ id: "x", name: "x", year: "U9" })],
     fodteknik: [{ id: "x", days: { "2026-11-16": { t: 1 }, "2026-11-17": { t: 1 } } }] });

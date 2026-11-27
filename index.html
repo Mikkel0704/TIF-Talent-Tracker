@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.83</title>
+  <title>TIF Talent Tracker v15.84</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -180,7 +180,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.83 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.84 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
   <div id="seSomSpillerBanner" class="somspillerbanner hidden" role="status"></div>
@@ -616,7 +616,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.83 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.84 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -747,7 +747,7 @@ const JUGGLE_WEAK = [2,3,5, 7,10,15, 20,30,40, 50,75,100];
 // Hovedstigen har fire faser med fire trin i hver (JUGGLE_PHASES): Find kontakten (trin 1-4)
 // 5 point pr. trin, Rytme (5-8) 10, Kontrol (9-12) 15 og Udholdenhed (13-16) 20 = 200.
 // Daarligt ben gaar samme trappe op med tre trin i hver fase (JUGGLE_WEAK_PHASES): trin 1-3
-// 5, trin 4-6 10, trin 7-9 15 og trin 10-12 20 = 150. Med tricks (240) er hele stigen 590.
+// 5, trin 4-6 10, trin 7-9 15 og trin 10-12 20 = 150. Med tricks (220) er hele stigen 570.
 //
 // Hvorfor saa lidt: trinnene registreres paa tillid, uden video og uden godkendelse. Saa
 // skal et trin hoejst vaere omtrent en god dag med fodteknik (15-25 point). (Da tallene blev
@@ -773,37 +773,54 @@ function juggleWeakPoints(i){ return JUGGLE_WEAK_POINT[i] || 0; }
 // jorden, saa den faerdighed skal sidde foerst. Samme startregel som medaljerne.
 const JUGGLE_GATE_AFTER = 3;
 // Tricks i tre svaerhedsgrader (JUGGLE_TRICK_NIVEAUER): Let 10 point, Mellem 15 og Svaer 20.
-// 5 + 6 + 5 tricks = 50 + 90 + 100 = 240. Pointene staar paa hvert trick, fordi det er dem,
+// 3 + 6 + 5 tricks = 30 + 90 + 100 = 220. Pointene staar paa hvert trick, fordi det er dem,
 // ladderPoints og serveren laeser (juggleTrick(id).point) - testene tjekker, at de passer til
 // niveauet.
 //
 // Der gemmes kun id'er (juggleLadder.tricks og v/trick i juggleLog). De seks foerste id'er
 // betyder det samme som foer - Jorden rundt er bare flyttet fra 15 til 20 point, og det
 // gaelder ogsaa de boern, der allerede har den. Skift ALDRIG betydningen af et id; laeg et
-// nyt til. Firestore-reglerne loefter hoejst 16 tricks (se juggleLadder i firestore.rules).
+// nyt til. Firestore-reglerne loefter hoejst 16 tricks (se juggleLadder i firestore.rules) -
+// en ny skrivning rummer kun id'erne herunder, uden dubletter, saa hoejst 14.
 //
-// "kraever": serierne tages i raekkefoelge - Inderside 5 -> 10 -> 20, Yderside 5 -> 10 -> 20
-// og Haelen bagom 3 -> 5. Et trick med "kraever" kan foerst registreres, naar det forrige i
-// serien er klaret, og fortrydes eller fjernes et trick, ryger de senere i serien med
+// "kraever": serierne tages i raekkefoelge - Inderside 3 -> 5, Yderside 3 -> 5 og Haelen
+// bagom 3 -> 5. Et trick med "kraever" kan foerst registreres, naar det forrige i serien er
+// klaret, og fortrydes eller fjernes et trick, ryger de senere i serien med
 // (juggleTrickEfterfoelgere) - samme tanke som Oploeft og hovedstigen.
+//
+// Pointreglerne 2026-11-28: serierne blev kortere. Inderside 5 og Yderside 5 (fra
+// 2026-11-23 "Let") er nu det svaere trin efter de nye Inderside 3 og Yderside 3 - de
+// betyder stadig "5 i traek", saa id'erne er de samme. Inderside 10/20 og Yderside 10/20
+// findes ikke laengere, men kan staa gemt hos boern, der tog dem fra 2026-11-22. De
+// omskrives IKKE i databasen; se JUGGLE_TRICK_ALIAS og juggleTricksAf.
 const JUGGLE_TRICKS = [
   {id:"oploft",      niveau:"let",    point:10, navn:"Opløft",                tekst:"Vip bolden op fra jorden med foden, og tag mindst 1 berøring mere."},
   {id:"vrist",       niveau:"let",    point:10, navn:"Stop på vristen",       tekst:"Stop bolden på vristen, og hold den i 2 sekunder."},
   {id:"skiftefod",   niveau:"let",    point:10, navn:"Skiftefod",             tekst:"10 i træk, skiftevis højre og venstre fod."},
-  {id:"inderside5",  niveau:"let",    point:10, navn:"Inderside 5",           tekst:"5 i træk med indersiden af foden."},
-  {id:"yderside5",   niveau:"let",    point:10, navn:"Yderside 5",            tekst:"5 i træk med ydersiden af foden."},
   {id:"laarfod",     niveau:"mellem", point:15, navn:"Lår-fod-lår-fod",       tekst:"10 i træk."},
   {id:"hoved",       niveau:"mellem", point:15, navn:"3 hovedstød",           tekst:"3 hovedstød i træk."},
   {id:"gribfod",     niveau:"mellem", point:15, navn:"Grib bolden på foden",  tekst:"Stop bolden på vristen, hold den i 5 sekunder, og jonglér videre."},
-  {id:"inderside10", niveau:"mellem", point:15, navn:"Inderside 10",          tekst:"10 i træk med indersiden af foden.", kraever:"inderside5"},
-  {id:"yderside10",  niveau:"mellem", point:15, navn:"Yderside 10",           tekst:"10 i træk med ydersiden af foden.", kraever:"yderside5"},
+  {id:"inderside3",  niveau:"mellem", point:15, navn:"Inderside 3",           tekst:"3 i træk med indersiden af foden."},
+  {id:"yderside3",   niveau:"mellem", point:15, navn:"Yderside 3",            tekst:"3 i træk med ydersiden af foden."},
   {id:"haelbagom3",  niveau:"mellem", point:15, navn:"Hælen bagom 3",         tekst:"3 gange med hælen bag om støttebenet i én jongleringsserie - de behøver ikke komme i træk."},
   {id:"jordenrundt", niveau:"svaer",  point:20, navn:"Jorden rundt",          tekst:"Før foden hele vejen rundt om bolden i luften, og jonglér videre."},
   {id:"hoved10",     niveau:"svaer",  point:20, navn:"10 hovedstød",          tekst:"10 hovedstød i træk."},
-  {id:"inderside20", niveau:"svaer",  point:20, navn:"Inderside 20",          tekst:"20 i træk med indersiden af foden.", kraever:"inderside10"},
-  {id:"yderside20",  niveau:"svaer",  point:20, navn:"Yderside 20",           tekst:"20 i træk med ydersiden af foden.", kraever:"yderside10"},
+  {id:"inderside5",  niveau:"svaer",  point:20, navn:"Inderside 5",           tekst:"5 i træk med indersiden af foden.", kraever:"inderside3"},
+  {id:"yderside5",   niveau:"svaer",  point:20, navn:"Yderside 5",            tekst:"5 i træk med ydersiden af foden.", kraever:"yderside3"},
   {id:"haelbagom5",  niveau:"svaer",  point:20, navn:"Hælen bagom 5",         tekst:"5 gange med hælen bag om støttebenet i én jongleringsserie - de behøver ikke komme i træk.", kraever:"haelbagom3"}
 ];
+// Udgaaede id'er (pointreglerne 2026-11-28) og det trick, de taeller som. Den, der kunne 10
+// eller 20 i traek med indersiden, kan ogsaa 5 - saa ingen mister det, de har naaet, og
+// ingen data skal omskrives. Et alias goer kun det: det giver tricket, det peger paa (og
+// dermed resten af serien foer det, se juggleTricksAf). Nye skrivninger gemmer kun id'erne i
+// JUGGLE_TRICKS. "navn" er det gamle navn - kun til traenerens log.
+// Laeg ALDRIG et id herind, som ogsaa staar i JUGGLE_TRICKS (testene tjekker det).
+const JUGGLE_TRICK_ALIAS = {
+  inderside10: {til:"inderside5", navn:"Inderside 10"},
+  inderside20: {til:"inderside5", navn:"Inderside 20"},
+  yderside10:  {til:"yderside5",  navn:"Yderside 10"},
+  yderside20:  {til:"yderside5",  navn:"Yderside 20"}
+};
 const JUGGLE_TRICK_NIVEAUER = [
   {id:"let",    navn:"Let",    point:10},
   {id:"mellem", navn:"Mellem", point:15},
@@ -826,12 +843,26 @@ const JUGGLE_RULES = [
   "Trinnene tages i rækkefølge, og hvert trin og trick giver kun point én gang.",
   "Point: 5 point pr. trin i Find kontakten, 10 i Rytme, 15 i Kontrol og 20 i Udholdenhed. Dårligt ben følger samme trappe: 5, 10, 15 og 20.",
   "Hver fase giver flere point pr. trin end den forrige - så det kan betale sig at blive ved.",
-  "Tricks: Let giver 10 point, Mellem 15 og Svær 20. Inderside, Yderside og Hælen bagom er serier, der tages i rækkefølge - fx Inderside 5 før Inderside 10."
+  "Tricks: Let giver 10 point, Mellem 15 og Svær 20. Inderside, Yderside og Hælen bagom er serier, der tages i rækkefølge - fx Inderside 3 før Inderside 5."
 ];
 function juggleTrick(id){ return JUGGLE_TRICKS.find(t=>t.id===id) || null; }
+// Et gemt id, som det taeller nu: et udgaaet id (JUGGLE_TRICK_ALIAS) bliver til det trick,
+// det taeller som; alt andet er uaendret. hasOwnProperty, saa fx "constructor" ikke rammer
+// noget paa objektets prototype.
+function juggleTrickKanonisk(id){
+  return typeof id === "string" && Object.prototype.hasOwnProperty.call(JUGGLE_TRICK_ALIAS, id) ? JUGGLE_TRICK_ALIAS[id].til : id;
+}
+// Navnet i traenerens log: ogsaa et udgaaet id faar et navn ("Inderside 10 (tæller som
+// Inderside 5)"), og et ukendt id staar, som det er.
+function juggleTrickNavn(id){
+  const t = juggleTrick(id);
+  if(t) return t.navn;
+  const a = typeof id === "string" && Object.prototype.hasOwnProperty.call(JUGGLE_TRICK_ALIAS, id) ? JUGGLE_TRICK_ALIAS[id] : null;
+  return a ? `${a.navn} (tæller som ${juggleTrick(a.til)?.navn || a.til})` : String(id);
+}
 // Det trick, der skal klares foer dette (forrige trin i serien), eller null.
 function juggleTrickForrige(id){ return juggleTrick(juggleTrick(id)?.kraever) || null; }
-// De senere tricks i samme serie, i raekkefoelge: Inderside 5 -> [Inderside 10, Inderside 20].
+// De senere tricks i samme serie, i raekkefoelge: Inderside 3 -> [Inderside 5].
 function juggleTrickEfterfoelgere(id){
   const ud = [];
   for(let t = JUGGLE_TRICKS.find(x=>x.kraever===id); t && !ud.includes(t); t = JUGGLE_TRICKS.find(x=>x.kraever===t.id)) ud.push(t);
@@ -955,9 +986,13 @@ async function undoJuggleTrick(trickId){
   // maa foelge med tilbage - ellers stod der trin, der kraever en faerdighed, spilleren
   // lige har sagt, den ikke har. Samme opraydning som i traenerens rettelse.
   const lukkerPorten = trickId === "oploft" && juggleMainStep(pid) > JUGGLE_GATE_AFTER;
-  // Det samme for serierne: Inderside 10 bygger paa Inderside 5. Fortryder man 5'eren,
+  // Det samme for serierne: Inderside 5 bygger paa Inderside 3. Fortryder man 3'eren,
   // ryger de senere tricks i serien med - ellers stod der et trick, hvis forudsaetning
-  // spilleren lige har sagt, den ikke har.
+  // spilleren lige har sagt, den ikke har. Listen, der skrives, er juggleTricks minus de
+  // fortrudte - kun nye id'er. Stod der et udgaaet id (fx inderside10), forsvinder det med
+  // det samme; ellers kom Inderside 5 tilbage via aliaset. De forrige i serien bliver staaende
+  // (fortryder man Inderside 5, har man stadig Inderside 3 - ogsaa hvis den kun var givet af,
+  // at serien goeres hel), ligesom naar traeneren fjerner et trick.
   const ogsaa = juggleTrickEfterfoelgere(trickId).filter(x=>juggleTricks(pid).includes(x.id));
   let tabt = t.point + ogsaa.reduce((n, x)=>n + x.point, 0);
   if(lukkerPorten) for(let i = JUGGLE_GATE_AFTER; i < juggleMainStep(pid); i++) tabt += juggleMainPoints(i);
@@ -1014,7 +1049,8 @@ async function correctJuggleTrick(pid, trickId){
   const nu = juggleTricks(pid), har = nu.includes(trickId);
   // Serierne skal staa hele: fjernes et trick, ryger de senere i serien med (som naar
   // spilleren fortryder), og gives et trick, faar barnet ogsaa de forrige i serien, det
-  // mangler - har traeneren set 20 med indersiden, er 5 og 10 ogsaa klaret.
+  // mangler - har traeneren set 5 med indersiden, er 3 ogsaa klaret. nu er juggleTricks, saa
+  // udgaaede id'er allerede taeller som deres alias, og listen, der skrives, har kun nye id'er.
   const ogsaa = [];
   if(har) ogsaa.push(...juggleTrickEfterfoelgere(trickId).filter(x=>nu.includes(x.id)));
   else for(let f = juggleTrickForrige(trickId); f && !nu.includes(f.id) && !ogsaa.includes(f); f = juggleTrickForrige(f.id)) ogsaa.unshift(f);
@@ -1058,16 +1094,40 @@ function juggleFor(pid){ return juggleLadder.find(x=>x.id===pid) || null; }
 function juggleLogFor(pid){ const d = juggleLog.find(x=>x.id===pid); return Array.isArray(d?.entries) ? d.entries : []; }
 function juggleMainStep(pid){ return Math.max(0, Math.min(juggleFor(pid)?.mainStep || 0, JUGGLE_MAIN.length)); }
 function juggleWeakStep(pid){ return Math.max(0, Math.min(juggleFor(pid)?.weakStep || 0, JUGGLE_WEAK.length)); }
-// Dubletter fjernes: listen kommer fra et spillerlogin, og uden det ville det samme
-// trick kunne staa seks gange og give point seks gange. Ukendte id'er ryger ogsaa ud.
-function juggleTricks(pid){ const t = juggleFor(pid)?.tricks; return Array.isArray(t) ? [...new Set(t)].filter(juggleTrick) : []; }
+// De tricks, barnet HAR - regnet ud af den gemte liste, aldrig gemt for sig. ALT, der spoerger,
+// hvilke tricks et barn har (point, uge/maaned, siden, traenerens blok, fortryd, rettelser,
+// porten og serveren via functions/byg.mjs), gaar herigennem:
+//  - Dubletter fjernes: listen kommer fra et spillerlogin, og uden det ville det samme trick
+//    kunne staa seks gange og give point seks gange. Ukendte id'er ryger ogsaa ud.
+//  - Et udgaaet id taeller som sit alias (JUGGLE_TRICK_ALIAS): gemt inderside10 eller
+//    inderside20 = Inderside 5, yderside10 eller yderside20 = Yderside 5.
+//  - En serie er altid hel: har barnet et senere trick i serien, har det ogsaa de forrige
+//    (Inderside 5 => Inderside 3, Yderside 5 => Yderside 3, Haelen bagom 5 => 3). Et barn, der
+//    tog Inderside 5, mens den var et let trick uden forgaenger, faar altsaa ogsaa Inderside 3
+//    (35 point i alt) - uden at noget skrives om i databasen.
+// Raekkefoelgen er den gemte, med de forrige i serien lige foer det trick, der giver dem.
+// Skrivninger (registrering, fortryd, rettelse) gemmer DENNE liste - kun nye id'er, hoejst
+// JUGGLE_TRICKS.length - saa et udgaaet id forsvinder ved foerste skrivning og kan aldrig
+// komme tilbage via sit alias, efter at det trick, det peger paa, er fortrudt.
+function juggleTricksAf(liste){
+  const ud = [];
+  (Array.isArray(liste) ? liste : []).forEach(raa=>{
+    const kaede = [];
+    for(let t = juggleTrick(juggleTrickKanonisk(raa)); t && !ud.includes(t.id) && !kaede.includes(t.id); t = juggleTrickForrige(t.id)) kaede.unshift(t.id);
+    ud.push(...kaede);
+  });
+  return ud;
+}
+function juggleTricks(pid){ return juggleTricksAf(juggleFor(pid)?.tricks); }
 // Pointreglernes udgave. Serveren regner ranglisten ud med den SAMME kode som appen
 // (functions/byg.mjs haeler den ud af denne fil) og skriver udgaven paa hver linje.
 // Haev den, hver gang en pointregel aendres - saa kan admin-siden se, om serveren
 // stadig regner med de gamle regler, og funktionerne skal rulles ud igen.
 // 2026-11-25: Talentmaerkets point og duelpoint taeller ikke laengere nogen steder (se
 // totalPoints).
-const POINTREGLER = "2026-11-25";
+// 2026-11-28: kortere trick-serier (Inderside/Yderside 3 -> 5), udgaaede id'er taeller som
+// deres alias, og en serie er altid hel (se JUGGLE_TRICK_ALIAS og juggleTricksAf).
+const POINTREGLER = "2026-11-28";
 // Point som ren funktion af fremdrift. Intet gemt tal, intet at forfalske.
 function ladderPoints(pid){
   let sum = 0;
@@ -1098,6 +1158,15 @@ function rangPointIVindue(pid, since){ return ladderPointsInWindow(pid, since) +
 // dem, kunne man trykke sig til point i hver ny uge og maaned ved at fortryde og registrere
 // igen - trinnet var "nyt" hver gang. All-time-tallet har aldrig haft problemet, fordi det
 // regnes ud af fremdriften og ikke af loggen. (Pointreglerne 2026-11-24.)
+//
+// Tricks (pointreglerne 2026-11-28): en log-linje med et udgaaet id taeller som sit alias
+// (se ladderFoersteGang) - en gemt "inderside10" fra uge 47 er Inderside 5 naaet i uge 47.
+// Et trick, barnet kun har, fordi serien goeres hel (Inderside 3 hos et barn, der tog
+// Inderside 5, foer 3'eren fandtes), har INGEN log-linje: det taeller i alt (ladderPoints),
+// men i intet uge- eller maanedsvindue. Med vilje: vi ved ikke, hvornaar det blev naaet, og
+// at give det til den uge, hvor 5'eren blev taget, ville flytte point ind i en uge (og en
+// Maanedens topscorer), der allerede er afgjort. Registreres eller gives tricket fremover,
+// faar det sin egen linje som alle andre.
 function ladderPointsInWindow(pid, since){
   const naaetHoved = juggleMainStep(pid), naaetSvagt = juggleWeakStep(pid), tricks = juggleTricks(pid);
   const f = ladderFoersteGang(pid), fra = new Date(since).getTime();
@@ -1109,15 +1178,17 @@ function ladderPointsInWindow(pid, since){
 }
 // Hvornaar hvert trin og trick blev naaet foerste gang ifoelge loggen: {main, weak, trick},
 // hver en Map fra trinnummer (eller trick-id) til det tidligste tidspunkt i ms. Fortryd og
-// rettelser er ikke med - kun registreringer.
+// rettelser er ikke med - kun registreringer. Et udgaaet trick-id taeller som sit alias
+// (juggleTrickKanonisk): loggen kan rumme baade "inderside5" og "inderside10", og det
+// tidligste af dem er, hvornaar Inderside 5 blev naaet foerste gang.
 function ladderFoersteGang(pid){
   const f = {main: new Map(), weak: new Map(), trick: new Map()};
   juggleLogFor(pid).forEach(e=>{
     if(!e?.at || !(e.t === "main" || e.t === "weak" || e.t === "trick")) return;
     const tid = new Date(e.at).getTime();
     if(!Number.isFinite(tid)) return;
-    const m = f[e.t];
-    if(!m.has(e.v) || tid < m.get(e.v)) m.set(e.v, tid);
+    const m = f[e.t], v = e.t === "trick" ? juggleTrickKanonisk(e.v) : e.v;
+    if(!m.has(v) || tid < m.get(v)) m.set(v, tid);
   });
   return f;
 }
@@ -2191,7 +2262,7 @@ function pointsForStep(step){ return step.level*15 + POINT_BASE[step.medal]; }
 //
 // Graenserne er de samme som foer. Fra pointreglerne 2026-11-25 naas trinnene KUN gennem
 // Daglig fodteknik og Jongleringsstigen - medaljer og dueller giver ingen point (se
-// totalPoints). En almindelig dag med tre oevelser giver 14 point, og hele stigen giver 590 -
+// totalPoints). En almindelig dag med tre oevelser giver 14 point, og hele stigen giver 570 -
 // lige over Talent (400) og under Licens (800). Alt derover kraever, at man traener fodteknik
 // derhjemme dag efter dag.
 const RANK_TIERS = [
@@ -2613,7 +2684,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.83 · ikke logget ind");
+    setSyncStatus("v15.84 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2649,7 +2720,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.83 · bekræft inden I går i gang");
+    setSyncStatus("v15.84 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2657,7 +2728,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.83 · vælg din egen adgangskode");
+    setSyncStatus("v15.84 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2731,7 +2802,7 @@ function startListeners(){
         if(!ranglisteAar) lytRangliste(normalizeYearValue(currentPlayerLink.year));
       }
     }
-    setSyncStatus("v15.83 · live database aktiv");
+    setSyncStatus("v15.84 · live database aktiv");
     renderAll();
   };
   spillereHentet = false;
@@ -2740,7 +2811,7 @@ function startListeners(){
       players = snap.exists() ? [migratePlayer({id: snap.id, ...snap.data()})] : [];
       spillereHentet = true;
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.83 · databasefejl: " + e.code))] : [];
+    }, (e)=>setSyncStatus("v15.84 · databasefejl: " + e.code))] : [];
     if(!egenId){ players = []; spillereHentet = true; spillerFaaet(); }
   } else {
     unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
@@ -2748,7 +2819,7 @@ function startListeners(){
       if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
       players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.83 · databasefejl: " + e.code));
+    }, (e)=>setSyncStatus("v15.84 · databasefejl: " + e.code));
   }
   // Spillerens egen aargang kendes fra loginnet (som allowedYears); mangler den dér,
   // startes lytteren, naar spillerens eget dokument er kommet (se spillerFaaet).
@@ -3370,14 +3441,14 @@ async function deletePlayer(id){
   const skrevet = ((await indtast(`Skriv spillerens navn for at bekræfte:\n\n${navn}`, {ja: "Slet alt", farlig: true})) || "").trim();
   if(skrevet !== navn.trim()) return besked("Navnet passede ikke. Intet er slettet.");
 
-  setSyncStatus("v15.83 · sletter...");
+  setSyncStatus("v15.84 · sletter...");
   let svar;
   try{
     // Serveren tjekker navnet igen, før den sletter noget.
     svar = (await sletSpillerPaaServeren({playerId: id, navn: skrevet})).data;
   }catch(e){
     console.error(e);
-    setSyncStatus("v15.83 · live database aktiv");
+    setSyncStatus("v15.84 · live database aktiv");
     const kode = String(e?.code || "").replace(/^functions\//, "");
     const tekst = serverFejlTekst(e);
     // Afviste serveren kaldet, før den gik i gang, er intet slettet - så ingen opfordring.
@@ -3385,7 +3456,7 @@ async function deletePlayer(id){
     return besked("Kunne ikke slette: " + tekst
       + (afvist ? "" : `\n\nNåede noget at blive slettet, så tryk "Slet alt" igen - så gør serveren resten.`));
   }
-  setSyncStatus("v15.83 · live database aktiv");
+  setSyncStatus("v15.84 · live database aktiv");
 
   const fejl = Array.isArray(svar?.fejl) ? svar.fejl : [];
   if(fejl.length){
@@ -3467,7 +3538,7 @@ function renderTracking(){
   const jNaaet = juggleMainStep(p.id), jSvag = juggleWeakStep(p.id), jTricks = juggleTricks(p.id);
   const jLog = juggleLogFor(p.id).slice(0, 5);
   // Rullede en serie med (fortryd eller rettelse), staar de andre tricks i "ogsaa".
-  const ogsaaNavne = e=>Array.isArray(e.ogsaa) && e.ogsaa.length ? ", også " + escapeHtml(juggleOgListe(e.ogsaa.map(id=>juggleTrick(id)?.navn || String(id)))) : "";
+  const ogsaaNavne = e=>Array.isArray(e.ogsaa) && e.ogsaa.length ? ", også " + escapeHtml(juggleOgListe(e.ogsaa.map(juggleTrickNavn))) : "";
   const juggleBlock = `<div class="exercise-block">
     <h3 style="margin-top:0">Jongleringsstigen · ${ladderPoints(p.id)} point</h3>
     <p class="small">Registreret af familien på tillid. Tag en stikprøve til træning, og ret her, hvis tallet ikke holder. Point genberegnes automatisk.</p>
@@ -3489,9 +3560,9 @@ function renderTracking(){
       }).join("")).join("")}
     ${jLog.length ? `<div class="small" style="margin-top:10px"><b>Seneste registreringer</b>${jLog.map(e=>{
       const naar = e.at ? new Date(e.at).toLocaleString("da-DK") : "";
-      if(e.t === "correct") return `<div>${escapeHtml(naar)} · rettet af ${escapeHtml(e.af || "træner")}${e.stige==="trick" ? ` (${escapeHtml(juggleTrick(e.trick)?.navn || e.trick)} ${escapeHtml(e.til)}${ogsaaNavne(e)})` : ` (${e.stige==="main"?"hovedstigen":"dårligt ben"} ${e.fra} → ${e.til})`}</div>`;
-      if(e.t === "undo") return `<div>${escapeHtml(naar)} · spilleren fortrød ${e.stige === "trick" ? escapeHtml(juggleTrick(e.trick)?.navn || e.trick) + ogsaaNavne(e) : `${e.stige === "main" ? "hovedstigen" : "dårligt ben"} ${e.fra} → ${e.til}`}</div>`;
-      if(e.t === "trick") return `<div>${escapeHtml(naar)} · ${escapeHtml(juggleTrick(e.v)?.navn || e.v)}</div>`;
+      if(e.t === "correct") return `<div>${escapeHtml(naar)} · rettet af ${escapeHtml(e.af || "træner")}${e.stige==="trick" ? ` (${escapeHtml(juggleTrickNavn(e.trick))} ${escapeHtml(e.til)}${ogsaaNavne(e)})` : ` (${e.stige==="main"?"hovedstigen":"dårligt ben"} ${e.fra} → ${e.til})`}</div>`;
+      if(e.t === "undo") return `<div>${escapeHtml(naar)} · spilleren fortrød ${e.stige === "trick" ? escapeHtml(juggleTrickNavn(e.trick)) + ogsaaNavne(e) : `${e.stige === "main" ? "hovedstigen" : "dårligt ben"} ${e.fra} → ${e.til}`}</div>`;
+      if(e.t === "trick") return `<div>${escapeHtml(naar)} · ${escapeHtml(juggleTrickNavn(e.v))}</div>`;
       const stige = e.t === "main" ? JUGGLE_MAIN : JUGGLE_WEAK;
       return `<div>${escapeHtml(naar)} · ${stige[e.v] ?? "?"} ${e.t === "main" ? "jongleringer" : "med dårligt ben"}</div>`;
     }).join("")}</div>` : '<p class="small" style="margin-top:10px">Ingen registreringer endnu.</p>'}
@@ -4028,11 +4099,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.83 · migrering færdig");
+    setSyncStatus("v15.84 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.83 · migrering fejlede");
+    setSyncStatus("v15.84 · migrering fejlede");
   }
 }
 
@@ -4184,7 +4255,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.83 · uploader video...");
+    setSyncStatus("v15.84 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -4228,12 +4299,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.83 · live database aktiv");
+    setSyncStatus("v15.84 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.83 · live database aktiv");
+    setSyncStatus("v15.84 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
