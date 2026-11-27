@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.84</title>
+  <title>TIF Talent Tracker v15.85</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -154,6 +154,9 @@
     .statuscard{border:1px solid var(--line);border-radius:12px;padding:10px;background:white;font-size:12px}
     .statuscard b{display:block;margin-bottom:4px}
     .status-done{background:#ecfdf5}.status-progress{background:#fffbeb}.status-none{background:#f8fafc}
+    .streakrow > div:first-child{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+    .streaktal{flex:0 0 auto;text-align:right}
+    .streaktal b{display:block;font-size:22px;line-height:1.1;color:var(--maroon)}
 
     .filterbar{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 10px}
 
@@ -180,7 +183,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.84 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.85 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
   <div id="seSomSpillerBanner" class="somspillerbanner hidden" role="status"></div>
@@ -290,6 +293,12 @@
       <div><label>Vælg niveau</label><select id="overviewStep" onchange="renderOverview()"></select></div>
     </div>
     <div id="overviewArea"></div>
+  </div>
+  <div class="card" id="streakCard">
+    <h2>Streaks</h2>
+    <p class="small">En dag tæller, når barnet har lavet fodteknik eller taget et trin på Jongleringsstigen. Godkendte jokere bygger bro.</p>
+    <label for="streakYear">Vælg årgang</label><select id="streakYear" onchange="renderStreakOverview()"></select>
+    <div id="streakArea"></div>
   </div>
 </section>
 
@@ -616,7 +625,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.84 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.85 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -2684,7 +2693,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.84 · ikke logget ind");
+    setSyncStatus("v15.85 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2720,7 +2729,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.84 · bekræft inden I går i gang");
+    setSyncStatus("v15.85 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2728,7 +2737,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.84 · vælg din egen adgangskode");
+    setSyncStatus("v15.85 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2802,7 +2811,7 @@ function startListeners(){
         if(!ranglisteAar) lytRangliste(normalizeYearValue(currentPlayerLink.year));
       }
     }
-    setSyncStatus("v15.84 · live database aktiv");
+    setSyncStatus("v15.85 · live database aktiv");
     renderAll();
   };
   spillereHentet = false;
@@ -2811,7 +2820,7 @@ function startListeners(){
       players = snap.exists() ? [migratePlayer({id: snap.id, ...snap.data()})] : [];
       spillereHentet = true;
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.84 · databasefejl: " + e.code))] : [];
+    }, (e)=>setSyncStatus("v15.85 · databasefejl: " + e.code))] : [];
     if(!egenId){ players = []; spillereHentet = true; spillerFaaet(); }
   } else {
     unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
@@ -2819,7 +2828,7 @@ function startListeners(){
       if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
       players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.84 · databasefejl: " + e.code));
+    }, (e)=>setSyncStatus("v15.85 · databasefejl: " + e.code));
   }
   // Spillerens egen aargang kendes fra loginnet (som allowedYears); mangler den dér,
   // startes lytteren, naar spillerens eget dokument er kommet (se spillerFaaet).
@@ -3153,6 +3162,15 @@ function renderYearOptions(){
     if(old && medaljeAar.map(normalizeYearValue).includes(old)) oy.value = old;
   }
 
+  // Streaks paa Overblik er hjemmetraening, ikke medaljestof: alle egne aargange, ogsaa
+  // dem uden Talentmaerket, og "alle" som standard.
+  const sy = document.getElementById("streakYear");
+  if(sy){
+    const old = sy.value || "all";
+    sy.innerHTML = `<option value="all">Alle mine årgange</option>` + visibleOpts;
+    sy.value = old === "all" || visibleNormalized.includes(normalizeYearValue(old)) ? old : "all";
+  }
+
   const ply = document.getElementById("playerListYear");
   if(ply){
     if(playerListFilterYear !== "all" && !visibleNormalized.includes(normalizeYearValue(playerListFilterYear))){
@@ -3441,14 +3459,14 @@ async function deletePlayer(id){
   const skrevet = ((await indtast(`Skriv spillerens navn for at bekræfte:\n\n${navn}`, {ja: "Slet alt", farlig: true})) || "").trim();
   if(skrevet !== navn.trim()) return besked("Navnet passede ikke. Intet er slettet.");
 
-  setSyncStatus("v15.84 · sletter...");
+  setSyncStatus("v15.85 · sletter...");
   let svar;
   try{
     // Serveren tjekker navnet igen, før den sletter noget.
     svar = (await sletSpillerPaaServeren({playerId: id, navn: skrevet})).data;
   }catch(e){
     console.error(e);
-    setSyncStatus("v15.84 · live database aktiv");
+    setSyncStatus("v15.85 · live database aktiv");
     const kode = String(e?.code || "").replace(/^functions\//, "");
     const tekst = serverFejlTekst(e);
     // Afviste serveren kaldet, før den gik i gang, er intet slettet - så ingen opfordring.
@@ -3456,7 +3474,7 @@ async function deletePlayer(id){
     return besked("Kunne ikke slette: " + tekst
       + (afvist ? "" : `\n\nNåede noget at blive slettet, så tryk "Slet alt" igen - så gør serveren resten.`));
   }
-  setSyncStatus("v15.84 · live database aktiv");
+  setSyncStatus("v15.85 · live database aktiv");
 
   const fejl = Array.isArray(svar?.fejl) ? svar.fejl : [];
   if(fejl.length){
@@ -3715,6 +3733,68 @@ function renderOverview(){
     const status=cnt===5?'<span class="pill greenpill">✓ Bestået</span>':cnt>0?'<span class="pill guld">● I gang</span>':'<span class="pill none">○ Ikke startet</span>';
     return `<tr><td><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(noteFor(p.id))}</div></td><td>${status}</td><td><b>${cnt}/5</b></td></tr>`;
   }).join("")}</tbody></table></div>`;
+}
+// Streaks paa Overblik: hvert barn, traeneren eller admin ser, med den streak, barnet selv
+// ser. Intet regnes for sig: laengden er footworkCurrentStreak (som paa barnets side og
+// under Registrering), den laengste er footworkRuns uden ventende jokere (som pointene) - dog mindst den aktuelle, og
+// en dag taeller med fodteknik ELLER stigen (footworkRuns bruger juggleActiveDays).
+// Omfanget er sidens: egne aargange, og i en koensbegraenset aargang kun det koen - de
+// samme boern, lytterne henter (subscribeYearScoped).
+function streakBoern(){
+  const valgt = document.getElementById("streakYear")?.value || "all";
+  return players.filter(p=>{
+    const y = normalizeYearValue(p.year);
+    if(!canAccessYear(y) || (valgt !== "all" && y !== normalizeYearValue(valgt))) return false;
+    const koen = genderRestrictionFor(y);
+    return !koen || p.gender === koen;
+  });
+}
+function streakOverblik(pid){
+  const nu = footworkCurrentStreak(pid);
+  const runs = footworkRuns(pid, true), sidste = runs[runs.length-1];
+  const iDag = iDagISO();
+  // lever: sidste forloeb naar i dag eller i gaar. Er i dag en aktiv dag, er der traenet;
+  // daekker en joker i dag, lever streaken ogsaa i morgen; ellers brister den ved midnat.
+  const status = nu.lever ? (sidste.dage.includes(iDag) ? "idag" : sidste.sidste === iDag ? "joker" : "mangler")
+    : nu.tidligere ? "brudt" : "ingen";
+  // Den laengste maa aldrig staa under den aktuelle: hviler den aktuelle paa en joker, der
+  // venter, ville "Laengste: 3" under "Aktuel: 4" se forkert ud for en traener.
+  const laengste = Math.max(nu.laengde || 0, footworkRuns(pid, false).reduce((m, r)=>Math.max(m, r.laengde), 0));
+  return {nu, status, laengste};
+}
+function renderStreakOverview(){
+  const area = document.getElementById("streakArea");
+  if(!area) return;
+  if(!currentUserDoc || isPlayer()){ area.innerHTML = ""; return; }
+  const dage = n=>`${n} ${n === 1 ? "dag" : "dage"}`;
+  const raekker = streakBoern().map(p=>({p, ...streakOverblik(p.id)}))
+    .sort((a, b)=>b.nu.laengde - a.nu.laengde || String(a.p.name || "").localeCompare(String(b.p.name || ""), "da"));
+  if(!raekker.length){ area.innerHTML = '<p class="small">Ingen børn i den valgte årgang.</p>'; return; }
+  const aktive = raekker.filter(r=>r.nu.lever).length, mangler = raekker.filter(r=>r.status === "mangler").length;
+  const STATUS = {
+    idag: '<span class="pill greenpill">Trænet i dag</span>',
+    joker: '<span class="pill greenpill">Joker i dag</span>',
+    mangler: '<span class="pill guld">Mangler i dag</span>',
+    brudt: '<span class="pill none">Brudt</span>',
+    ingen: '<span class="pill none">Ingen streak endnu</span>'
+  };
+  area.innerHTML = `<p class="small" id="streakSummary" style="margin:12px 0 4px"><b>${aktive} ${aktive === 1 ? "barn" : "børn"} har en aktiv streak · ${mangler} mangler at træne i dag</b></p>
+  <div id="streakListe">${raekker.map(({p, nu, status, laengste})=>{
+    const naeste = nu.lever ? footworkNextStreakBonus(nu.laengde) : null;
+    const t = nu.tidligere;
+    const linjer = [
+      nu.lever ? (naeste ? `Næste bonus: ${naeste[0]} dage giver +${naeste[1]}` : "Alle streak-bonusser taget") : "",
+      status === "brudt" ? `Sidst ${dage(t.laengde)}, sluttede ${escapeHtml(datoTekst(t.sidste))}` : "",
+      `Længste streak: ${dage(laengste)}`
+    ].filter(Boolean);
+    return `<div class="player streakrow" data-pid="${escapeHtml(p.id)}">
+      <div><button class="linkbtn" onclick="selectProfileForTracking('${escapeHtml(p.id)}')">${escapeHtml(p.name || "Uden navn")}</button>
+        <div class="small">${escapeHtml(yearLabel(p.year))} · Aktuel streak: ${dage(nu.laengde)}</div>
+        <div class="streakstatus">${STATUS[status]}${nu.afventer ? '<span class="pill sølv">Venter på joker</span>' : ""}</div>
+        ${linjer.map(l=>`<div class="small">${l}</div>`).join("")}</div>
+      <div class="streaktal" aria-hidden="true"><b>${nu.laengde}</b><span class="small">${nu.laengde === 1 ? "dag" : "dage"}</span></div>
+    </div>`;
+  }).join("")}</div>`;
 }
 function listItems(arr){ return "<ul>"+arr.map(x=>`<li>${escapeHtml(x)}</li>`).join("")+"</ul>"; }
 // Krav og beskrivelse laa foer paa hver sin fane, saa den, der ledte efter "hvad skal
@@ -4099,11 +4179,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.84 · migrering færdig");
+    setSyncStatus("v15.85 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.84 · migrering fejlede");
+    setSyncStatus("v15.85 · migrering fejlede");
   }
 }
 
@@ -4255,7 +4335,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.84 · uploader video...");
+    setSyncStatus("v15.85 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -4299,12 +4379,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.84 · live database aktiv");
+    setSyncStatus("v15.85 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.84 · live database aktiv");
+    setSyncStatus("v15.85 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
@@ -6160,7 +6240,7 @@ function renderAll(tving){
   if(!tving && uiOptaget()){ renderVenter = true; return; }
   renderVenter = false;
   const husket = huskFelter();
-  renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); renderDeletionRequests(); renderJuggle(); renderFootwork();
+  renderYearOptions(); renderPlayers(); renderSelects(); renderTracking(); renderOverview(); renderStreakOverview(); renderAdmin(); renderPlayerProfile(); renderReview(); renderTraining(); renderChallenges(); renderLeaderboard(); renderChallengeBadge(); renderDeletionRequests(); renderJuggle(); renderFootwork();
   gendanFelter(husket);
 }
 // Indhenter en udsat optegning, saa snart brugeren har sluppet feltet. De 600 ms er der,
@@ -6172,7 +6252,7 @@ setInterval(()=>{ if(renderVenter && !uiOptaget() && Date.now() - sidsteBeroerin
 renderExerciseInfo();
 function forceReload(){ location.reload(); }
 
-Object.assign(window,{startSeSomSpiller,stopSeSomSpiller,visGuideVideo,lukGuideVideo,vaelgGuideVideo,uploadGuideVideo,deleteGuideVideo,login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,undoJuggle,undoJuggleTrick,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderGuideLevels,toggleYearTalentmaerke,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,downloadBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
+Object.assign(window,{startSeSomSpiller,stopSeSomSpiller,visGuideVideo,lukGuideVideo,vaelgGuideVideo,uploadGuideVideo,deleteGuideVideo,login,logout,resetPassword,showPage,openPrivacy,closePrivacy,acceptPrivacy,saveNote,registerJuggle,undoJuggle,undoJuggleTrick,correctJuggle,correctJuggleTrick,registerFootwork,setFootworkDay,requestFootworkJoker,cancelFootworkJoker,decideFootworkJoker,clearFootworkJoker,correctFootwork,correctFootworkDay,resetFootworkDay,requestOwnDeletion,cancelOwnDeletionRequest,declineDeletionRequest,addPlayer,deletePlayer,renderTracking,renderOverview,renderStreakOverview,renderGuideLevels,toggleYearTalentmaerke,selectStep,togglePassed,editCoach,saveCoachAccess,cancelCoachEdit,forceReload,migrateOldPlayers,openPlayerProfile,selectProfileForTracking,exportBackupJson,downloadBackupJson,exportBackupCsv,createCoachFromAdmin,migrateYearsToBirthYears,setPlayerListFilter,addAdminYear,toggleAdminYear,createPlayerLoginFromAdmin,changeOwnPassword,changeForcedPassword,submitTraining,createChallenge,respondChallenge,submitChallengeVideo,reviewSubmission,renderLeaderboard,setLeaderboardPeriod,setLeaderboardScope,rebuildClubRanking,moveNotesOffPlayers,setPlayerGender,setChallengeCreateType,fillFreestylePreset,judgeFreestyleChallenge,toggleMedalHandedOver,markSubmissionViewed,deleteViewedSubmissionVideo,deleteUserAccess,toggleUserActive,syncPlayerLoginFlags});
 </script>
 </body>
 </html>

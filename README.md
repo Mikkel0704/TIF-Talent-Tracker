@@ -531,6 +531,15 @@ koden - "V-rul" hedder nu "V-rul yderside" (kode `v`), "V+L rul" hedder "L+V-rul
 `tests/logik/fodteknik-v1-reference.mjs` er en frossen kopi af beregningen fra før
 ændringen; migreringstesten kræver, at gamle dage giver præcis samme point som den.
 
+## Streaks på Overblik
+
+Fra v15.85 har Overblik en sektion "Streaks" for trænere og admin: hvert barn, de kan se
+(valgt årgang eller alle egne årgange; en træner med kun ét køn ser kun det køn), med aktuel
+streak, status i dag (Trænet i dag, Joker i dag, Mangler i dag, Brudt, Ingen streak endnu),
+"Venter på joker", næste bonus og længste streak. Tallene kommer fra de samme funktioner som
+barnets side og Registrering (`footworkCurrentStreak`, `footworkRuns`), så de altid er ens.
+Kun visning - ingen regel-, server- eller pointændring. `tests/visning/streaks.mjs` prøver det.
+
 ## Samlinger i Firestore
 
 | Samling | Indhold | Hvem må læse |

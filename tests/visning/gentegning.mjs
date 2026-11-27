@@ -22,9 +22,9 @@ function tegnOmraade(){
     '<div id="aar"><label><input type="checkbox" class="aar" value="2016"></label><label><input type="checkbox" class="aar" value="2017"></label></div>' +
     '<input type="file" id="video">';
 }
-// Stedfortraedere for de 15 rigtige tegnefunktioner: én tegner, resten er tomme.
+// Stedfortraedere for de 16 rigtige tegnefunktioner: én tegner, resten er tomme.
 function renderYearOptions(){ tegnOmraade(); }
-function renderPlayers(){} function renderSelects(){} function renderTracking(){} function renderOverview(){}
+function renderPlayers(){} function renderSelects(){} function renderTracking(){} function renderOverview(){} function renderStreakOverview(){}
 function renderAdmin(){} function renderPlayerProfile(){} function renderReview(){} function renderTraining(){}
 function renderChallenges(){} function renderLeaderboard(){} function renderChallengeBadge(){}
 function renderDeletionRequests(){} function renderJuggle(){} function renderFootwork(){}

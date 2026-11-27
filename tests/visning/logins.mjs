@@ -22,7 +22,7 @@ t("Functions-SDK'et hentes fra gstatic i samme version som de andre Firebase-mod
   importer.some(([m, v]) => m === "firebase-functions" && v === "12.13.0") && importer.every(([, v]) => v === "12.13.0"), importer);
 t("App Check saettes kun op paa den ene app", (html.match(/initializeAppCheck\(/g) || []).length === 1 && /initializeAppCheck\(app,/.test(html));
 // "Foer v15.81 ..." i en kommentar om stigen er historie, ikke versionen.
-t("versionen er hævet til v15.84 overalt", !html.includes("v15.80") && !/v15\.8[123] ·|Tracker v15\.8[123]/.test(html) && (html.match(/v15\.84/g) || []).length >= 10);
+t("versionen er hævet til v15.85 overalt", !html.includes("v15.80") && !/v15\.8[1234] ·|Tracker v15\.8[1234]/.test(html) && (html.match(/v15\.85/g) || []).length >= 10);
 
 const ok_ = { active: true, mustChangePassword: false, privacyAcceptedAt: new Date().toISOString(), privacyVersion: PRIVACY };
 const data = () => ({
