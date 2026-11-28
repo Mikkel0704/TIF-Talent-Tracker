@@ -209,8 +209,9 @@ const boern = {
   k3: [{ name: "Carl Kaaring", year: "2016", gender: "dreng" }, { year: "2016", days: dage("2026-11", 3, 4, { j: 1 }), jokers: { "2026-11-04": "approved" } }],
   k4: [{ name: "Bo Kaaring", year: "2018", gender: "dreng" }, null]
 };
+// Kun boern med et aktivt login kan kaares (v15.87) - alle boern her har et.
 for(const [id, [spiller, fodteknik]] of Object.entries(boern)){
-  await db.collection("players").doc(id).set({ ...spiller, points: 0 });
+  await db.collection("players").doc(id).set({ ...spiller, points: 0, hasActiveLogin: true });
   if(fodteknik) await db.collection("footwork").doc(id).set(fodteknik);
 }
 // Til topscoreren: en medalje til Bo (2018) godkendt i november - som ikke taeller
@@ -259,7 +260,7 @@ t("anden koersel skriver intet - hverken Maanedens spiller eller topscorer", ks.
 
 // En admins browser naar det foerst: posten skrives, efter at serveren har regnet, men foer
 // den opretter. create() maa ikke overskrive den - heller ikke naar indholdet er et andet.
-await db.collection("players").doc("k5").set({ name: "Ny Kaaring", year: "2015", points: 0 });
+await db.collection("players").doc("k5").set({ name: "Ny Kaaring", year: "2015", points: 0, hasActiveLogin: true });
 await db.collection("footwork").doc("k5").set({ year: "2015", days: dage("2026-11", 1, 3) });
 const browserensPost = { maaned: "2026-11", aargang: "2015", vindere: [{ id: "k5", navn: "Ny Kaaring", dage: 99, minutter: 1, oevelser: 1, point: 1 }], beregnet: FieldValue.serverTimestamp() };
 const kaploeb = { collection: navn => {
@@ -285,8 +286,8 @@ t("og topscorerne for 2015 kommer nu: november paa den GEMTE Maanedens spiller (
 
 // Det samme kaploeb paa topscoreren: browseren naar at gemme den, efter at serveren har
 // regnet, men foer den opretter. create() overskriver den ikke, og aargangen stopper.
-await db.collection("players").doc("k6").set({ name: "Tidlig Kaaring", year: "2014", points: 0 });
-await db.collection("players").doc("k7").set({ name: "Anden Kaaring", year: "2014", points: 0 });
+await db.collection("players").doc("k6").set({ name: "Tidlig Kaaring", year: "2014", points: 0, hasActiveLogin: true });
+await db.collection("players").doc("k7").set({ name: "Anden Kaaring", year: "2014", points: 0, hasActiveLogin: true });
 await db.collection("footwork").doc("k6").set({ year: "2014", days: dage("2026-11", 1, 5) });
 await db.collection("footwork").doc("k7").set({ year: "2014", days: dage("2026-11", 1, 2) });
 const browserensTop = { maaned: "2026-11", aargang: "2014", vindere: [{ id: "k7", navn: "Anden Kaaring", point: 999, oevelser: 1, svaer: 0, mellem: 0, let: 0, starter: 0 }], beregnet: FieldValue.serverTimestamp() };

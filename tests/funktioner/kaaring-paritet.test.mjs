@@ -39,6 +39,14 @@ const KODER = ["t", "s", "d", "v", "p", "o", "y", "j", "l", "k", "c", "q", "x", 
 const dag = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;  // TZ er dansk (kaaring.js)
 const TEGN = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
+// Kun boern med et aktivt login kan kaares (v15.87). Hvert fjerde barn har intet: feltet
+// mangler, er false, er teksten "true" eller tallet 1 - kun praecis true er et login.
+// Afgoeres af nummeret, ikke af froeet, saa de tilfaeldige data ellers er de samme.
+const UDEN_LOGIN = [{}, { hasActiveLogin: false }, { hasActiveLogin: "true" }, { hasActiveLogin: 1 }];
+const login = n => n % 4 !== 3 ? { hasActiveLogin: true } : UDEN_LOGIN[(n >> 2) % 4];
+// Og i 2017 og 2015 et barn uden login, der traener mere end alle andre hver eneste dag -
+// det ville vinde begge priser, hvis det kunne.
+const BEDST_UDEN_LOGIN = { udenLoginBedst2017: { year: "2017" }, udenLoginBedst2015: { year: "2015", hasActiveLogin: "true" } };
 function lavData(nu, seed, { kaaringer = {}, topscorere = {} } = {}){
   const r = fro(seed), heltal = (a, b) => a + Math.floor(r() * (b - a + 1)), vaelg = a => a[Math.floor(r() * a.length)];
   const nytId = () => { for(;;){ let s = ""; for(let i = 0; i < 20; i++) s += vaelg(TEGN); if(!/aa/i.test(s)) return s; } };   // som Firestores auto-id'er
@@ -55,7 +63,7 @@ function lavData(nu, seed, { kaaringer = {}, topscorere = {} } = {}){
     const id = nytId();
     const year = n === 0 ? "" : n === 1 ? undefined : vaelg(AAR);   // uden aargang: noten eller 2017 (migratePlayer)
     db.players[id] = { name: "Barn " + String(n).padStart(2, "0"), ...(year !== undefined ? { year } : {}), ...(n === 0 ? { note: "U11 ny" } : {}),
-      gender: vaelg(["dreng", "pige", null]), points: (n * 37) % 400, passed: {}, history: [] };   // taeller ikke
+      gender: vaelg(["dreng", "pige", null]), points: (n * 37) % 400, passed: {}, history: [], ...login(n) };   // points taeller ikke
     const norm = /^U\d+$/.test(year || "") ? String(2026 - Number(year.slice(1))) : year;
     if(norm === "2018") continue;
     (efterAar[norm] ||= []).push(id);
@@ -101,6 +109,12 @@ function lavData(nu, seed, { kaaringer = {}, topscorere = {} } = {}){
   // Medaljer til et barn, der ikke findes.
   db.submissions["ingen-spiller"] = { playerId: "findes-ikke", year: "2017", status: "approved", reviewedAt: tidspunkt(), pointsAwarded: 999 };
   db.footwork["forældreløs"] = { year: "2013", days: { "2026-11-03": { t: 2 } } };
+  for(const [id, p] of Object.entries(BEDST_UDEN_LOGIN)){
+    db.players[id] = { name: "Bedst uden login " + p.year, gender: "pige", points: 0, passed: {}, history: [], ...p };
+    const days = {};
+    for(const d = new Date(2026, 9, 20); d <= nu; d.setDate(d.getDate() + 1)) days[dag(d)] = { k: 3, j: 2, t: 3, c: 2 };
+    db.footwork[id] = { days, jokers: {}, jokerRequests: {}, year: p.year };
+  }
   return db;
 }
 
@@ -161,7 +175,7 @@ for(const [i, [navn, iso, valg]] of TILFAELDE.entries()){
   if(valg.gemt){
     // Gem november i 2017 og 2015 med en tilfaeldig vinder (ikke den, tallene ville give),
     // og 2014 uden vindere.
-    const ider = aar => Object.entries(db.players).filter(([, p]) => (p.year === aar || (aar === "2017" && p.year === "U9"))).map(([id]) => id);
+    const ider = aar => Object.entries(db.players).filter(([id, p]) => !BEDST_UDEN_LOGIN[id] && (p.year === aar || (aar === "2017" && p.year === "U9"))).map(([id]) => id);
     const k = {};
     for(const aar of ["2017", "2015"]){ const id = ider(aar).at(-1); k["2026-11_" + aar] = { maaned: "2026-11", aargang: aar, vindere: [{ id, navn: db.players[id].name, dage: 1, minutter: 0.5, oevelser: 1, point: 2 }] }; }
     k["2026-11_2014"] = { maaned: "2026-11", aargang: "2014", vindere: [] };
@@ -210,6 +224,22 @@ for(const [i, [navn, iso, valg]] of TILFAELDE.entries()){
     const ms = server.find(x => x.samling === "maanedensSpiller" && x.id === k.id)?.post || db.maanedensSpiller[k.id];
     return k.post.vindere.every(v => !(ms?.vindere || []).some(w => w.id === v.id)); }));
   t("kaldt igen paa siden skrives intet", igen === 0, igen);
+  {
+    // v15.87: kun boern med et aktivt login kan vinde - hos siden og serveren.
+    const udenLogin = new Set(Object.entries(db.players).filter(([, p]) => p.hasActiveLogin !== true).map(([id]) => id));
+    const iPoster = liste => liste.flatMap(k => (k.post || k.data).vindere.map(v => v.id)).filter(id => udenLogin.has(id));
+    t(`intet af de ${udenLogin.size} boern uden aktivt login staar i en post - hverken hos siden eller serveren`,
+      udenLogin.size >= 8 && !iPoster(server).length && !iPoster(poster).length, { server: iPoster(server), side: iPoster(poster) });
+    if(server.some(k => (k.aargang === "2017" || k.aargang === "2015") && !db[k.samling][k.id])){
+      // Havde alle login, ville barnet, der traener mest, vinde - saa reglen er det, der holder det ude.
+      const medAlle = alleKaaringerAtOprette(medId({ ...db, players: Object.fromEntries(Object.entries(db.players).map(([id, p]) => [id, { ...p, hasActiveLogin: true }])) }), nu);
+      const bedst = medAlle.filter(k => k.post.vindere.some(v => BEDST_UDEN_LOGIN[v.id])).map(sti);
+      // (Det vinder Maanedens spiller og er saa udelukket som topscorer samme maaned; to maaneder
+      // i traek kan det ikke vinde Maanedens spiller og vinder topscorer i stedet.)
+      t(`med login til alle ville barnet, der traener mest, vinde i 2017 og 2015 (${bedst.length} poster) - uden login vinder det ingen`,
+        ["2017", "2015"].every(y => bedst.some(x => x.startsWith("maanedensSpiller/") && x.endsWith("_" + y))), bedst);
+    }
+  }
   if(server.length){
     const vindere = server.flatMap(k => k.post.vindere);
     const delte = server.filter(k => k.post.vindere.length > 1).length, tomme = server.filter(k => !k.post.vindere.length).length;

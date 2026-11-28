@@ -14,8 +14,9 @@ let ok = 0, fejlet = 0;
 const t = (navn, b, ekstra) => { b ? (ok++, console.log("  ok   " + navn)) : (fejlet++, console.log("  FEJL  " + navn + (ekstra !== undefined ? "  -> " + JSON.stringify(ekstra) : ""))); };
 const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
 
-// Hjaelpere: spillere, fodteknik og dage.
-const sp = (id, year = "2017", gender = "dreng", ekstra = {}) => ({ id, name: "Navn " + id, year, gender, ...ekstra });
+// Hjaelpere: spillere, fodteknik og dage. Kun boern med et aktivt login kan kaares (v15.87),
+// saa testenes boern har hasActiveLogin: true, medmindre ekstra siger andet.
+const sp = (id, year = "2017", gender = "dreng", ekstra = {}) => ({ id, name: "Navn " + id, year, gender, hasActiveLogin: true, ...ekstra });
 const dage = (maaned, fra, til, pr = { t: 1 }) => Object.fromEntries(Array.from({ length: til - fra + 1 }, (_, i) => [`${maaned}-${String(fra + i).padStart(2, "0")}`, pr]));
 const fw = (id, days, ekstra = {}) => ({ id, days, ...ekstra });
 const DEC5 = new Date("2026-12-05T09:00:00+01:00");
@@ -177,6 +178,40 @@ r = alleKaar({ spillere: [sp("a", "2016"), sp("b", "2017", "pige"), sp("c", "201
 t("aargangene for sig, drenge og piger sammen: i 2017 er d Maanedens spiller, og pigen b slaar drengen c; 2016 har ingen topscorer",
   JSON.stringify([topV(r, "2026-11_2017"), topV(r, "2026-11_2016")]) === '[["b"],[]]', orden(r));
 
+console.log("\nKun boern med eget login kan vinde (v15.87)");
+{
+  // 2017: u1 og u2 har ingen login (feltet mangler / false) og de bedste tal paa alt - flest dage
+  // og flest point. Af boernene med login har m flest dage, og t flest point. "s" har hasActiveLogin
+  // som tekst ("true") og 1-tal hos "e" - ingen af dem er et aktivt login.
+  // 2016: kun boern uden login -> poster uden vindere, aargangen stopper ikke.
+  const blandet = { spillere: [sp("u1"), sp("u2", "2017", "pige", { hasActiveLogin: false }), sp("m"), sp("t", "2017", "pige"),
+      sp("s", "2017", "dreng", { hasActiveLogin: "true" }), sp("e", "2017", "dreng", { hasActiveLogin: 1 }), sp("x", "2016", "dreng", { hasActiveLogin: false })],
+    fodteknik: [fw("u1", dage("2026-11", 1, 25, { k: 3 })), fw("u2", dage("2026-11", 1, 20, { k: 3 })), fw("m", dage("2026-11", 1, 10)),
+      fw("t", { "2026-11-20": { k: 3, x: 2 } }), fw("s", dage("2026-11", 1, 28, { k: 3 })), fw("e", dage("2026-11", 1, 27, { k: 3 })), fw("x", dage("2026-11", 1, 30, { k: 3 }))] };
+  delete blandet.spillere[0].hasActiveLogin;                       // u1: feltet mangler helt
+  r = alleKaar(blandet);
+  t("blandet: Maanedens spiller er m (bedst med login) - ikke u1, u2, s eller e uden et aktivt login", JSON.stringify(vindere(r.filter(k => k.samling === "maanedensSpiller"), "2026-11_2017")) === '["m"]', orden(r));
+  t("blandet: topscorer er t (flest point med login, m er udelukket) - ingen uden login", JSON.stringify(topV(r, "2026-11_2017")) === '["t"]', topV(r, "2026-11_2017"));
+  t("blandet: intet barn uden login staar i nogen post", !r.some(k => k.post.vindere.some(v => ["u1", "u2", "s", "e", "x"].includes(v.id))));
+  t("en aargang, hvor intet barn har login, faar stadig begge poster - uden vindere",
+    JSON.stringify(r.filter(k => k.id === "2026-11_2016").map(k => [k.samling, k.post.vindere])) === '[["maanedensSpiller",[]],["maanedensTopscorer",[]]]', r.filter(k => k.id === "2026-11_2016"));
+  // Samme tal, men u1 faar login: saa er u1 Maanedens spiller, og m (50 point) slaar t (26) som topscorer.
+  const medU1 = { ...blandet, spillere: blandet.spillere.map(p => p.id === "u1" ? { ...p, hasActiveLogin: true } : p) };
+  r = alleKaar(medU1);
+  t("faar u1 login, er u1 Maanedens spiller, og m (flest point blandt resten med login) er topscorer",
+    JSON.stringify([vindere(r.filter(k => k.samling === "maanedensSpiller"), "2026-11_2017"), topV(r, "2026-11_2017")]) === '[["u1"],["m"]]', orden(r));
+  // To i traek med blandede boern: u1 (login) vandt november; i december er u1 bedst igen,
+  // u2 (uden login) naestbedst, m (login) tredje -> m vinder; topscorer er u1 (ikke udelukket).
+  const dec = { spillere: [sp("u1"), sp("u2", "2017", "pige", { hasActiveLogin: false }), sp("m")],
+    fodteknik: [fw("u1", dage("2026-12", 1, 20, { k: 3 })), fw("u2", dage("2026-12", 1, 15, { k: 3 })), fw("m", dage("2026-12", 1, 5))],
+    kaaringer: [{ id: "2026-11_2017", maaned: "2026-11", aargang: "2017", vindere: [{ id: "u1", navn: "Navn u1" }] }],
+    topscorere: [{ id: "2026-11_2017", vindere: [] }] };
+  r = alleKaar(dec, new Date("2027-01-05T05:00:00+01:00"));
+  t("to i traek: u1 vandt november og er bedst i december, u2 uden login er naestbedst -> m vinder december",
+    JSON.stringify(vindere(r.filter(k => k.samling === "maanedensSpiller"), "2026-12_2017")) === '["m"]', orden(r));
+  t("to i traek: og u1 er topscorer i december - ikke u2 uden login", JSON.stringify(topV(r, "2026-12_2017")) === '["u1"]', topV(r, "2026-12_2017"));
+}
+
 console.log("\nIngen bivirkninger");
 const inddata = { spillere: [sp("a", "U9")], fodteknik: [fw("a", dage("2026-11", 1, 2))], kaaringer: [] };
 const foer = JSON.stringify(inddata);
@@ -223,7 +258,8 @@ const TUNGE = ["footwork", "submissions", "juggleLadder", "juggleLog"];
 const logbog = [];
 const logger = { info: (...a) => logbog.push(a), error: (...a) => logbog.push(a) };
 const dbData = () => ({
-  players: { p1: { name: "Oscar Hemmelig", year: "2017" }, p2: { name: "Ida Hemmelig", year: "2017" }, p3: { name: "Carl Hemmelig", year: "2016" } },
+  players: { p1: { name: "Oscar Hemmelig", year: "2017", hasActiveLogin: true }, p2: { name: "Ida Hemmelig", year: "2017", hasActiveLogin: true },
+    p3: { name: "Carl Hemmelig", year: "2016", hasActiveLogin: true } },
   footwork: { p1: { days: dage("2026-11", 1, 8) }, p2: { days: { ...dage("2026-11", 1, 12), ...dage("2026-12", 1, 2) } }, p3: { days: dage("2026-11", 1, 2) } },
   submissions: { s1: { playerId: "p1", status: "approved", reviewedAt: "2026-11-30T12:00:00Z", pointsAwarded: 25 } },
   juggleLadder: { p1: { mainStep: 1 } },
@@ -309,6 +345,25 @@ fdb = falskDb(dbData(), { createFejl: { "maanedensTopscorer/2026-12_2016": 7 } }
 s = await kaarMaanedensSpiller(fdb, new Date("2027-01-05T05:00:00+01:00"), logger);
 t("en anden fejl paa topscoreren meldes som fejlet under topscorer - og resten skrives",
   JSON.stringify(s.topscorer.fejlet) === '["2026-12_2016"]' && !s.fejlet.length && fdb.raekke.length === 7, { s, raekke: fdb.raekke });
+
+console.log("\nSkrivningen: kun boern med eget login (v15.87)");
+{
+  // kaarMaanedensSpiller laeser hele players-dokumentet - ogsaa hasActiveLogin.
+  const db2 = dbData();
+  db2.players.p2.hasActiveLogin = false;                          // Ida har flest dage, men intet login
+  const fdb2 = falskDb(db2);
+  await kaarMaanedensSpiller(fdb2, DEC5, logger);
+  t("Ida (p2) har flest dage, men intet login -> Oscar (p1) er Maanedens spiller, og 2017 faar ingen topscorer",
+    JSON.stringify([fdb2.data.maanedensSpiller["2026-11_2017"].vindere.map(v => v.id), fdb2.data.maanedensTopscorer["2026-11_2017"].vindere.map(v => v.id)]) === '[["p1"],[]]',
+    [fdb2.data.maanedensSpiller["2026-11_2017"].vindere, fdb2.data.maanedensTopscorer["2026-11_2017"].vindere]);
+  const db3 = dbData();
+  delete db3.players.p1.hasActiveLogin;                           // Oscar: feltet mangler
+  const fdb3 = falskDb(db3);
+  await kaarMaanedensSpiller(fdb3, DEC5, logger);
+  t("Oscar (p1) uden hasActiveLogin-felt: Ida er Maanedens spiller, og Oscar bliver ikke topscorer",
+    JSON.stringify([fdb3.data.maanedensSpiller["2026-11_2017"].vindere.map(v => v.id), fdb3.data.maanedensTopscorer["2026-11_2017"].vindere.map(v => v.id)]) === '[["p2"],[]]',
+    [fdb3.data.maanedensSpiller["2026-11_2017"].vindere, fdb3.data.maanedensTopscorer["2026-11_2017"].vindere]);
+}
 
 console.log(`\n${ok} ok, ${fejlet} fejl`);
 process.exit(fejlet ? 1 : 0);

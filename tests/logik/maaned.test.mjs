@@ -19,11 +19,16 @@ const afsnit = s => console.log("\n" + s);
 const M = "2026-12";                                       // en måned efter de nye regler
 const dag = n => `${M}-${String(n).padStart(2, "0")}`;
 // Niveau-øvelser: Toe-taps (t) og Sålerul (s) er Starter. Grundtræning: Jongleringstræning (j).
-// En spiller = {id, year, dage: {dato: {kode: antal}}, jokers?}
+// En spiller = {id, year, dage: {dato: {kode: antal}}, jokers?, login?}
+// Kun børn med et aktivt login kan kåres (v15.87). Testenes børn har derfor
+// hasActiveLogin: true, medmindre "login" står: login: false/"true"/1 sættes som det er,
+// og login: UDEN betyder, at feltet slet ikke findes på spilleren.
+const UDEN = Symbol("uden login-felt");
+const loginFelt = p => !("login" in p) ? {hasActiveLogin: true} : p.login === UDEN ? {} : {hasActiveLogin: p.login};
 function kaar(spillere, forrige = [], maaned = M){
   K.footworkComboMemo.clear();
   K.saetData(spillere.map(p=>({id: p.id, days: p.dage, jokers: p.jokers || {}, year: p.year || "2017", gender: "dreng"})), [], [], []);
-  const res = K.maanedensSpillerRangering(spillere.filter(p=>(p.year || "2017") === "2017").map(p=>({id: p.id, name: p.id, year: "2017"})), maaned, forrige);
+  const res = K.maanedensSpillerRangering(spillere.filter(p=>(p.year || "2017") === "2017").map(p=>({id: p.id, name: p.id, year: "2017", ...loginFelt(p)})), maaned, forrige);
   return {vindere: res.vindere.map(v=>v.id), res};
 }
 const ens = (antalDage, pr) => Object.fromEntries(Array.from({length: antalDage}, (_, i)=>[dag(i + 1), pr]));
@@ -58,8 +63,8 @@ t("7: kun A har trænet, og A vandt sidste måned -> ingen vinder",
   K.footworkComboMemo.clear();
   const data = [{id:"A", year:"2017", dage: ens(3, {t:1})}, {id:"B", year:"2016", dage: ens(2, {t:1})}];
   K.saetData(data.map(p=>({id: p.id, days: p.dage, jokers: {}, year: p.year, gender: "dreng"})), [], [], []);
-  const i2017 = K.maanedensSpillerRangering([{id:"A", name:"A", year:"2017"}], M, []).vindere.map(v=>v.id);
-  const i2016 = K.maanedensSpillerRangering([{id:"B", name:"B", year:"2016"}], M, []).vindere.map(v=>v.id);
+  const i2017 = K.maanedensSpillerRangering([{id:"A", name:"A", year:"2017", hasActiveLogin: true}], M, []).vindere.map(v=>v.id);
+  const i2016 = K.maanedensSpillerRangering([{id:"B", name:"B", year:"2016", hasActiveLogin: true}], M, []).vindere.map(v=>v.id);
   t("8: A og B i hver sin årgang -> begge vinder i deres egen", [i2017, i2016], [["A"], ["B"]]);
 }
 
@@ -78,6 +83,31 @@ r = kaar([{id:"A", dage: {[dag(1)]: {t: 1}}}], [], M);
 t("point er dagens point uden streakbonus", r.res.rangliste[0].point, 2);
 r = kaar([{id:"A", dage: ens(3, {t: 1})}]);
 t("tre dage i træk giver streakbonus i appen, men ikke i kåringen", r.res.rangliste[0].point, 6);
+
+afsnit("Kun børn med eget login kan vinde (v15.87)");
+// players.hasActiveLogin skal være præcis true. A har flest dage i alle tests her.
+for(const [navn, login] of [["uden feltet", UDEN], ["false", false], ['"true" (tekst)', "true"], ["1", 1], ["null", null], ['"ja"', "ja"]]){
+  r = kaar([{id:"A", login, dage: ens(20, {k:3})}, {id:"B", dage: ens(5, {t:1})}]);
+  t(`A med hasActiveLogin ${navn} og 20 dage taber til B med login og 5 dage`, r.vindere, ["B"]);
+  t(`A med hasActiveLogin ${navn} står ikke i ranglisten`, r.res.rangliste.map(x=>x.id), ["B"]);
+}
+r = kaar([{id:"A", login: false, dage: ens(20, {t:1})}, {id:"B", dage: ens(8, {t:1})}, {id:"C", dage: ens(12, {t:1})}, {id:"D", login: UDEN, dage: ens(15, {t:1})}]);
+t("blandet: den bedste MED login (C, 12 dage) vinder - ikke A (20) eller D (15) uden login", r.vindere, ["C"]);
+t("blandet: ranglisten er kun børnene med login, bedste først", r.res.rangliste.map(x=>[x.id, x.dage]), [["C", 12], ["B", 8]]);
+r = kaar([{id:"A", login: false, dage: ens(6, {t:1})}, {id:"B", dage: ens(6, {t:1})}]);
+t("helt lige med et barn uden login: barnet med login vinder alene (ingen deling)", r.vindere, ["B"]);
+r = kaar([{id:"A", login: false, dage: ens(20, {t:1})}, {id:"B", login: UDEN, dage: ens(10, {t:1})}]);
+t("ingen i årgangen har login -> ingen vinder", r.vindere, []);
+t("ingen i årgangen har login -> tom rangliste og intet sprunget over", [r.res.rangliste, r.res.sprunget], [[], []]);
+r = kaar([{id:"A", dage: ens(20, {t:1})}, {id:"B", login: false, dage: ens(15, {t:1})}, {id:"C", dage: ens(10, {t:1})}], ["A"]);
+t("to i træk: A (login) vandt sidst og er nr. 1, B uden login er nr. 2 -> C (login) vinder", r.vindere, ["C"]);
+t("to i træk: A står som sprunget over, B er hverken i ranglisten eller sprunget over",
+  [r.res.rangliste.map(x=>x.id), r.res.sprunget], [["A", "C"], ["A"]]);
+r = kaar([{id:"A", login: false, dage: ens(20, {t:1})}, {id:"B", dage: ens(5, {t:1})}], ["A"]);
+t("vandt A sidste måned og har nu intet login, vinder B - og A står ikke som sprunget over",
+  [r.vindere, r.res.sprunget], [["B"], []]);
+t("to i træk: A (login) vandt sidst, alle andre er uden login -> ingen vinder",
+  kaar([{id:"A", dage: ens(20, {t:1})}, {id:"B", login: "true", dage: ens(15, {t:1})}], ["A"]).vindere, []);
 
 afsnit("Gamle dage (før de nye regler) i november");
 K.footworkComboMemo.clear();

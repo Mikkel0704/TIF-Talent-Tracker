@@ -20,9 +20,10 @@ const grund = () => ({
     drenge: { email: "d@x.invalid", role: "coach", years: ["2017"], yearGenders: { "2017": "dreng" }, ...ok_ },
     sp:     { email: "s@x.invalid", role: "player", playerId: "p1", years: ["2017"], ...ok_ } },
   players: {
-    p1: { name: "Oscar Test", year: "2017", gender: "dreng", points: 0, passed: {}, history: [] },
-    p2: { name: "Ida Test",   year: "2017", gender: "pige",  points: 0, passed: {}, history: [] },
-    p3: { name: "Carl Test",  year: "2016", gender: "dreng", points: 0, passed: {}, history: [] } },
+    // Kun børn med et aktivt login kan kåres (v15.87).
+    p1: { name: "Oscar Test", year: "2017", gender: "dreng", points: 0, passed: {}, history: [], hasActiveLogin: true },
+    p2: { name: "Ida Test",   year: "2017", gender: "pige",  points: 0, passed: {}, history: [], hasActiveLogin: true },
+    p3: { name: "Carl Test",  year: "2016", gender: "dreng", points: 0, passed: {}, history: [], hasActiveLogin: true } },
   footwork: {
     p1: { year: "2017", gender: "dreng", days: { ...dage("2026-11", 1, 8, { t: 1 }), ...dage("2026-12", 1, 5, { t: 1 }) } },
     p2: { year: "2017", gender: "pige",  days: { ...dage("2026-11", 1, 12, { t: 1 }), ...dage("2026-12", 1, 9, { t: 1 }) } },

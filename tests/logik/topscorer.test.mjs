@@ -20,17 +20,22 @@ const kl = (iso, tid = "10:00:00") => `${iso}T${tid}+01:00`;            // dansk
 // Medaljer: [{point, godkendt, status?}] - godkendt er reviewedAt (tekst eller et Timestamp-agtigt objekt).
 function saet(boern){
   K.saetAlleBoern({
-    spillere: boern.map(b => ({ id: b.id, name: "Navn " + b.id, year: b.year || "2017", gender: b.gender || "dreng" })),
+    spillere: boern.map(b => ({ id: b.id, name: "Navn " + b.id, year: b.year || "2017", gender: b.gender || "dreng", ...loginFelt(b) })),
     fodteknik: boern.filter(b => b.dage || b.jokers).map(b => ({ id: b.id, days: b.dage || {}, jokers: b.jokers || {} })),
     stiger: boern.filter(b => b.stige).map(b => ({ id: b.id, ...b.stige })),
     stigelogge: boern.filter(b => b.log).map(b => ({ id: b.id, entries: b.log })),
     indsendelser: boern.flatMap(b => (b.medaljer || []).map(m => ({ playerId: b.id, status: m.status || "approved", reviewedAt: m.godkendt, pointsAwarded: m.point })))
   });
 }
+// Kun børn med et aktivt login kan kåres (v15.87). Testenes børn har derfor
+// hasActiveLogin: true, medmindre "login" står: login: false/"true"/1 sættes som det er,
+// og login: UDEN betyder, at feltet slet ikke findes på spilleren.
+const UDEN = Symbol("uden login-felt");
+const loginFelt = b => !("login" in b) ? { hasActiveLogin: true } : b.login === UDEN ? {} : { hasActiveLogin: b.login };
 // Rangér én årgang (2017) i en måned. udelukkede: Månedens spillers vindere.
 function kaar(boern, { maaned = DEC, udelukkede = [] } = {}){
   saet(boern);
-  const res = K.maanedensTopscorerRangering(boern.filter(b => (b.year || "2017") === "2017").map(b => ({ id: b.id, name: "Navn " + b.id })), maaned, udelukkede);
+  const res = K.maanedensTopscorerRangering(boern.filter(b => (b.year || "2017") === "2017").map(b => ({ id: b.id, name: "Navn " + b.id, ...loginFelt(b) })), maaned, udelukkede);
   return { vindere: res.vindere.map(v => v.id), res };
 }
 const stat = (boern, id, maaned = DEC) => { saet(boern); const s = K.maanedTopscorerStat(id, maaned); return s; };
@@ -201,6 +206,48 @@ t("pigen B vinder over drengen A i samme årgang", r.vindere, ["B"]);
 t("den gemte vinder har netop id, navn, point, øvelser, svær, mellem, let og starter - i den orden",
   K.topscorerVinder(r.vindere.length ? r.res.vindere[0] : {}), { id: "B", navn: "Navn B", point: 5, oevelser: 1, svaer: 1, mellem: 0, let: 0, starter: 0 });
 
+afsnit("Kun børn med eget login kan vinde (v15.87)");
+// players.hasActiveLogin skal være præcis true. A har flest point i alle tests her.
+for(const [navn, login] of [["uden feltet", UDEN], ["false", false], ['"true" (tekst)', "true"], ["1", 1], ["null", null]]){
+  r = kaar([{ id: "A", login, dage: { [dag(1)]: { k: 3 }, [dag(2)]: { k: 3 } } }, { id: "B", dage: { [dag(1)]: { t: 1 } } }]);
+  t(`A med hasActiveLogin ${navn} og flest point taber til B med login og 2 point`, r.vindere, ["B"]);
+  t(`A med hasActiveLogin ${navn} står ikke i ranglisten`, r.res.rangliste.map(x => x.id), ["B"]);
+}
+r = kaar([{ id: "A", login: false, stige: { mainStep: 3 }, log: [0, 1, 2].map(v => ({ t: "main", v, at: kl(dag(4)) })) },
+          { id: "B", dage: { [dag(1)]: { t: 1 } } }, { id: "C", dage: { [dag(1)]: { k: 1 } } }, { id: "D", login: UDEN, dage: { [dag(1)]: { k: 2 } } }]);
+t("blandet: den bedste MED login (C, 5 point) vinder - ikke A (stigen) eller D (10) uden login", r.vindere, ["C"]);
+t("blandet: ranglisten er kun børnene med login, bedste først", r.res.rangliste.map(x => [x.id, x.point]), [["C", 5], ["B", 2]]);
+r = kaar([{ id: "A", login: false, dage: { [dag(1)]: { k: 1 } } }, { id: "B", dage: { [dag(2)]: { k: 1 } } }]);
+t("helt lige med et barn uden login: barnet med login vinder alene (ingen deling)", r.vindere, ["B"]);
+r = kaar([{ id: "A", login: false, dage: { [dag(1)]: { k: 3 } } }, { id: "B", login: UDEN, dage: { [dag(1)]: { t: 1 } } }]);
+t("ingen i årgangen har login -> ingen topscorer, tom rangliste, intet udelukket", [r.vindere, r.res.rangliste, r.res.udelukket], [[], [], []]);
+{
+  // Begge priser på samme data, som serveren og appen kårer dem: først Månedens spiller,
+  // så topscoreren med Månedens spillers vindere udelukket.
+  // A (login): flest dage og flest point -> Månedens spiller. B (uden login): næstflest point.
+  // C (login): færre point end B -> topscorer. D (uden login): flere dage end C.
+  const boern = [
+    { id: "A", dage: { [dag(1)]: { k: 3 }, [dag(2)]: { k: 3 }, [dag(3)]: { k: 3 }, [dag(4)]: { k: 3 } } },
+    { id: "B", login: false, dage: { [dag(1)]: { k: 3 }, [dag(2)]: { k: 3 } } },
+    { id: "C", dage: { [dag(1)]: { k: 1 }, [dag(2)]: { t: 1 } } },
+    { id: "D", login: UDEN, dage: { [dag(1)]: { t: 1 }, [dag(2)]: { t: 1 }, [dag(3)]: { t: 1 } } }];
+  saet(boern);
+  const iAargangen = boern.map(b => ({ id: b.id, name: "Navn " + b.id, year: "2017", ...loginFelt(b) }));
+  const spiller = K.maanedensSpillerRangering(iAargangen, DEC, []);
+  t("begge priser: Månedens spiller er A - D uden login og med flere dage end C er ikke med",
+    [spiller.vindere.map(v => v.id), spiller.rangliste.map(x => x.id)], [["A"], ["A", "C"]]);
+  const top = K.maanedensTopscorerRangering(iAargangen, DEC, spiller.vindere.map(v => v.id));
+  t("begge priser: A er udelukket, B uden login springes over -> C er topscorer",
+    [top.vindere.map(v => v.id), top.udelukket, top.rangliste.map(x => x.id)], [["C"], ["A"], ["A", "C"]]);
+  const næste = K.maanedensSpillerRangering(iAargangen, DEC, ["A"]);
+  t("begge priser: vandt A Månedens spiller sidste måned, får C den - ikke D uden login", næste.vindere.map(v => v.id), ["C"]);
+  t("begge priser: og med C som Månedens spiller er A topscorer igen",
+    K.maanedensTopscorerRangering(iAargangen, DEC, næste.vindere.map(v => v.id)).vindere.map(v => v.id), ["A"]);
+  const kunA = boern.map(b => ({ id: b.id, name: "Navn " + b.id, year: "2017", ...(b.id === "A" ? { hasActiveLogin: true } : {}) }));
+  t("begge priser: har kun A login, er A Månedens spiller, og der er ingen topscorer",
+    [K.maanedensSpillerRangering(kunA, DEC, []).vindere.map(v => v.id), K.maanedensTopscorerRangering(kunA, DEC, ["A"]).vindere.map(v => v.id)], [["A"], []]);
+}
+
 afsnit("Talentmærket og dueller ændrer ikke topscoreren (pointreglerne 2026-11-25)");
 {
   // B har færre point fra fodteknik end A, men en medalje (80) og en vundet duel (25) i
@@ -213,11 +260,11 @@ afsnit("Talentmærket og dueller ændrer ikke topscoreren (pointreglerne 2026-11
     fodteknik: boern.map(b => ({ id: b.id, days: b.dage })),
     indsendelser: boern.flatMap(b => (b.medaljer || []).map(m => ({ playerId: b.id, status: "approved", reviewedAt: m.godkendt, pointsAwarded: m.point })))
   });
-  const res = K.maanedensTopscorerRangering(boern.map(b => ({ id: b.id, name: "Navn " + b.id })), DEC, []);
+  const res = K.maanedensTopscorerRangering(boern.map(b => ({ id: b.id, name: "Navn " + b.id, hasActiveLogin: true })), DEC, []);
   t("A (svær, 5 point) vinder over B (starter, 2 point + medalje 80 + duel 25 + 500 på spilleren)", res.vindere.map(v => v.id), ["A"]);
   t("B's point er kun fodteknikkens 2", res.rangliste.map(x => [x.id, x.point]), [["A", 5], ["B", 2]]);
   t("med A som Månedens spiller vinder B med sine 2 point - ikke 107",
-    K.maanedensTopscorerRangering(boern.map(b => ({ id: b.id, name: "Navn " + b.id })), DEC, ["A"]).vindere.map(v => [v.id, v.point]), [["B", 2]]);
+    K.maanedensTopscorerRangering(boern.map(b => ({ id: b.id, name: "Navn " + b.id, hasActiveLogin: true })), DEC, ["A"]).vindere.map(v => [v.id, v.point]), [["B", 2]]);
 }
 
 console.log(`\n${ok} ok, ${fejl} fejl`);

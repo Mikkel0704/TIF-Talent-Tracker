@@ -284,8 +284,11 @@ try{
   // Maanedens spiller paa et lille, haandregnet eksempel: to dage i november, ét barn.
   m.saetAlleBoern({ spillere: [m.migratePlayer({ id: "x", name: "x", year: "U9" })],
     fodteknik: [{ id: "x", days: { "2026-11-16": { t: 1 }, "2026-11-17": { t: 1 } } }] });
-  const k = m.maanedensSpillerRangering([{ id: "x", name: "x", year: "2017" }], "2026-11", []);
+  const k = m.maanedensSpillerRangering([{ id: "x", name: "x", year: "2017", hasActiveLogin: true }], "2026-11", []);
   if(k.vindere.length !== 1 || k.vindere[0].dage !== 2) fejl("proevekaaringen gav " + JSON.stringify(k.vindere));
+  // Kun boern med et aktivt spillerlogin kan kaares (v15.87): samme barn uden login vinder ikke.
+  if(m.maanedensSpillerRangering([{ id: "x", name: "x", year: "2017" }], "2026-11", []).vindere.length !== 0)
+    fejl("et barn uden login kunne vinde Maanedens spiller");
   if(m.maanederTilKaaring("2026-12-05").join() !== m.MAANEDENS_FOERSTE) fejl("maanederTilKaaring virker ikke som ventet");
   // Maanedens topscorer paa et lille, haandregnet eksempel: x har en Starter-dag (2 point),
   // et trin paa stigen (5) og en medalje godkendt i november (25 - taeller ikke, pointreglerne
@@ -296,7 +299,7 @@ try{
     stiger: [{ id: "x", mainStep: 1 }], stigelogge: [{ id: "x", entries: [{ t: "main", v: 0, at: "2026-11-20T10:00:00Z" }] }],
     indsendelser: [{ playerId: "x", status: "approved", reviewedAt: "2026-11-30T12:00:00Z", pointsAwarded: 25 },
       { playerId: "z", status: "approved", reviewedAt: "2026-11-20T12:00:00Z", pointsAwarded: 100 }] });
-  const ts = m.maanedensTopscorerRangering([{ id: "x", name: "x" }, { id: "y", name: "y" }, { id: "z", name: "z" }], "2026-11", ["y"]);
+  const ts = m.maanedensTopscorerRangering([{ id: "x", name: "x", hasActiveLogin: true }, { id: "y", name: "y", hasActiveLogin: true }, { id: "z", name: "z", hasActiveLogin: true }], "2026-11", ["y"]);
   if(ts.vindere.length !== 1 || JSON.stringify(m.topscorerVinder(ts.vindere[0])) !== JSON.stringify({ id: "x", navn: "x", point: 7, oevelser: 2, svaer: 0, mellem: 0, let: 0, starter: 1 }))
     fejl("proeven paa Maanedens topscorer gav " + JSON.stringify(ts.vindere));
   // Morgenoprydningen paa haandregnede eksempler: en joker afgjort for 3 doegn + 1 minut siden
