@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.86</title>
+  <title>TIF Talent Tracker v15.87</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -183,7 +183,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.86 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.87 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
   <div id="seSomSpillerBanner" class="somspillerbanner hidden" role="status"></div>
@@ -390,8 +390,8 @@
       <p><b>"Jonglering":</b> Jongleringsstigen. Træn jonglering derhjemme og kryds trin af, efterhånden som I når dem. Hvert trin giver 5, 10, 15 eller 20 point - jo højere oppe på stigen, jo flere - og stigen for det dårlige ben følger samme trappe. Også her er det på tillid, uden video. Stigen giver point, men ingen medaljer.</p>
       <p><b>"Duel":</b> Udfordr en holdkammerat i en fri duel, som "flest jongleringer" eller "fedeste trick" - eller, hvis jeres årgang kører Talentmærket, i en af øvelserne derfra. Modstanderen skal acceptere, før I begge kan uploade hver jeres video. Træneren afgør, hvem der vinder.</p>
       <p><b>"Rangliste":</b> Se hvordan point fordeler sig mellem spillerne - denne uge, denne måned eller samlet. Kun point fra Fodteknik og Jonglering tæller med. Talentmærket og dueller giver ingen point - de belønnes med medaljer og sejre.</p>
-      <p><b>"Månedens spiller":</b> Hver måned bliver én spiller i hver årgang Månedens spiller og får et emblem. Det er den, der har trænet fodteknik flest dage. Ved lighed tæller træningstid, så antal øvelser og så point. Man kan ikke vinde to måneder i træk. Vinderen findes den 5. i den næste måned og står øverst på ranglisten og på spillerens profil.</p>
-      <p><b>"Månedens topscorer":</b> Hver måned bliver også én spiller i hver årgang Månedens topscorer og får et emblem med en bold. Det er den, der har fået flest point i måneden - fra fodteknik og Jongleringsstigen. Ved lighed tæller antal øvelser og så de sværeste øvelser. Den, der bliver Månedens spiller, kan ikke også blive topscorer samme måned. Så går topscorer til den næste. Man kan godt være topscorer flere måneder i træk.</p>
+      <p><b>"Månedens spiller":</b> Hver måned bliver én spiller i hver årgang Månedens spiller og får et emblem. Det er den, der har trænet fodteknik flest dage. Ved lighed tæller træningstid, så antal øvelser og så point. Man kan ikke vinde to måneder i træk. Kun børn med eget login kan vinde. Vinderen findes den 5. i den næste måned og står øverst på ranglisten og på spillerens profil.</p>
+      <p><b>"Månedens topscorer":</b> Hver måned bliver også én spiller i hver årgang Månedens topscorer og får et emblem med en bold. Det er den, der har fået flest point i måneden - fra fodteknik og Jongleringsstigen. Ved lighed tæller antal øvelser og så de sværeste øvelser. Den, der bliver Månedens spiller, kan ikke også blive topscorer samme måned. Så går topscorer til den næste. Man kan godt være topscorer flere måneder i træk. Kun børn med eget login kan vinde.</p>
       <p id="guideGuidesIntro"><b>"Guides":</b> Her står kravene til hver øvelse på Talentmærket, sammen med beskrivelsen af, hvordan øvelsen sættes op og udføres.</p>
       <p><b>"Min profil":</b> Her ser I jeres point, rang (fra Debutant til Verdensstjerne) og hvilke øvelser der allerede er bestået.</p>
       <p class="small"><b>Om videoerne:</b> De bruges kun til godkendelse og slettes automatisk bagefter - ved Talentmærket med det samme, og ved en duel senest et par dage efter, at træneren har taget stilling. Vi gemmer ikke børnenes videoer permanent.</p>
@@ -564,8 +564,8 @@
     <p><b>Om videoer:</b> selve videofilen, plus hvilken øvelse og hvilket niveau den hører til, hvornår den blev sendt, hvem der behandlede den, og hvor mange point den gav.</p>
     <p><b>Om Jongleringsstigen:</b> hvor langt barnet er nået på de to stiger, hvilke tricks der er klaret, hvilke <b>datoer</b> der er registreret på, og en log over hver registrering med tidspunkt og hvilket login der registrerede den. Registreringen sker på tillid hjemmefra - der er ingen video og ingen godkendelse - og træneren kan rette et trin efter en stikprøve til træning. Rettelser logges med trænerens e-mail. Point udregnes af tallene og gemmes ikke.</p>
     <p><b>Om Daglig fodteknik:</b> hvilke dage barnet har trænet, hvilke øvelser og hvor mange gange hver øvelse er lavet på hver dag. Også her sker registreringen på tillid hjemmefra uden video, og træneren kan rette eller nulstille en dag efter en stikprøve. Rettelser logges med trænerens e-mail. Point, kombi-bonus og streak udregnes af tallene og gemmes ikke.</p>
-    <p><b>Om Månedens spiller:</b> hver måned kåres én spiller i hver årgang ud fra tallene i Daglig fodteknik. Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (træningsdage, minutter, antal øvelser og point). Kåringen - navn, årgang og tallene - kan ses af alle i klubben på tværs af årgange, ligesom klubbens top 10. Den ændres ikke bagefter - bortset fra, at et barn fjernes fra kåringen, hvis I beder om at få barnet slettet.</p>
-    <p><b>Om Månedens topscorer:</b> hver måned kåres også én spiller i hver årgang, der har fået flest point i måneden (Daglig fodteknik og Jongleringsstigen). Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (point, antal øvelser og hvor mange af dem der var svære, mellem, lette og starter). Kåringen - navn, årgang og tallene - kan ses af alle i klubben på tværs af årgange, ligesom klubbens top 10. Den ændres ikke bagefter - bortset fra, at et barn fjernes fra kåringen, hvis I beder om at få barnet slettet.</p>
+    <p><b>Om Månedens spiller:</b> hver måned kåres én spiller i hver årgang - blandt børn med eget login - ud fra tallene i Daglig fodteknik. Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (træningsdage, minutter, antal øvelser og point). Kåringen - navn, årgang og tallene - kan ses af alle i klubben på tværs af årgange, ligesom klubbens top 10. Den ændres ikke bagefter - bortset fra, at et barn fjernes fra kåringen, hvis I beder om at få barnet slettet.</p>
+    <p><b>Om Månedens topscorer:</b> hver måned kåres også én spiller i hver årgang - blandt børn med eget login - der har fået flest point i måneden (Daglig fodteknik og Jongleringsstigen). Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (point, antal øvelser og hvor mange af dem der var svære, mellem, lette og starter). Kåringen - navn, årgang og tallene - kan ses af alle i klubben på tværs af årgange, ligesom klubbens top 10. Den ændres ikke bagefter - bortset fra, at et barn fjernes fra kåringen, hvis I beder om at få barnet slettet.</p>
     <p><b>Om jokere i Daglig fodteknik:</b> hvis I søger en joker for en dag, gemmes datoen, om træneren har godkendt eller afvist den, og <b>den korte begrundelse, I selv skriver</b>. Begrundelsen er fritekst og kan kun ses af jer selv, trænerne i årgangen og klubbens administrator. <b>Systemet sletter den automatisk 3 døgn efter, træneren har afgjort jokeren</b> - datoen og svaret bliver, fordi de skal bruges til at regne streaken ud. Er jokeren ikke afgjort endnu, bliver begrundelsen, så træneren kan læse den. Vi beder udtrykkeligt om <b>ikke</b> at skrive helbredsdetaljer; "syg" er nok.</p><p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På ranglisten:</b> for hvert barn én linje med navn, årgang, køn, point (i alt, denne uge og denne måned) og om barnet kan udfordres til en duel. Linjen regnes ud og skrives af serveren - ingen i appen kan skrive i den. Andre familier ser kun linjerne for de børn, der selv har et login til appen; har dit barn intet login, vises det ikke for andre familier - hverken på årgangens rangliste eller i klubbens top 10. Trænerne i årgangen ser stadig alle børn. <b>På klub-ranglisten</b> står klubbens top 10 med navn, årgang og samlede point, regnet blandt børn med eget login. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
     <p><b>På din egen telefon:</b> et tidsstempel for, hvornår du sidst åbnede "Duel", foruden det login, Google gemmer i browseren, så I forbliver logget ind. Tidsstemplet bruges kun til at vise det lille tal på fanen, og det forlader aldrig enheden.</p>
 
@@ -625,7 +625,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.86 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.87 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -2180,9 +2180,13 @@ function maanedSammenlign(a, b){
 }
 // spillere: [{id, name, year}] i ÉN aargang. forrigeVindere: id'er fra sidste maaned.
 // Svar: {vindere:[{id, navn, ...tal}], rangliste:[...], sprunget:[id'er]}
+// Kun boern med et aktivt spillerlogin kan kaares (v15.87) - som paa spillernes rangliste.
+// players.hasActiveLogin aflaeses paa kaaringsdagen; demo-logins saetter det aldrig. Boern
+// uden login er ikke med i kaaringen overhovedet (heller ikke i "rangliste" herunder).
+function kanKaares(p){ return !!p && p.hasActiveLogin === true; }
 function maanedensSpillerRangering(spillere, maaned, forrigeVindere){
   const sidst = new Set(forrigeVindere || []);
-  const alle = spillere.map(p=>({id: p.id, navn: p.name || "", ...maanedStat(p.id, maaned)})).filter(x=>x.dage > 0);
+  const alle = spillere.filter(kanKaares).map(p=>({id: p.id, navn: p.name || "", ...maanedStat(p.id, maaned)})).filter(x=>x.dage > 0);
   // Lige tal ordnes efter id - tegn for tegn og IKKE med localeCompare, som ordner efter
   // sproget (paa dansk kommer "aa" efter "z"). Serveren kaarer med denne samme kode, men
   // har et andet sprog end browseren, og saa kunne de to stille delte vindere i hver sin orden.
@@ -2239,7 +2243,7 @@ function maanedTopscorerSammenlign(a, b){
 // samme maaned og aargang. Svar: {vindere:[{id, navn, ...tal}], rangliste:[...], udelukket:[id'er]}
 function maanedensTopscorerRangering(spillere, maaned, udelukkede){
   const ude = new Set(udelukkede || []);
-  const alle = spillere.map(p=>({id: p.id, navn: p.name || "", ...maanedTopscorerStat(p.id, maaned)})).filter(x=>x.point > 0);
+  const alle = spillere.filter(kanKaares).map(p=>({id: p.id, navn: p.name || "", ...maanedTopscorerStat(p.id, maaned)})).filter(x=>x.point > 0);
   // Lige tal ordnes efter id tegn for tegn - som maanedensSpillerRangering, saa serveren og
   // browseren stiller delte vindere i samme orden.
   const efterId = (a, b)=>{ const x = String(a.id), y = String(b.id); return x < y ? -1 : x > y ? 1 : 0; };
@@ -2705,7 +2709,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.86 · ikke logget ind");
+    setSyncStatus("v15.87 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2741,7 +2745,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.86 · bekræft inden I går i gang");
+    setSyncStatus("v15.87 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2749,7 +2753,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.86 · vælg din egen adgangskode");
+    setSyncStatus("v15.87 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2847,7 +2851,7 @@ function startListeners(){
         if(!ranglisteAar) lytRangliste(normalizeYearValue(currentPlayerLink.year));
       }
     }
-    setSyncStatus("v15.86 · live database aktiv");
+    setSyncStatus("v15.87 · live database aktiv");
     renderAll();
   };
   spillereHentet = false;
@@ -2856,7 +2860,7 @@ function startListeners(){
       players = snap.exists() ? [migratePlayer({id: snap.id, ...snap.data()})] : [];
       spillereHentet = true;
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.86 · databasefejl: " + e.code))] : [];
+    }, (e)=>setSyncStatus("v15.87 · databasefejl: " + e.code))] : [];
     if(!egenId){ players = []; spillereHentet = true; spillerFaaet(); }
   } else {
     unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
@@ -2864,7 +2868,7 @@ function startListeners(){
       if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
       players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.86 · databasefejl: " + e.code));
+    }, (e)=>setSyncStatus("v15.87 · databasefejl: " + e.code));
   }
   // Spillerens egen aargang kendes fra loginnet (som allowedYears); mangler den dér,
   // startes lytteren, naar spillerens eget dokument er kommet (se spillerFaaet).
@@ -3495,14 +3499,14 @@ async function deletePlayer(id){
   const skrevet = ((await indtast(`Skriv spillerens navn for at bekræfte:\n\n${navn}`, {ja: "Slet alt", farlig: true})) || "").trim();
   if(skrevet !== navn.trim()) return besked("Navnet passede ikke. Intet er slettet.");
 
-  setSyncStatus("v15.86 · sletter...");
+  setSyncStatus("v15.87 · sletter...");
   let svar;
   try{
     // Serveren tjekker navnet igen, før den sletter noget.
     svar = (await sletSpillerPaaServeren({playerId: id, navn: skrevet})).data;
   }catch(e){
     console.error(e);
-    setSyncStatus("v15.86 · live database aktiv");
+    setSyncStatus("v15.87 · live database aktiv");
     const kode = String(e?.code || "").replace(/^functions\//, "");
     const tekst = serverFejlTekst(e);
     // Afviste serveren kaldet, før den gik i gang, er intet slettet - så ingen opfordring.
@@ -3510,7 +3514,7 @@ async function deletePlayer(id){
     return besked("Kunne ikke slette: " + tekst
       + (afvist ? "" : `\n\nNåede noget at blive slettet, så tryk "Slet alt" igen - så gør serveren resten.`));
   }
-  setSyncStatus("v15.86 · live database aktiv");
+  setSyncStatus("v15.87 · live database aktiv");
 
   const fejl = Array.isArray(svar?.fejl) ? svar.fejl : [];
   if(fejl.length){
@@ -4226,11 +4230,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.86 · migrering færdig");
+    setSyncStatus("v15.87 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.86 · migrering fejlede");
+    setSyncStatus("v15.87 · migrering fejlede");
   }
 }
 
@@ -4382,7 +4386,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.86 · uploader video...");
+    setSyncStatus("v15.87 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -4426,12 +4430,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.86 · live database aktiv");
+    setSyncStatus("v15.87 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.86 · live database aktiv");
+    setSyncStatus("v15.87 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){
