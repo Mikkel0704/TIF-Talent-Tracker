@@ -35,7 +35,8 @@ const LINJER = {
   p3: linje("Ida Test",   "2017", "pige",  true, 160, [UGE, 5], ["2026-10-01", 70]),       // maaneds-starten er gammel
   p4: linje("Carl Test",  "2017", "dreng", false, 0, [UGE, 0], [MAANED, 0]),               // har intet aktivt login
   p5: linje("Kim Test",   "2017", null,    true, 3, [UGE, 0], [MAANED, 3]),                // koen ikke sat
-  p6: linje("Anna Test",  "2016", "dreng", true, 999, [UGE, 9], [MAANED, 9])
+  p6: linje("Anna Test",  "2016", "dreng", true, 999, [UGE, 9], [MAANED, 9]),
+  p9: linje("Demo Test",  "2017", "dreng", false, 7, [UGE, 2], [MAANED, 7])                // barnet bag demo-loginnet: intet rigtigt login
 };
 const TOP = { top: [
   { id: "p2", name: "Bo Test", year: "2017", total: 450 },
@@ -76,7 +77,7 @@ console.log("\nEt spillerlogin beder kun om det, kontrakten tillader");
 let a = await aabn("sp", { players: OSCAR, rangliste: LINJER, klubRangliste: { top: TOP } });
 const forventet = [
   "players|doc|p1|",
-  "rangliste|col||year==2017",
+  "rangliste|col||year==2017&kanUdfordres==true", "rangliste|doc|p1|",
   "klubRangliste|doc|top|",
   "submissions|col||playerId==p1", "submissions|col||challengerId==p1", "submissions|col||opponentId==p1",
   "submissionVideos|col||playerId==p1", "submissionVideos|col||opponentId==p1&decided==true", "submissionVideos|col||challengerId==p1&decided==true",
@@ -90,8 +91,9 @@ t("præcis lytterne i kontraktens tabel - hverken flere eller færre", JSON.stri
 t("ingen lytter på clubRanking", !lyt.some(x => x.startsWith("clubRanking|")));
 t("ingen lytter på hele footwork, juggleLadder, players, submissions eller challenges",
   !lyt.some(x => /^(footwork|juggleLadder|players|submissions|challenges|juggleLog|footworkLog)\|col\|\|$/.test(x)));
-t("hvert enkeltdokument om et barn er spillerens eget",
-  lyt.filter(x => /^(players|juggleLadder|juggleLog|footwork|footworkLog|deletionRequests)\|doc\|/.test(x)).every(x => x.split("|")[2] === "p1"));
+t("hvert enkeltdokument om et barn er spillerens eget - også ranglistelinjen",
+  lyt.filter(x => /^(players|juggleLadder|juggleLog|footwork|footworkLog|deletionRequests|rangliste)\|doc\|/.test(x)).every(x => x.split("|")[2] === "p1"));
+t("årgangens linjer hentes kun for børn med login (kanUdfordres == true)", lyt.filter(x => x.startsWith("rangliste|col")).every(x => /kanUdfordres==true/.test(x)), lyt.filter(x => x.startsWith("rangliste")));
 t("og hver forespørgsel på registreringer er bundet til spillerens id",
   lyt.filter(x => /^(submissions|submissionVideos|challenges)\|col/.test(x)).every(x => /Id==p1/.test(x)));
 await a.gaaTil("leaderboard");
@@ -108,14 +110,16 @@ await a.luk();
 console.log("\nEt login, der er begrænset til ét køn, spørger kun efter det køn");
 a = await aabn("spd", { players: OSCAR, rangliste: LINJER, klubRangliste: { top: TOP } });
 lyt = await a.lyt();
-t("ranglisten hentes med årgang OG køn", lyt.includes("rangliste|col||year==2017&gender==dreng"), lyt.filter(x => x.startsWith("rangliste")));
-t("og ikke for hele årgangen", !lyt.includes("rangliste|col||year==2017"));
+t("ranglisten hentes med årgang OG køn - og kun børn med login", lyt.includes("rangliste|col||year==2017&gender==dreng&kanUdfordres==true"), lyt.filter(x => x.startsWith("rangliste")));
+t("og ikke for hele årgangen", !lyt.some(x => /^rangliste\|col\|\|year==2017(&kanUdfordres==true)?$/.test(x)));
+t("plus egen linje som et enkeltdokument", lyt.includes("rangliste|doc|p1|"));
 await a.gaaTil("leaderboard");
 await a.klik("All-time");
 {
   const navne = (await a.raekker()).map(r => r.navn);
-  t("drengene i årgangen står på listen", ["Oscar Test", "Bo Test", "Carl Test"].every(n => navne.includes(n)), navne);
+  t("drengene med login i årgangen står på listen", ["Oscar Test", "Bo Test"].every(n => navne.includes(n)), navne);
   t("pigerne og en anden årgang står der ikke", !navne.includes("Ida Test") && !navne.includes("Anna Test"), navne);
+  t("børn uden login står der ikke (Carl, barnet bag demo-loginnet)", !navne.includes("Carl Test") && !navne.includes("Demo Test"), navne);
 }
 t("ingen JS-fejl", a.fejl.length === 0, a.fejl);
 await a.luk();
@@ -175,8 +179,8 @@ a = await aabn("sp", { players: OSCAR, rangliste: LINJER, klubRangliste: { top: 
 await a.gaaTil("leaderboard");
 await a.klik("All-time");
 r = await a.raekker();
-t("all-time: årgangens linjer efter samlede point - og kun 2017",
-  JSON.stringify(r.map(x => x.navn + " " + x.point)) === JSON.stringify(["Bo Test 450 point", "Ida Test 160 point", "Oscar Test 40 point", "Kim Test 3 point", "Carl Test 0 point"]), r);
+t("all-time: årgangens linjer efter samlede point - kun 2017 og kun børn med login (ikke Carl og ikke Demo)",
+  JSON.stringify(r.map(x => x.navn + " " + x.point)) === JSON.stringify(["Bo Test 450 point", "Ida Test 160 point", "Oscar Test 40 point", "Kim Test 3 point"]), r);
 t("rangen følger det samlede tal", /Talent/.test(r[0].info) && /Klubspiller/.test(r[1].info) && /Debutant/.test(r[2].info), r);
 t("spilleren selv er fremhævet", await a.page.evaluate(() => [...document.querySelectorAll("#leaderboardArea .player")].find(x => x.textContent.includes("Oscar"))?.getAttribute("style").includes("ecfdf5")));
 await a.klik("Denne uge");
@@ -257,7 +261,13 @@ t("og kvitteringen nævner modstanderen", /Udfordring sendt til Bo Test/.test(aw
 t("ingen JS-fejl", a.fejl.length === 0 && a.nativ() === 0, a.fejl);
 await a.luk();
 
-a = await aabn("demo", { players: { p9: { name: "Demo Test", year: "2017", gender: "dreng", points: 0, passed: {}, history: [] } }, rangliste: LINJER });
+a = await aabn("demo", { players: { p9: { name: "Demo Test", year: "2017", gender: "dreng", points: 0, passed: {}, history: [] } }, rangliste: LINJER, klubRangliste: { top: TOP } });
+await a.gaaTil("leaderboard");
+await a.klik("All-time");
+r = await a.raekker();
+t("demo: barnet selv står på listen, selvom dets linje siger kanUdfordres false - og de andre er dem med login",
+  JSON.stringify(r.map(x => x.navn + " " + x.point)) === JSON.stringify(["Bo Test 450 point", "Ida Test 160 point", "Oscar Test 40 point", "Demo Test 7 point", "Kim Test 3 point"]), r);
+t("demo: og er fremhævet", await a.page.evaluate(() => [...document.querySelectorAll("#leaderboardArea .player")].find(x => x.textContent.includes("Demo Test"))?.getAttribute("style").includes("ecfdf5")));
 await a.gaaTil("challenges");
 await a.page.evaluate(() => { createChallenge("p9"); }); await a.page.waitForTimeout(300);
 t("demo-loginnet ser modstanderne, men sender ingenting", /demo-bruger/.test(await a.dialog() || "") && !(await a.page.evaluate(() => window.__skrivninger)).some(x => x.navn === "challenges"));
@@ -280,6 +290,24 @@ t("Oscar ser, at Bo har uploadet i deres fælles duel", /Bo Test har uploadet/.t
 t("ikke duellen mellem to andre", !/Andres duel/.test(duelTekst));
 t("duel-mærket tæller den indkommende udfordring", await a.page.evaluate(() => { const b = document.getElementById("challengeBadge"); return !b.classList.contains("hidden") && b.textContent === "1"; }));
 t("ingen JS-fejl", a.fejl.length === 0, a.fejl);
+await a.luk();
+
+console.log("\nEt barn, hvis login lige er lukket, ser stadig sig selv");
+// Linjen kan sige kanUdfordres false, fx lige efter et Deaktiver - barnet ser sig selv alligevel.
+a = await aabn("sp", { players: OSCAR, rangliste: { ...LINJER, p1: { ...LINJER.p1, kanUdfordres: false } } });
+await a.gaaTil("leaderboard");
+await a.klik("All-time");
+r = await a.raekker();
+t("Oscar står på sin egen liste, og de andre er børnene med login",
+  JSON.stringify(r.map(x => x.navn)) === JSON.stringify(["Bo Test", "Ida Test", "Oscar Test", "Kim Test"]), r);
+t("ingen JS-fejl", a.fejl.length === 0, a.fejl);
+await a.luk();
+
+console.log("\nTræneren ser stadig alle børn i årgangen");
+a = await aabn("tr", { players: { ...ALLE, p4: { name: "Dan Test", year: "2017", gender: "dreng", points: 0, passed: {}, history: [] } }, footwork: FODTEKNIK, klubRangliste: { top: TOP } });
+await a.gaaTil("leaderboard");
+r = await a.raekker();
+t("også et barn uden login (Dan) står på trænerens årgangsliste", JSON.stringify(r.map(x => x.navn + " " + x.point)) === JSON.stringify(["Oscar Test 11 point", "Bo Test 5 point", "Dan Test 0 point"]), r);
 await a.luk();
 
 // ------------------------------------------------------------------ tomme tilstande
@@ -310,16 +338,17 @@ console.log("\nAdmin: Ranglisten på serveren");
 // fodteknik i sidste uge og 10 paa spilleren. Pointreglerne 2026-11-25: spillerens point og
 // videoens point taeller ingen steder - de rigtige linjer har kun fodteknikken.
 const ADMIN_SPILLERE = { p1: OSCAR.p1,
-  p2: { name: "Bo Test", year: "2017", gender: "dreng", points: 10, passed: {}, history: [] },
-  p3: { name: "Carl Test", year: "2016", gender: "dreng", points: 0, passed: {}, history: [] } };
+  p2: { name: "Bo Test", year: "2017", gender: "dreng", points: 10, passed: {}, history: [], hasActiveLogin: true },
+  p3: { name: "Carl Test", year: "2016", gender: "dreng", points: 0, passed: {}, history: [] } };   // intet login
 const ADMIN_FODTEKNIK = { p1: FODTEKNIK.p1, p2: { year: "2017", gender: "dreng", days: { "2026-11-15": { k: 1 } } } };
 const GODKENDT = { "s1": { playerId: "p1", playerName: "Oscar Test", year: "2017", gender: "dreng", status: "approved", reviewedAt: "2026-11-18T09:00:00Z", pointsAwarded: 25 } };
 const rigtige = () => ({
   p1: linje("Oscar Test", "2017", "dreng", true, 11, [UGE, 11], [MAANED, 11]),
-  p2: linje("Bo Test", "2017", "dreng", false, 5, ["2026-11-09", 7], [MAANED, 5]),   // gammel uge-start, appen har 0 i ugen: stemmer
+  p2: linje("Bo Test", "2017", "dreng", true, 5, ["2026-11-09", 7], [MAANED, 5]),   // gammel uge-start, appen har 0 i ugen: stemmer
   p3: linje("Carl Test", "2016", "dreng", false, 0, [UGE, 0], [MAANED, 0])
 });
-const RIGTIG_TOP = { top: [{ id: "p1", name: "Oscar Test", year: "2017", total: 11 }, { id: "p2", name: "Bo Test", year: "2017", total: 5 }, { id: "p3", name: "Carl Test", year: "2016", total: 0 }], regler: REGLER };
+// Klubbens top 10 kun blandt børn med login (v15.86): Carl (p3) er ikke med.
+const RIGTIG_TOP = { top: [{ id: "p1", name: "Oscar Test", year: "2017", total: 11 }, { id: "p2", name: "Bo Test", year: "2017", total: 5 }], regler: REGLER };
 async function status(linjer, top = RIGTIG_TOP){
   const a = await aabn("admin", { players: ADMIN_SPILLERE, footwork: ADMIN_FODTEKNIK, submissions: GODKENDT, rangliste: linjer, klubRangliste: { top } });
   await a.gaaTil("admin");
@@ -344,7 +373,7 @@ l = rigtige(); l.p1.total = 51; l.p1.uge.point = 36; l.p1.maaned.point = 36;
 st = await status(l);
 t("en linje med Talentmærkets og videoens point (de gamle regler) afviger i alt, uge og måned",
   /Oscar Test: i alt 51 på serveren, 11 i appen · denne uge 36 på serveren, 11 i appen · denne måned 36 på serveren, 11 i appen/.test(st.s), st.s);
-st = await status(rigtige(), { top: [{ ...RIGTIG_TOP.top[0], total: 51 }, { ...RIGTIG_TOP.top[1], total: 15 }, RIGTIG_TOP.top[2]], regler: REGLER });
+st = await status(rigtige(), { top: [{ ...RIGTIG_TOP.top[0], total: 51 }, { ...RIGTIG_TOP.top[1], total: 15 }], regler: REGLER });
 t("og en top 10 med de gamle tal (51, 15) opdages", /Klubbens top 10 afviger/.test(st.s), st.s);
 l = rigtige(); l.p1.uge.point = 20;
 st = await status(l);
@@ -360,6 +389,14 @@ st = await status(l);
 t("forkerte pointregler giver en tydelig advarsel", /Serveren regner med andre pointregler end appen – rul funktionerne ud og genberegn/.test(st.s) && /1 linje har ikke pointreglerne fra/.test(st.s), st.s);
 st = await status(rigtige(), { top: [RIGTIG_TOP.top[1], RIGTIG_TOP.top[0]], regler: REGLER });
 t("en top 10 i forkert rækkefølge opdages", /Klubbens top 10 afviger/.test(st.s), st.s);
+st = await status(rigtige(), { top: [...RIGTIG_TOP.top, { id: "p3", name: "Carl Test", year: "2016", total: 0 }], regler: REGLER });
+t("en top 10 med et barn uden login (som før v15.86) afviger - admin-kortet bruger serverens filter", /Klubbens top 10 afviger/.test(st.s) && st.maerke, st.s);
+l = rigtige(); l.p3.kanUdfordres = true;
+st = await status(l);
+t("en linje, der siger login, når barnet intet har, afviger - spillerne ville se barnet", /1 linje afviger/.test(st.s) && /Carl Test: login ja på serveren, nej i appen/.test(st.s) && st.maerke, st.s);
+l = rigtige(); l.p2.kanUdfordres = false;
+st = await status(l);
+t("og omvendt: en linje uden login for et barn med login", /Bo Test: login nej på serveren, ja i appen/.test(st.s), st.s);
 l = rigtige(); l.x7 = linje("Slettet Test", "2017", "dreng", false, 0, [UGE, 0], [MAANED, 0]);
 st = await status(l);
 t("en linje uden barn nævnes", /1 linje hører til et barn, der ikke findes længere/.test(st.s), st.s);
@@ -372,6 +409,9 @@ const priv = (await a.tekst("#privacy")).replace(/\s+/g, " ");
 t("spillerens række siger, at andre børn kun ses på ranglisten", /Om de andre på sit eget hold \(samme årgang - og samme køn, når login'et er oprettet til drenge eller piger\): kun ranglisten/.test(priv), priv.slice(0, 200));
 t("og at træningsdage, øvelser, Talentmærket, medaljer og logge ikke kan hentes", /Ikke andre børns træningsdage, øvelser, fremdrift i Talentmærket/.test(priv) && /medaljer, logge/.test(priv));
 t("den gamle 'kendte svaghed' er væk", !/Skærmen viser mindre, end der hentes/.test(priv) && !/kendt svaghed/.test(priv));
+t("spillerens række: andre familier ser kun børn med eget login, og børn uden login vises ikke", /Andre familier ser kun de børn, der selv har et login til appen; børn uden login vises ikke for andre familier på ranglisten/.test(priv)
+  && /klubbens top 10 med navn, årgang og point - også den kun blandt børn med eget login/.test(priv), priv.slice(0, 600));
+t("ranglisteafsnittet siger det samme - og at trænerne stadig ser alle", /Andre familier ser kun linjerne for de børn, der selv har et login til appen; har dit barn intet login, vises det ikke for andre familier - hverken på årgangens rangliste eller i klubbens top 10\. Trænerne i årgangen ser stadig alle børn\./.test(priv));
 t("serverfunktionerne og deres placering er nævnt - også oprydningen", /serverfunktioner hos Google \(Cloud Functions\) i Belgien \(europe-west1\) regner ranglisten ud/i.test(priv)
   && /rydder op i videoer og joker-begrundelser/.test(priv));
 await a.luk();

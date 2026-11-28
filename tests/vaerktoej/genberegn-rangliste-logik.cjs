@@ -36,6 +36,7 @@ async function genberegn(db, { udfoer = false, FieldValue, nu = new Date() } = {
   }
   for (const id of linjer.keys()) if (!spillere.has(id)) rapport.slettes.push(id);
 
+  // klubTop tager kun boern med login (kanUdfordres, v15.86) - samme top som opdaterTop.
   const top = { top: klubTop([...nye].map(([id, l]) => ({ id, ...l }))), regler: POINTREGLER };
   rapport.topAendres = !(topSnap.exists && topEns(top, topSnap.data()));
 

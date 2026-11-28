@@ -12,7 +12,11 @@
 //   fodteknik og ingen stige), elleve (p11, 2011), demo (p9), udenId (spillerlogin uden
 //   playerId), traener (2017 begge), drenge (2017 kun drenge), anden (2011), admin,
 //   lukket (deaktiveret spiller p1), lukketTraener, fremmed (ingen users-dokument), ude
-//   (ikke logget ind).
+//   (ikke logget ind), foerLinje (spillerlogin til p-ingen, som endnu ingen linje har).
+//
+// Kun boern med login (v15.86): p4 (2017 dreng) har intet login, og p9 er barnet bag
+// demo-loginnet - begges linjer har kanUdfordres false, ligesom p-ny's (endnu ikke sat).
+// En spiller ser andre boerns linjer kun med kanUdfordres == true, men altid sin egen.
 //
 // Gemte data laeses KUN gennem withSecurityRulesDisabled - aldrig med en bar getDoc
 // gennem et regelstyret login uden for assertSucceeds/assertFails.
@@ -44,14 +48,17 @@ const B = {
   demo:          {uid:'u-demo',     doc:{email:'d@x.invalid', role:'player', playerId:'p9', years:['2017'], yearGenders:{'2017':'dreng'}, active:true, demo:true}},
   udenId:        {uid:'u-udenId',   doc:{email:'ui@x.invalid', role:'player', years:['2017'], active:true}},
   lukket:        {uid:'u-lukket',   doc:{email:'l@x.invalid', role:'player', playerId:'p1', years:['2017'], yearGenders:{'2017':'dreng'}, active:false, demo:false}},
+  foerLinje:     {uid:'u-foerLinje', doc:{email:'fl@x.invalid', role:'player', playerId:'p-ingen', years:['2017'], yearGenders:{'2017':'dreng'}, active:true}},
 };
 const FREMMED_UID = 'u-fremmed';   // ingen users-dokument
 
 const D = '2026-11-07';
 const nu = () => new Date().toISOString();
-const BOERN = {p1:['2017','dreng'], p2:['2017','dreng'], p3:['2017','pige'], p9:['2017','dreng'], 'p-ny':['2017','dreng'], p11:['2011','dreng']};
+const BOERN = {p1:['2017','dreng'], p2:['2017','dreng'], p3:['2017','pige'], p4:['2017','dreng'], p9:['2017','dreng'], 'p-ny':['2017','dreng'], p11:['2011','dreng']};
+// Boern uden et aktivt spillerlogin: deres linje har kanUdfordres false.
+const UDEN_LOGIN = new Set(['p4', 'p9', 'p-ny']);
 // Praecis den linje, serveren skriver (se kontrakten).
-const linje = (pid, year, gender, total) => ({name:'TEST '+pid, year, gender, kanUdfordres:true, total,
+const linje = (pid, year, gender, total, kanUdfordres = !UDEN_LOGIN.has(pid)) => ({name:'TEST '+pid, year, gender, kanUdfordres, total,
   uge:{fra:'2026-11-09', point:5}, maaned:{fra:'2026-11-01', point:10}, regler:'2026-11-15', opdateret:new Date()});
 await env.withSecurityRulesDisabled(async c => {
   const db = c.firestore();
@@ -95,24 +102,51 @@ const db = k => k === 'fremmed' ? env.authenticatedContext(FREMMED_UID).firestor
   : env.authenticatedContext(B[k].uid).firestore();
 const aar = (k, s, y) => getDocs(query(collection(db(k), s), where('year','==',y)));
 const aarKoen = (k, s, y, g) => getDocs(query(collection(db(k), s), where('year','==',y), where('gender','==',g)));
+// Spillerens forespoergsel paa ranglisten fra v15.86: kun boern med login.
+const aarLogin = (k, y, kan = true) => getDocs(query(collection(db(k), 'rangliste'), where('year','==',y), where('kanUdfordres','==',kan)));
+const aarKoenLogin = (k, y, g, kan = true) => getDocs(query(collection(db(k), 'rangliste'), where('year','==',y), where('gender','==',g), where('kanUdfordres','==',kan)));
 const felt = (k, s, f, v) => getDocs(query(collection(db(k), s), where(f,'==',v)));
 const hent = (k, s, id) => getDoc(doc(db(k), s, id));
 
 // =====================================================================================
-console.log('\n--- rangliste/: spilleren læser sin egen årgang ---');
-await proev('spiller (drenge-login): lytter på drengene i sin årgang (year + køn, som appen spørger)', 'ALLOW', ()=>aarKoen('spiller','rangliste','2017','dreng'));
+console.log('\n--- rangliste/: spilleren læser sin egen årgang - kun børn med login ---');
+await proev('spiller (drenge-login): lytter på drengene med login i sin årgang (year + køn + kanUdfordres, som appen spørger)', 'ALLOW', ()=>aarKoenLogin('spiller','2017','dreng'));
+await proev('spiller (drenge-login): uden kanUdfordres-klausulen afvises forespørgslen (year + køn, som før v15.86)', 'DENY', ()=>aarKoen('spiller','rangliste','2017','dreng'));
+await proev('spiller (drenge-login): kan IKKE lytte på børnene UDEN login (kanUdfordres == false)', 'DENY', ()=>aarKoenLogin('spiller','2017','dreng', false));
 await proev('spiller (drenge-login): kan IKKE lytte på hele årgangen uden køn', 'DENY', ()=>aar('spiller','rangliste','2017'));
-await proev('spiller (drenge-login): kan IKKE lytte på pigerne i årgangen', 'DENY', ()=>aarKoen('spiller','rangliste','2017','pige'));
-await proev('spiller: kan IKKE lytte på en anden årgangs rangliste', 'DENY', ()=>aar('spiller','rangliste','2011'));
+await proev('spiller (drenge-login): heller ikke med kanUdfordres, men uden køn', 'DENY', ()=>aarLogin('spiller','2017'));
+await proev('spiller (drenge-login): kan IKKE lytte på pigerne i årgangen', 'DENY', ()=>aarKoenLogin('spiller','2017','pige'));
+await proev('spiller: kan IKKE lytte på en anden årgangs rangliste', 'DENY', ()=>aarLogin('spiller','2011'));
 await proev('spiller: kan IKKE liste ranglisten uden where-klausul', 'DENY', ()=>getDocs(collection(db('spiller'),'rangliste')));
-await proev('spiller: henter en holdkammerats linje i sin årgang', 'ALLOW', ()=>hent('spiller','rangliste','p2'));
+await proev('spiller: kan IKKE liste ranglisten med kun kanUdfordres', 'DENY', ()=>getDocs(query(collection(db('spiller'),'rangliste'), where('kanUdfordres','==',true))));
+await proev('spiller: henter en holdkammerats linje i sin årgang (kammeraten har login)', 'ALLOW', ()=>hent('spiller','rangliste','p2'));
+await proev('spiller: kan IKKE hente linjen for et barn uden login i sin årgang', 'DENY', ()=>hent('spiller','rangliste','p4'));
+await proev('spiller: kan IKKE hente linjen for barnet bag demo-loginnet', 'DENY', ()=>hent('spiller','rangliste','p9'));
+await proev('spiller: henter sin egen linje (enkeltdokument, som appen lytter)', 'ALLOW', ()=>hent('spiller','rangliste','p1'));
 await proev('spiller (drenge-login): kan IKKE hente en piges linje i årgangen', 'DENY', ()=>hent('spiller','rangliste','p3'));
 await proev('spiller: kan IKKE hente en linje fra en anden årgang', 'DENY', ()=>hent('spiller','rangliste','p11'));
-await proev('2011-spiller (login uden kønsgrænse): lytter på hele sin årgang', 'ALLOW', ()=>aar('elleve','rangliste','2011'));
-await proev('2011-spiller: kan IKKE lytte på 2017', 'DENY', ()=>aar('elleve','rangliste','2017'));
-await proev('demo (drenge-login): lytter på drengene i sin årgang', 'ALLOW', ()=>aarKoen('demo','rangliste','2017','dreng'));
-await proev('demo (drenge-login): kan IKKE lytte på hele årgangen uden køn', 'DENY', ()=>aar('demo','rangliste','2017'));
-await proev('demo: kan IKKE lytte på en anden årgang', 'DENY', ()=>aar('demo','rangliste','2011'));
+await proev('ny spiller: henter sin egen linje, selvom den siger kanUdfordres false', 'ALLOW', ()=>hent('ny','rangliste','p-ny'));
+await proev('spiller uden linje endnu: lytter på sin egen linje, før den findes', 'ALLOW', ()=>hent('foerLinje','rangliste','p-ingen'));
+await proev('spiller uden linje endnu: men ikke på et andet barns', 'DENY', ()=>hent('foerLinje','rangliste','p4'));
+await proev('2011-spiller (login uden kønsgrænse): lytter på børnene med login i hele sin årgang', 'ALLOW', ()=>aarLogin('elleve','2011'));
+await proev('2011-spiller: uden kanUdfordres-klausulen afvises forespørgslen', 'DENY', ()=>aar('elleve','rangliste','2011'));
+await proev('2011-spiller: kan IKKE lytte på 2017', 'DENY', ()=>aarLogin('elleve','2017'));
+await proev('demo (drenge-login): lytter på drengene med login i sin årgang', 'ALLOW', ()=>aarKoenLogin('demo','2017','dreng'));
+await proev('demo (drenge-login): uden kanUdfordres-klausulen afvises forespørgslen', 'DENY', ()=>aarKoen('demo','rangliste','2017','dreng'));
+await proev('demo (drenge-login): kan IKKE lytte på hele årgangen uden køn', 'DENY', ()=>aarLogin('demo','2017'));
+await proev('demo: kan IKKE lytte på en anden årgang', 'DENY', ()=>aarLogin('demo','2011'));
+await proev('demo: henter sin egen linje, selvom barnet ikke har et rigtigt login (kanUdfordres false)', 'ALLOW', ()=>hent('demo','rangliste','p9'));
+await proev('demo: henter en holdkammerat med login', 'ALLOW', ()=>hent('demo','rangliste','p1'));
+await proev('demo: kan IKKE hente et barn uden login', 'DENY', ()=>hent('demo','rangliste','p4'));
+await proev('spillerlogin uden playerId: lytter på børnene med login i årgangen', 'ALLOW', ()=>aarLogin('udenId','2017'));
+await proev('spillerlogin uden playerId: kan IKKE hente et barn uden login', 'DENY', ()=>hent('udenId','rangliste','p4'));
+{
+  // Det, forespørgslen faktisk giver: kun drengene med login - ikke Carl uden login (p4),
+  // ikke barnet bag demo-loginnet (p9), ikke p-ny og ikke pigen (p3).
+  let ider = null;
+  await proev('spiller: forespørgslen giver kun drengene med login', 'ALLOW', async ()=>{ ider = (await aarKoenLogin('spiller','2017','dreng')).docs.map(d=>d.id).sort(); });
+  ok('  ... netop p1 og p2', JSON.stringify(ider) === '["p1","p2"]', JSON.stringify(ider));
+}
 
 console.log('\n--- rangliste/: trænere og admin ---');
 await proev('træner: lytter på sin årgangs rangliste', 'ALLOW', ()=>aar('traener','rangliste','2017'));
@@ -126,9 +160,14 @@ await proev('anden årgang: kan IKKE lytte på 2017', 'DENY', ()=>aar('anden','r
 await proev('anden årgang: kan IKKE hente en 2017-linje', 'DENY', ()=>hent('anden','rangliste','p1'));
 await proev('admin: lytter på hele samlingen', 'ALLOW', ()=>getDocs(collection(db('admin'),'rangliste')));
 await proev('admin: henter en linje fra en årgang, admin ikke står på', 'ALLOW', ()=>hent('admin','rangliste','p11'));
+await proev('træner: henter linjen for et barn uden login i sin årgang (som før)', 'ALLOW', ()=>hent('traener','rangliste','p4'));
+await proev('drengetræner: henter linjen for en dreng uden login', 'ALLOW', ()=>hent('drenge','rangliste','p4'));
+await proev('træner: lytter også med kanUdfordres-klausulen', 'ALLOW', ()=>aarLogin('traener','2017'));
+await proev('træner: kan IKKE hente en linje i en anden årgang, selv med login', 'DENY', ()=>hent('traener','rangliste','p11'));
+await proev('admin: henter linjen for et barn uden login', 'ALLOW', ()=>hent('admin','rangliste','p4'));
 
 console.log('\n--- klubRangliste/top: alle aktive logins ---');
-for(const k of ['spiller','ny','elleve','demo','traener','drenge','anden','admin']){
+for(const k of ['spiller','ny','elleve','demo','foerLinje','traener','drenge','anden','admin']){
   await proev(`${k}: læser klubbens top 10`, 'ALLOW', ()=>hent(k,'klubRangliste','top'));
 }
 
@@ -257,6 +296,7 @@ console.log('\n--- Deaktiveret, fremmed og ikke logget ind: intet ---');
 for(const k of ['lukket', 'lukketTraener', 'fremmed', 'ude']){
   await proev(`${k}: rangliste for 2017`, 'DENY', ()=>aar(k,'rangliste','2017'));
   await proev(`${k}: en ranglistelinje`, 'DENY', ()=>hent(k,'rangliste','p1'));
+  await proev(`${k}: rangliste for 2017 med kanUdfordres`, 'DENY', ()=>aarKoenLogin(k,'2017','dreng'));
   await proev(`${k}: klubbens top 10`, 'DENY', ()=>hent(k,'klubRangliste','top'));
   await proev(`${k}: spillerdokumentet p1`, 'DENY', ()=>hent(k,'players','p1'));
   await proev(`${k}: footwork/p1`, 'DENY', ()=>hent(k,'footwork','p1'));

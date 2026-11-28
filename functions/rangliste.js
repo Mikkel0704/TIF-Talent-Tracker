@@ -49,6 +49,10 @@ function linje(p, id, medId, { juggleLadderDoc, juggleLogDoc, footworkDoc, submi
     name: String(p.name ?? ""),
     year: kode.normalizeYearValue(p.year),
     gender: p.gender || null,
+    // Barnet har et aktivt spillerlogin, der ikke er demo (players.hasActiveLogin). Styrer
+    // baade duel-vaelgeren og, fra v15.86, hvem andre familier ser: en spiller kan kun laese
+    // andre boerns linjer med kanUdfordres == true (firestore.rules), og klubbens top 10
+    // regnes kun blandt dem (klubTop).
     kanUdfordres: p.hasActiveLogin === true,
     total: kode.totalPoints(p),
     uge: { fra: kode.dagsISO(uge), point: vindue(uge) },
@@ -65,12 +69,15 @@ export function linjerEns(a, b){
     && ["uge", "maaned"].every(f => (a[f]?.fra ?? null) === (b[f]?.fra ?? null) && (a[f]?.point ?? null) === (b[f]?.point ?? null));
 }
 
-// Klubbens top 10 af linjer [{id, name, year, total}]. Samme orden som appens
+// Klubbens top 10 af linjer [{id, name, year, total, kanUdfordres}]. Samme orden som appens
 // [...].sort((a,b)=>b.total-a.total).slice(0, CLUB_TOP_N): sorteringen er stabil, og
 // appens liste kommer i dokument-id-orden fra Firestore - saa lige point ordnes efter id.
+// Kun boern med et aktivt spillerlogin (kanUdfordres === true, serverens kopi af
+// players.hasActiveLogin - aldrig et demo-login): toppen er ét dokument, som alle i klubben
+// laeser, og andre familier maa kun se boern, der selv har et login (v15.86).
 export function klubTop(linjer){
   return [...(linjer || [])]
-    .filter(l => l && l.id)
+    .filter(l => l && l.id && l.kanUdfordres === true)
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .sort((a, b) => (b.total || 0) - (a.total || 0))
     .slice(0, CLUB_TOP_N)

@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="icon" href="icon-192.png" />
 
-  <title>TIF Talent Tracker v15.85</title>
+  <title>TIF Talent Tracker v15.86</title>
   <style>
     :root{
       --maroon:#6d1b3a; --blue:#1f4e8c; --skyblue:#7ec8e3; --cream:#e9f1fa; --card:#ffffff;
@@ -183,7 +183,7 @@
   <h1>TIF Talent Tracker</h1>
   <p>Teknik · Mod · Glæde</p>
   <div class="headerstatusrow">
-    <div id="syncStatus" class="syncstatus">v15.85 · starter login...</div>
+    <div id="syncStatus" class="syncstatus">v15.86 · starter login...</div>
     <button id="headerLogout" class="hidden" onclick="logout()">Log ud</button>
   </div>
   <div id="seSomSpillerBanner" class="somspillerbanner hidden" role="status"></div>
@@ -430,7 +430,7 @@
     <details class="accordion" id="adminRangliste">
       <summary><span>Ranglisten på serveren<span id="ranglisteBadge" class="navbadge hidden">!</span></span></summary>
       <div class="accordion-body">
-        <p class="small">Spillerne ser ikke længere hinandens registreringer. Deres rangliste og klubbens top 10 regnes i stedet ud på serveren, én linje pr. barn. Her sammenlignes serverens tal med det, appen selv regner ud af de samme data. Lige efter en registrering kan et tal afvige et øjeblik, til serveren har regnet færdig.</p>
+        <p class="small">Spillerne ser ikke længere hinandens registreringer. Deres rangliste og klubbens top 10 regnes i stedet ud på serveren, én linje pr. barn. Her sammenlignes serverens tal med det, appen selv regner ud af de samme data - også om barnet har et login, for spillerne ser kun de børn, der har. Klubbens top 10 regnes kun blandt børn med et aktivt login. Lige efter en registrering kan et tal afvige et øjeblik, til serveren har regnet færdig.</p>
         <div id="ranglisteStatusArea"></div>
       </div>
     </details>
@@ -438,7 +438,7 @@
     <details class="accordion" id="adminSeSomSpiller">
       <summary><span>Se som spiller</span></summary>
       <div class="accordion-body">
-        <p class="small">Se Daglig fodteknik, Jongleringsstigen og Ranglisten præcis, som et barn ser dem - med barnets egne registreringer og den rangliste, barnets login får (egen årgang, og kun eget køn, hvis login'et er begrænset til det). Det er kun en visning: intet kan registreres, fortrydes eller ændres, mens du ser.</p>
+        <p class="small">Se Daglig fodteknik, Jongleringsstigen og Ranglisten præcis, som et barn ser dem - med barnets egne registreringer og den rangliste, barnets login får (egen årgang, og kun eget køn, hvis login'et er begrænset til det - og kun børn med eget login, plus barnet selv). Det er kun en visning: intet kan registreres, fortrydes eller ændres, mens du ser.</p>
         <label for="seSomSpillerValg">Vælg barn</label><select id="seSomSpillerValg"></select>
         <button class="btn" onclick="startSeSomSpiller()">Vis som spiller</button>
       </div>
@@ -566,7 +566,7 @@
     <p><b>Om Daglig fodteknik:</b> hvilke dage barnet har trænet, hvilke øvelser og hvor mange gange hver øvelse er lavet på hver dag. Også her sker registreringen på tillid hjemmefra uden video, og træneren kan rette eller nulstille en dag efter en stikprøve. Rettelser logges med trænerens e-mail. Point, kombi-bonus og streak udregnes af tallene og gemmes ikke.</p>
     <p><b>Om Månedens spiller:</b> hver måned kåres én spiller i hver årgang ud fra tallene i Daglig fodteknik. Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (træningsdage, minutter, antal øvelser og point). Kåringen - navn, årgang og tallene - kan ses af alle i klubben på tværs af årgange, ligesom klubbens top 10. Den ændres ikke bagefter - bortset fra, at et barn fjernes fra kåringen, hvis I beder om at få barnet slettet.</p>
     <p><b>Om Månedens topscorer:</b> hver måned kåres også én spiller i hver årgang, der har fået flest point i måneden (Daglig fodteknik og Jongleringsstigen). Kun vinderne gemmes: navn, årgang og de tal, der afgjorde det (point, antal øvelser og hvor mange af dem der var svære, mellem, lette og starter). Kåringen - navn, årgang og tallene - kan ses af alle i klubben på tværs af årgange, ligesom klubbens top 10. Den ændres ikke bagefter - bortset fra, at et barn fjernes fra kåringen, hvis I beder om at få barnet slettet.</p>
-    <p><b>Om jokere i Daglig fodteknik:</b> hvis I søger en joker for en dag, gemmes datoen, om træneren har godkendt eller afvist den, og <b>den korte begrundelse, I selv skriver</b>. Begrundelsen er fritekst og kan kun ses af jer selv, trænerne i årgangen og klubbens administrator. <b>Systemet sletter den automatisk 3 døgn efter, træneren har afgjort jokeren</b> - datoen og svaret bliver, fordi de skal bruges til at regne streaken ud. Er jokeren ikke afgjort endnu, bliver begrundelsen, så træneren kan læse den. Vi beder udtrykkeligt om <b>ikke</b> at skrive helbredsdetaljer; "syg" er nok.</p><p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På ranglisten:</b> for hvert barn én linje med navn, årgang, køn, point (i alt, denne uge og denne måned) og om barnet kan udfordres til en duel. Linjen regnes ud og skrives af serveren - ingen i appen kan skrive i den. <b>På klub-ranglisten</b> står klubbens top 10 med navn, årgang og samlede point. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
+    <p><b>Om jokere i Daglig fodteknik:</b> hvis I søger en joker for en dag, gemmes datoen, om træneren har godkendt eller afvist den, og <b>den korte begrundelse, I selv skriver</b>. Begrundelsen er fritekst og kan kun ses af jer selv, trænerne i årgangen og klubbens administrator. <b>Systemet sletter den automatisk 3 døgn efter, træneren har afgjort jokeren</b> - datoen og svaret bliver, fordi de skal bruges til at regne streaken ud. Er jokeren ikke afgjort endnu, bliver begrundelsen, så træneren kan læse den. Vi beder udtrykkeligt om <b>ikke</b> at skrive helbredsdetaljer; "syg" er nok.</p><p><b>Om udfordringer:</b> hvem der udfordrede hvem, hvilken øvelse eller hvilken opgave det gjaldt, hvornår, og hvem træneren kårede som vinder. Navnene på begge spillere står på udfordringen.</p><p><b>Hvis I beder om at blive slettet:</b> selve anmodningen gemmes med dato og den mail, der bad om det - og den begrundelse, I eventuelt selv skriver. Den kan kun ses af klubbens administrator og forsvinder, når anmodningen er behandlet eller trukket tilbage.</p><p><b>På ranglisten:</b> for hvert barn én linje med navn, årgang, køn, point (i alt, denne uge og denne måned) og om barnet kan udfordres til en duel. Linjen regnes ud og skrives af serveren - ingen i appen kan skrive i den. Andre familier ser kun linjerne for de børn, der selv har et login til appen; har dit barn intet login, vises det ikke for andre familier - hverken på årgangens rangliste eller i klubbens top 10. Trænerne i årgangen ser stadig alle børn. <b>På klub-ranglisten</b> står klubbens top 10 med navn, årgang og samlede point, regnet blandt børn med eget login. Det er den eneste liste, der går på tværs af årgange, og den indeholder intet andet - ingen noter, ingen historik, ingen videoer.</p>
     <p><b>På din egen telefon:</b> et tidsstempel for, hvornår du sidst åbnede "Duel", foruden det login, Google gemmer i browseren, så I forbliver logget ind. Tidsstemplet bruges kun til at vise det lille tal på fanen, og det forlader aldrig enheden.</p>
 
     <h3>Videoer - det vigtigste afsnit</h3>
@@ -587,7 +587,7 @@
     <h3>Hvem kan se hvad</h3>
     <table>
       <tr><th>Rolle</th><th>Kan se</th></tr>
-      <tr><td>Spiller</td><td><b>Om sig selv:</b> alt på sin egen profil.<br><b>Om de andre på sit eget hold</b> (samme årgang - og samme køn, når login'et er oprettet til drenge eller piger): kun ranglisten - navn, årgang, køn, point i alt, denne uge og denne måned, og om barnet kan udfordres til en duel.<br><b>Om hele klubben:</b> klubbens top 10 med navn, årgang og point, og hvem der er Månedens spiller og Månedens topscorer med de tal, der afgjorde det.<br><b>I en duel, barnet selv er med i:</b> modpartens navn, hvad duellen gælder, modpartens indsendelse (hvornår den er sendt, og hvad træneren afgjorde) og - når træneren har afgjort duellen - modpartens video.<br>Ikke andre børns træningsdage, øvelser, fremdrift i Talentmærket eller på Jongleringsstigen, medaljer, logge, trænerens noter eller joker-begrundelser.</td></tr>
+      <tr><td>Spiller</td><td><b>Om sig selv:</b> alt på sin egen profil.<br><b>Om de andre på sit eget hold</b> (samme årgang - og samme køn, når login'et er oprettet til drenge eller piger): kun ranglisten - navn, årgang, køn, point i alt, denne uge og denne måned, og om barnet kan udfordres til en duel. Andre familier ser kun de børn, der selv har et login til appen; børn uden login vises ikke for andre familier på ranglisten.<br><b>Om hele klubben:</b> klubbens top 10 med navn, årgang og point - også den kun blandt børn med eget login - og hvem der er Månedens spiller og Månedens topscorer med de tal, der afgjorde det.<br><b>I en duel, barnet selv er med i:</b> modpartens navn, hvad duellen gælder, modpartens indsendelse (hvornår den er sendt, og hvad træneren afgjorde) og - når træneren har afgjort duellen - modpartens video.<br>Ikke andre børns træningsdage, øvelser, fremdrift i Talentmærket eller på Jongleringsstigen, medaljer, logge, trænerens noter eller joker-begrundelser.</td></tr>
       <tr><td>Træner</td><td>Alt om spillerne i de årgange, træneren har fået adgang til - inklusive noter, historik, joker-begrundelser og videoer til godkendelse. Om andre årgange ser en træner kun klubbens top 10, Månedens spiller og Månedens topscorer - ingen registreringer, noter, logge eller joker-begrundelser.</td></tr>
       <tr><td>Administrator</td><td>Alle årgange, samt hvem der har login til systemet.</td></tr>
       <tr><td>Alle andre</td><td>Ingenting. Man skal have et login oprettet af klubben for at se noget som helst.</td></tr>
@@ -625,7 +625,7 @@
 </section>
 
 <div class="footer-note">
-  TIF Talent Tracker v15.85 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
+  TIF Talent Tracker v15.86 · gamification til spillere: træningsvideoer, point, rang og udfordringer.<br>
   <button type="button" class="linkbtn" style="margin-top:6px" onclick="openPrivacy()">Sådan behandler vi jeres data</button>
 </div>
 
@@ -2324,6 +2324,15 @@ let footwork = [];
 // duel-modstanderne af linjerne og henter ikke andre boerns registreringer.
 let rangliste = [];
 let klubTop = null;
+// Spillerens rangliste (v15.86): aargangens boern med et aktivt spillerlogin - som de kommer
+// fra forespoergslen med where("kanUdfordres","==",true) - plus barnets egen linje, ogsaa
+// naar den selv siger kanUdfordres false. Bruges af lytteren og af Se som spiller, saa admin
+// ser praecis det samme som barnet. Ordnet efter dokument-id, som én forespoergsel leverer
+// linjerne - saa lige point staar i samme raekkefoelge som foer.
+function ranglisteForSpiller(andre, egen){
+  const ud = (andre || []).filter(r=>!egen || r.id !== egen.id);
+  return (egen ? [...ud, egen] : ud).sort((a,b)=>a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+}
 let ranglisteHentet = false, klubTopHentet = false;
 // Om admins raa data er hentet helt - foer det kan statuskortet ikke sammenligne.
 let indsendelserHentet = false, stigeHentet = false, stigeLogHentet = false;
@@ -2390,7 +2399,8 @@ function isDemoUser(){ return currentUserDoc?.demo === true; }
 //    saa isPlayer(), allowedYears() og genderRestrictionFor() svarer som for barnet;
 //  - currentPlayerLink og players: barnet selv, som et spillerlogin henter det;
 //  - rangliste: de linjer, barnets lytter ville faa (egen aargang, og kun eget koen, hvis
-//    loginnet er begraenset til det - se lytRangliste i startListeners).
+//    loginnet er begraenset til det, kun boern med login og barnets egen linje - se
+//    lytRangliste i startListeners og ranglisteForSpiller).
 // Alt saettes tilbage, saa snart tegningen er faerdig. Det sker synkront, saa ingen lytter,
 // intet klik og ingen anden kode ser de udskiftede vaerdier, og lytterne roeres ikke: admin
 // har i forvejen alt hentet. Uge, maaned og "i dag" regnes af datoen, som for barnet.
@@ -2437,9 +2447,11 @@ function somSpiller(tegn){
     currentPlayerLink = p;
     players = [p];
     // Som lytRangliste: loginnets foerste aargang, ellers barnets egen - og koennet, hvis
-    // loginnet er begraenset. Feltet sammenlignes, som forespoergslen goer (==).
+    // loginnet er begraenset - kun boern med login (kanUdfordres == true), plus barnets egen
+    // linje. Felterne sammenlignes, som forespoergslen goer (==).
     const aar = allowedYears()[0] || normalizeYearValue(p.year), koen = genderRestrictionFor(aar);
-    rangliste = gemt.rangliste.filter(r=>r.year === aar && (!koen || r.gender === koen));
+    rangliste = ranglisteForSpiller(gemt.rangliste.filter(r=>r.year === aar && (!koen || r.gender === koen) && r.kanUdfordres === true),
+      gemt.rangliste.find(r=>r.id === p.id) || null);
     tegnerSomSpiller = true;
     tegn();
   } finally {
@@ -2693,7 +2705,7 @@ onAuthStateChanged(auth, async (user)=>{
     // Demo-accepten gaelder ét login, ikke én fane: ryddes her, saa skaermen kommer igen
     // ved naeste log ind - ogsaa uden at lukke browseren.
     try{ sessionStorage.removeItem(DEMO_CONSENT_KEY); }catch{}
-    setSyncStatus("v15.85 · ikke logget ind");
+    setSyncStatus("v15.86 · ikke logget ind");
     return;
   }
   const uref = doc(db, "users", user.uid);
@@ -2729,7 +2741,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("consentQuestion").textContent = isDemoUser()
       ? "Det her er skærmen, enhver familie møder første gang. I demoen vises den hver gang, så I kan se den igen."
       : "Bekræfter du som forælder, at du har læst det, og at dit barn må bruge appen?";
-    setSyncStatus("v15.85 · bekræft inden I går i gang");
+    setSyncStatus("v15.86 · bekræft inden I går i gang");
     return;
   }
   if(currentUserDoc.mustChangePassword === true){
@@ -2737,7 +2749,7 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById("mainNav").classList.add("hidden");
     document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
     document.getElementById("forcePassword").classList.remove("hidden");
-    setSyncStatus("v15.85 · vælg din egen adgangskode");
+    setSyncStatus("v15.86 · vælg din egen adgangskode");
     return;
   }
   document.getElementById("mainNav").classList.remove("hidden");
@@ -2766,28 +2778,52 @@ function startListeners(){
   // Hvor mange dele en aargangsopdelt liste kommer i: én for admin, én pr. aargang for en traener.
   const forventedeDele = isAdmin() ? 1 : Math.max(1, allowedYears().length);
   // Ranglistens linjer. En spiller lytter paa sin egen aargang - navn, aargang, point og
-  // om barnet kan udfordres, intet andet. Admin henter alle linjer til statuskortet. En
-  // traener regner sin aargangsliste ud af de raa data som foer og henter dem ikke.
+  // om barnet kan udfordres, intet andet - og kun paa de boern, der selv har et aktivt
+  // spillerlogin (kanUdfordres, v15.86), plus sin egen linje. Admin henter alle linjer til
+  // statuskortet. En traener regner sin aargangsliste ud af de raa data som foer og henter
+  // dem ikke.
   stopListeners(unsubRangliste);
   unsubRangliste = [];
   rangliste = []; ranglisteHentet = false;
   let ranglisteAar = null;
   const ranglisteFejl = e=>console.error("rangliste listener", e);
+  // Spillerens to kilder: aargangens boern med login, og egen linje (se ranglisteForSpiller).
+  let ranglisteAndre = [], ranglisteEgen = null, andreHentet = false, egenHentet = false;
+  const samlRangliste = ()=>{
+    rangliste = ranglisteForSpiller(ranglisteAndre, ranglisteEgen);
+    ranglisteHentet = andreHentet && egenHentet;
+    renderAll();
+  };
   function lytRangliste(aar){
     stopListeners(unsubRangliste);
     ranglisteAar = aar;
+    ranglisteAndre = []; ranglisteEgen = null; andreHentet = false; egenHentet = false;
     // Er loginnet begraenset til ét koen (det er spillerlogins: drenge ser drenge, piger
     // ser piger), spoerges der kun efter det koen - som aargangslisten altid har vaeret.
     // Reglerne kraever det ogsaa: uden koens-klausulen kan de ikke bevise forespoergslen.
+    // Og kun boern med et aktivt spillerlogin (kanUdfordres == true): andre familier ser
+    // ikke boern uden login. Reglerne kraever ogsaa den klausul.
     const koen = genderRestrictionFor(aar);
     const q = koen
-      ? query(collection(db, "rangliste"), where("year","==",aar), where("gender","==",koen))
-      : query(collection(db, "rangliste"), where("year","==",aar));
+      ? query(collection(db, "rangliste"), where("year","==",aar), where("gender","==",koen), where("kanUdfordres","==",true))
+      : query(collection(db, "rangliste"), where("year","==",aar), where("kanUdfordres","==",true));
     unsubRangliste = [onSnapshot(q, (snap)=>{
-      rangliste = snap.docs.map(d=>({id:d.id, ...d.data()}));
-      ranglisteHentet = true;
-      renderAll();
+      ranglisteAndre = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      andreHentet = true;
+      samlRangliste();
     }, ranglisteFejl)];
+    // Barnet ser altid sig selv - ogsaa uden login (fx bag et demo-login): egen linje som
+    // et enkeltdokument, som reglerne altid tillader paa eget id.
+    const egenLinjeId = currentUserDoc?.playerId;
+    if(egenLinjeId){
+      // Afviser reglerne (fx de gamle regler fra foer v15.86 og en linje, der ikke findes
+      // endnu), tegnes listen uden egen linje i stedet for at hente for evigt.
+      unsubRangliste.push(onSnapshot(doc(db, "rangliste", egenLinjeId), (snap)=>{
+        ranglisteEgen = snap.exists() ? {id: snap.id, ...snap.data()} : null;
+        egenHentet = true;
+        samlRangliste();
+      }, (e)=>{ ranglisteFejl(e); ranglisteEgen = null; egenHentet = true; samlRangliste(); }));
+    } else egenHentet = true;
   }
   if(isAdmin()){
     unsubRangliste = [onSnapshot(collection(db, "rangliste"), (snap)=>{
@@ -2811,7 +2847,7 @@ function startListeners(){
         if(!ranglisteAar) lytRangliste(normalizeYearValue(currentPlayerLink.year));
       }
     }
-    setSyncStatus("v15.85 · live database aktiv");
+    setSyncStatus("v15.86 · live database aktiv");
     renderAll();
   };
   spillereHentet = false;
@@ -2820,7 +2856,7 @@ function startListeners(){
       players = snap.exists() ? [migratePlayer({id: snap.id, ...snap.data()})] : [];
       spillereHentet = true;
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.85 · databasefejl: " + e.code))] : [];
+    }, (e)=>setSyncStatus("v15.86 · databasefejl: " + e.code))] : [];
     if(!egenId){ players = []; spillereHentet = true; spillerFaaet(); }
   } else {
     unsubPlayers = subscribeYearScoped("players", (idx, docs)=>{
@@ -2828,7 +2864,7 @@ function startListeners(){
       if(Object.keys(playersChunks).length >= forventedeDele){ spillereHentet = true; planlaegKaaring(); }
       players = Object.values(playersChunks).flat().map(migratePlayer).filter(p=>canAccessYear(p.year));
       spillerFaaet();
-    }, (e)=>setSyncStatus("v15.85 · databasefejl: " + e.code));
+    }, (e)=>setSyncStatus("v15.86 · databasefejl: " + e.code));
   }
   // Spillerens egen aargang kendes fra loginnet (som allowedYears); mangler den dér,
   // startes lytteren, naar spillerens eget dokument er kommet (se spillerFaaet).
@@ -3459,14 +3495,14 @@ async function deletePlayer(id){
   const skrevet = ((await indtast(`Skriv spillerens navn for at bekræfte:\n\n${navn}`, {ja: "Slet alt", farlig: true})) || "").trim();
   if(skrevet !== navn.trim()) return besked("Navnet passede ikke. Intet er slettet.");
 
-  setSyncStatus("v15.85 · sletter...");
+  setSyncStatus("v15.86 · sletter...");
   let svar;
   try{
     // Serveren tjekker navnet igen, før den sletter noget.
     svar = (await sletSpillerPaaServeren({playerId: id, navn: skrevet})).data;
   }catch(e){
     console.error(e);
-    setSyncStatus("v15.85 · live database aktiv");
+    setSyncStatus("v15.86 · live database aktiv");
     const kode = String(e?.code || "").replace(/^functions\//, "");
     const tekst = serverFejlTekst(e);
     // Afviste serveren kaldet, før den gik i gang, er intet slettet - så ingen opfordring.
@@ -3474,7 +3510,7 @@ async function deletePlayer(id){
     return besked("Kunne ikke slette: " + tekst
       + (afvist ? "" : `\n\nNåede noget at blive slettet, så tryk "Slet alt" igen - så gør serveren resten.`));
   }
-  setSyncStatus("v15.85 · live database aktiv");
+  setSyncStatus("v15.86 · live database aktiv");
 
   const fejl = Array.isArray(svar?.fejl) ? svar.fejl : [];
   if(fejl.length){
@@ -3914,6 +3950,13 @@ async function setPlayerGender(id, gender){
 // regner ud for samme barn. Uge og maaned sammenlignes med det, spilleren faktisk faar vist
 // (ranglistePeriodePoint) - en forkert uge-start paa linjen taeller altsaa ogsaa som afvigelse,
 // hvis appen har point i den nye uge. Der regnes foerst, naar alle raa data er hentet.
+// Klubbens top 10, som serveren regner den (klubTop i functions/rangliste.js), af appens egne
+// data: kun boern med et aktivt spillerlogin (players.hasActiveLogin, det serveren kopierer
+// til kanUdfordres), efter samlede point, lige point efter id.
+function lokalKlubTop(){
+  return players.filter(p=>p.hasActiveLogin === true).map(p=>({id: p.id, total: totalPoints(p)}))
+    .sort((a,b)=>a.id < b.id ? -1 : a.id > b.id ? 1 : 0).sort((a,b)=>b.total-a.total).slice(0, CLUB_TOP_N);
+}
 function ranglisteStatus(){
   if(!(spillereHentet && indsendelserHentet && stigeHentet && stigeLogHentet && footworkHentet && ranglisteHentet && klubTopHentet)) return null;
   const nu = new Date();
@@ -3932,16 +3975,20 @@ function ranglisteStatus(){
     const forskelle = [["total","i alt"],["week","denne uge"],["month","denne måned"]]
       .map(([k, navn])=>({navn, server: ranglistePeriodePoint(r, k === "total" ? "all" : k, nu), app: app[k]}))
       .filter(x=>x.server !== x.app);
+    // Om barnet har login (kanUdfordres) afgoer, om andre familier ser det - det skal ogsaa passe.
+    const loginApp = p.hasActiveLogin === true, loginServer = r.kanUdfordres === true;
+    if(loginApp !== loginServer) forskelle.push({navn: "login", server: loginServer ? "ja" : "nej", app: loginApp ? "ja" : "nej"});
     if(forskelle.length) afviger.push({navn: p.name, forskelle});
   });
   const udenLinje = players.filter(p=>!linjeEfterId.has(p.id));
   const forkerteRegler = rangliste.filter(r=>r.regler !== POINTREGLER).length + (klubTop && klubTop.regler !== POINTREGLER ? 1 : 0);
-  // Klubbens top 10: samme raekkefoelge af point som appens egen udregning, og hvert barns
-  // tal skal passe med appens.
-  const lokalTop = players.map(p=>({id: p.id, total: totalPoints(p)})).sort((a,b)=>b.total-a.total).slice(0, CLUB_TOP_N);
+  // Klubbens top 10: samme raekkefoelge af point som appens egen udregning (kun boern med
+  // login, som serveren), og hvert barns tal skal passe med appens.
+  const lokalTop = lokalKlubTop();
   const serverTop = Array.isArray(klubTop?.top) ? klubTop.top : [];
   const topOk = !!klubTop && serverTop.length === lokalTop.length
-    && serverTop.every((r,i)=>Number(r.total) === lokalTop[i].total && spillerEfterId.has(r.id) && totalPoints(spillerEfterId.get(r.id)) === Number(r.total));
+    && serverTop.every((r,i)=>Number(r.total) === lokalTop[i].total && spillerEfterId.has(r.id) && spillerEfterId.get(r.id).hasActiveLogin === true
+      && totalPoints(spillerEfterId.get(r.id)) === Number(r.total));
   return {linjer: rangliste.length, afviger, udenLinje, udenSpiller, forkerteRegler, topOk, harTop: !!klubTop};
 }
 function renderRanglisteStatus(){
@@ -4179,11 +4226,11 @@ async function migrateOldPlayers(){
       count++;
     }
     besked("Migrering færdig: " + count + " spillere flyttet til players collection.");
-    setSyncStatus("v15.85 · migrering færdig");
+    setSyncStatus("v15.86 · migrering færdig");
   }catch(e){
     console.error(e);
     besked("Migrering fejlede: " + e.message + ". Tjek at Firestore Rules tillader admin at læse tifTalentTracker/sharedState.");
-    setSyncStatus("v15.85 · migrering fejlede");
+    setSyncStatus("v15.86 · migrering fejlede");
   }
 }
 
@@ -4335,7 +4382,7 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
   // og de to ting fejler af vidt forskellige grunde.
   let stage = "video";
   try{
-    setSyncStatus("v15.85 · uploader video...");
+    setSyncStatus("v15.86 · uploader video...");
     // Mappen hedder LOGINNETS id, ikke spillerens. Lagerreglerne kan sammenligne det med
     // den, der er logget ind, og dermed sikre, at man kun uploader til sin egen mappe.
     const path = `submissions/${currentUser.uid}/${Date.now()}_${file.name}`;
@@ -4379,12 +4426,12 @@ async function uploadSubmission(playerId, stepIndex, exercise, file, challengeId
       try{ await deleteObject(sref); }catch(ryd){ console.error("kunne ikke rydde den uploadede fil", ryd); }
       throw e;
     }
-    setSyncStatus("v15.85 · live database aktiv");
+    setSyncStatus("v15.86 · live database aktiv");
     besked("Video uploadet! Din træner skal godkende den.");
   }catch(e){
     console.error("upload fejlede i trin:", stage, e);
     besked(uploadErrorText(stage, e));
-    setSyncStatus("v15.85 · live database aktiv");
+    setSyncStatus("v15.86 · live database aktiv");
   }
 }
 function uploadErrorText(stage, e){

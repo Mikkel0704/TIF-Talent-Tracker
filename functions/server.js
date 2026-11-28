@@ -36,22 +36,40 @@ export async function genberegnBarn(db, id, nu){
     const ref = db.collection("rangliste").doc(id);
     if(!ny) tx.delete(ref);
     else tx.set(ref, { ...ny, opdateret: FieldValue.serverTimestamp() });
-    const topRoert = !ny || !gammel || ny.name !== gammel.name || ny.year !== gammel.year || ny.total !== gammel.total;
+    // kanUdfordres afgoer, om barnet maa staa i klubbens top 10 (klubTop) - et login, der
+    // oprettes, slettes, aktiveres eller deaktiveres, flytter altsaa toppen.
+    const topRoert = !ny || !gammel || ny.name !== gammel.name || ny.year !== gammel.year || ny.total !== gammel.total
+      || ny.kanUdfordres !== gammel.kanUdfordres;
     return { handling: !ny ? "slettet" : !gammel ? "oprettet" : "aendret", topRoert };
   });
 }
 
-// klubRangliste/top ud fra linjerne. De N stoerste plus ALLE med samme total som nummer N,
-// saa lige point ved graensen afgoeres efter id som i appen - uden et sammensat indeks.
+// klubRangliste/top ud fra linjerne - kun boern med kanUdfordres == true (se klubTop).
+// UDEN et sammensat indeks: where("kanUdfordres","==",true) + orderBy("total") ville kraeve
+// et (kanUdfordres, total desc), som skal oprettes og bygges, foer funktionen virker. I
+// stedet laeses linjerne efter total (enkeltfelts-indekset, som altid findes) side for side,
+// til der er N med kanUdfordres == true, og filtreres her. Derefter ALLE med samme total som
+// nummer N (where total == graense, ogsaa enkeltfelt), saa lige point ved graensen afgoeres
+// efter id som i appen. Der laeses altsaa N + de boern uden login, der ligger over graensen.
+const TOP_SIDE = 25;
 export async function opdaterTop(db){
   return db.runTransaction(async tx => {
     const linjer = db.collection("rangliste");
-    const foerste = await tx.get(linjer.orderBy("total", "desc").limit(CLUB_TOP_N));
-    const kandidater = new Map(foerste.docs.map(d => [d.id, { id: d.id, ...d.data() }]));
-    if(foerste.size === CLUB_TOP_N){
-      const graense = foerste.docs[foerste.size - 1].get("total");
-      (await tx.get(linjer.where("total", "==", graense))).docs.forEach(d => kandidater.set(d.id, { id: d.id, ...d.data() }));
+    const kandidater = new Map();
+    const tag = d => { const l = { id: d.id, ...d.data() }; if(l.kanUdfordres === true) kandidater.set(d.id, l); };
+    let graense = null, sidste = null;
+    for(;;){
+      let q = linjer.orderBy("total", "desc").limit(TOP_SIDE);
+      if(sidste) q = q.startAfter(sidste);
+      const side = await tx.get(q);
+      for(const d of side.docs){
+        tag(d);
+        if(kandidater.size === CLUB_TOP_N){ graense = d.get("total"); break; }
+      }
+      if(graense !== null || side.size < TOP_SIDE) break;
+      sidste = side.docs[side.size - 1];
     }
+    if(graense !== null) (await tx.get(linjer.where("total", "==", graense))).docs.forEach(tag);
     const ref = db.collection("klubRangliste").doc("top");
     const gammel = await tx.get(ref);
     const ny = { top: klubTop([...kandidater.values()]), regler: POINTREGLER };

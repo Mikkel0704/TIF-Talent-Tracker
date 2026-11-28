@@ -241,14 +241,26 @@ service cloud.firestore {
     // gender laeses UDEN standardvaerdi: i en forespoergsel uden koens-klausul kan den
     // saa ikke bevises, og et begraenset login kan ikke lytte paa hele aargangen.
     // .get("years", []): et login uden years-felt faar intet i stedet for en fejl.
-    function ranglisteLaeser() {
-      return isActive() && ranglisteLaeserAktiv();
+    //
+    // KUN BOERN MED LOGIN (v15.86, ejerens beslutning): et spillerlogin (ogsaa demo) ser
+    // kun andre boerns linjer, naar barnet selv har et aktivt spillerlogin - kanUdfordres
+    // == true, serverens kopi af players.hasActiveLogin (aldrig sat af et demo-login). Sin
+    // EGEN linje (dokument-id == eget playerId) laeser spilleren altid, ogsaa med
+    // kanUdfordres false (fx barnet bag et demo-login) - den grenen roerer ikke resource, saa
+    // en linje, der ikke findes endnu, giver ikke en fejl. Appen henter de andre med
+    // where("kanUdfordres","==",true) ud over aargang (og koen), og sin egen linje som et
+    // enkeltdokument. kanUdfordres laeses uden standardvaerdi: en forespoergsel uden
+    // klausulen kan ikke bevises og afvises som helhed. Traenere og admin: som foer.
+    function ranglisteLaeser(playerId) {
+      return isActive() && ranglisteLaeserAktiv(playerId);
     }
-    function ranglisteLaeserAktiv() {
+    function ranglisteLaeserAktiv(playerId) {
       let d = userDoc().data;
       let aar = resource.data.year;
       return d.role == "admin"
-        || (aar in d.get("years", [])
+        || (d.role == "player" && playerId == egenSpillerId(d))
+        || ((d.role != "player" || resource.data.kanUdfordres == true)
+            && aar in d.get("years", [])
             && (!("yearGenders" in d) || !(aar in d.yearGenders) || d.yearGenders[aar] == "begge"
                 || d.yearGenders[aar] == resource.data.gender));
     }
@@ -777,12 +789,13 @@ service cloud.firestore {
     // Ingen klient maa skrive - heller ikke admin - ellers kunne et barn faa point, der
     // ikke kan regnes ud af data. Laesning: se ranglisteLaeser.
     match /rangliste/{playerId} {
-      allow read: if ranglisteLaeser();
+      allow read: if ranglisteLaeser(playerId);
       allow write: if false;
     }
 
     // Klubbens top-10 paa tvaers af aargange (klubRangliste/top), ogsaa skrevet af
-    // serveren. Kun navn, aargang og total - alle aktive logins maa laese den.
+    // serveren. Kun navn, aargang og total - alle aktive logins maa laese den. Serveren
+    // regner den kun blandt boern med et aktivt spillerlogin (kanUdfordres, v15.86).
     match /klubRangliste/{docId} {
       allow read: if isActive();
       allow write: if false;

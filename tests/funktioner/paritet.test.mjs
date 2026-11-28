@@ -16,7 +16,7 @@
 // i den kopi, browseren faar, saa testen kan spoerge siden selv om totalPoints - filen roeres ikke.
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { beregnLinje, linjerEns } from "../../functions/rangliste.js";
+import { beregnLinje, linjerEns, klubTop } from "../../functions/rangliste.js";
 const { chromium } = createRequire(import.meta.url)("playwright");
 
 const raa = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
@@ -24,7 +24,7 @@ const KROG = "\nObject.assign(window,{";
 const krogVed = raa.lastIndexOf(KROG);
 if(krogVed < 0) throw new Error("fandt ikke den sidste Object.assign(window,{ i index.html - testen skal rettes");
 const html = raa.slice(0, krogVed) + "\nwindow.__paritet = () => ({ uge: dagsISO(startOfWeek(new Date())), maaned: dagsISO(startOfMonth(new Date())), " +
-  "spillere: players.map(p => ({ id: p.id, name: p.name, total: totalPoints(p) })) });" + raa.slice(krogVed);
+  "spillere: players.map(p => ({ id: p.id, name: p.name, total: totalPoints(p) })), klubTop: lokalKlubTop() });" + raa.slice(krogVed);
 const stedfortraeder = readFileSync(new URL("../visning/stoette/firebase-stedfortraeder.js", import.meta.url), "utf8");
 const PRIVACY = /const PRIVACY_VERSION = "([^"]+)"/.exec(raa)[1];
 
@@ -172,6 +172,14 @@ for(const [i, [navn, iso]] of TIDER.entries()){
   t("Denne uge paa ranglisten == serverens uge.point", !a.length, a);
   a = afvig(id => vist.month[navn_(id)] !== server[id].maaned.point);
   t("Denne maaned paa ranglisten == serverens maaned.point", !a.length, a);
+  // v15.86: klubbens top 10 kun blandt boern med login - admin-kortets egen udregning
+  // (lokalKlubTop) giver samme liste som serverens klubTop af linjerne.
+  const serverTop = klubTop(ider.map(id => ({ id, ...server[id] }))).map(r => r.id + ":" + r.total);
+  const sideTop = krog.klubTop.map(r => r.id + ":" + r.total);
+  t(`klubbens top 10 paa siden (admin-kortet) == serverens - kun boern med login (${serverTop.length} af ${ider.length})`,
+    JSON.stringify(sideTop) === JSON.stringify(serverTop) && krog.klubTop.every(r => db.players[r.id].hasActiveLogin === true), { side: sideTop, server: serverTop });
+  a = afvig(id => server[id].kanUdfordres !== (db.players[id].hasActiveLogin === true));
+  t("linjens kanUdfordres er barnets hasActiveLogin", !a.length, a);
   t("ugen og maaneden starter samme dag paa siden og paa serveren",
     ider.every(id => server[id].uge.fra === krog.uge && server[id].maaned.fra === krog.maaned), { side: [krog.uge, krog.maaned], server: [server[ider[0]].uge.fra, server[ider[0]].maaned.fra] });
   // De samme data uden Talentmaerkets point og uden indsendelser: linjerne skal vaere ens.

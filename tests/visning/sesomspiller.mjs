@@ -24,8 +24,10 @@ const browser = await chromium.launch();
 // reserve-kaaring ikke har noget at skrive.
 const NU = "2026-12-10T12:00:00+01:00";
 const UGE = "2026-12-07", MAANED = "2026-12-01";
-const linje = (name, year, gender, total, uge, maaned) =>
-  ({ name, year, gender, kanUdfordres: true, total, uge: { fra: UGE, point: uge }, maaned: { fra: MAANED, point: maaned }, regler: REGLER });
+// kanUdfordres = barnet har et aktivt spillerlogin (players.hasActiveLogin) - fra v15.86 ser
+// spillerne kun de boern, plus sig selv.
+const linje = (name, year, gender, total, uge, maaned, kanUdfordres = true) =>
+  ({ name, year, gender, kanUdfordres, total, uge: { fra: UGE, point: uge }, maaned: { fra: MAANED, point: maaned }, regler: REGLER });
 const spiller = (name, year, gender, ekstra = {}) => ({ name, year, gender, points: 0, passed: {}, history: [], ...ekstra });
 const BRUGERE = {
   admin: { email: "a@x.invalid", role: "admin", years: ["2017", "2016"], ...ok_ },
@@ -40,11 +42,11 @@ const DATA = () => ({
   players: {
     p1: spiller("Ida Test", "2017", "pige", { hasActiveLogin: true }),
     p2: spiller("Oscar Test", "2017", "dreng", { hasActiveLogin: true }),
-    p3: spiller("Bo Test", "2017", "dreng"),
-    p4: spiller("Anna Test", "2017", "pige"),
+    p3: spiller("Bo Test", "2017", "dreng"),          // intet login
+    p4: spiller("Anna Test", "2017", "pige", { hasActiveLogin: true }),
     p5: spiller("Lis Test", "2016", "pige"),          // intet login
-    p6: spiller("Mads Test", "2016", "dreng"),
-    p7: spiller("Sofie Test", "2016", "pige")
+    p6: spiller("Mads Test", "2016", "dreng", { hasActiveLogin: true }),
+    p7: spiller("Sofie Test", "2016", "pige", { hasActiveLogin: true })
   },
   // Ida: tre dage i traek (streak 3), toe-taps 3 gange i dag, og en joker, der venter.
   footwork: {
@@ -63,9 +65,9 @@ const DATA = () => ({
   rangliste: {
     p1: linje("Ida Test", "2017", "pige", 120, 30, 60),
     p2: linje("Oscar Test", "2017", "dreng", 200, 10, 90),
-    p3: linje("Bo Test", "2017", "dreng", 50, 5, 20),
+    p3: linje("Bo Test", "2017", "dreng", 50, 5, 20, false),
     p4: linje("Anna Test", "2017", "pige", 80, 40, 40),
-    p5: linje("Lis Test", "2016", "pige", 40, 4, 8),
+    p5: linje("Lis Test", "2016", "pige", 40, 4, 8, false),
     p6: linje("Mads Test", "2016", "dreng", 90, 9, 30),
     p7: linje("Sofie Test", "2016", "pige", 10, 1, 2)
   },
@@ -144,7 +146,7 @@ t("Ida: ingen JS-fejl", a.fejl.length === 0, a.fejl);
 await a.luk();
 a = await aabn("oscar");
 const OSCAR = await fang(a);
-t("Oscar: ranglisten er hele 2017, begge køn", ens(navneI(OSCAR.alle), ["Oscar Test", "Ida Test", "Anna Test", "Bo Test"]), navneI(OSCAR.alle));
+t("Oscar: ranglisten er hele 2017, begge køn - men kun børn med login (ikke Bo)", ens(navneI(OSCAR.alle), ["Oscar Test", "Ida Test", "Anna Test"]), navneI(OSCAR.alle));
 await a.luk();
 
 // ------------------------------------------------------------------ admin
@@ -265,7 +267,7 @@ await a.page.selectOption("#seSomSpillerValg", "p2");
 await a.page.click('#adminSeSomSpiller button:has-text("Vis som spiller")'); await a.page.waitForTimeout(250);
 t("banneret: Oscar Test (2017)", (await a.tekst("#seSomSpillerBanner")).includes("Du ser appen som Oscar Test (2017) – intet kan ændres her"));
 const VO = await fang(a);
-t("ranglisten viser begge køn i 2017 - som Oscars eget login", ens(navneI(VO.alle), ["Oscar Test", "Ida Test", "Anna Test", "Bo Test"]), navneI(VO.alle));
+t("ranglisten viser begge køn i 2017, kun børn med login - som Oscars eget login", ens(navneI(VO.alle), ["Oscar Test", "Ida Test", "Anna Test"]), navneI(VO.alle));
 for (const k of ["fodteknik", "stige", "maaned", "alle", "uge", "maanedPoint", "klub"]) t(`Oscar · ${k}: ordret som Oscars eget login`, VO[k] === OSCAR[k], { vis: VO[k].slice(0, 200), oscar: OSCAR[k].slice(0, 200) });
 t("Oscars stige er hans egen: Hovedstigen 2/16", VO.stige.includes("Hovedstigen 2/16 · Dårligt ben 0/12 · Tricks 0/14"));
 await a.klik("#seSomSpillerBanner", "Tilbage til admin");
@@ -277,7 +279,8 @@ await a.page.click('#adminSeSomSpiller button:has-text("Vis som spiller")'); awa
 const banner = await a.tekst("#seSomSpillerBanner");
 t("banneret siger, at barnet intet login har", banner.includes("Du ser appen som Lis Test (2016) – intet kan ændres her") && banner.includes("(barnet har intet login - vist som en spiller med samme køn)"), banner);
 const VL = await fang(a);
-t("ranglisten: pigerne i 2016", ens(navneI(VL.alle), ["Lis Test", "Sofie Test"]), navneI(VL.alle));
+t("ranglisten: pigerne med login i 2016 - og Lis selv, selvom hun intet login har", ens(navneI(VL.alle), ["Lis Test", "Sofie Test"]), navneI(VL.alle));
+t("klubbens top 10 er den samme for Lis", ens(navneI(VL.klub), ["Oscar Test", "Ida Test", "Mads Test"]), navneI(VL.klub));
 t("kortet viser 2016: Lis er topscorer - 'det er dig!'", /Lis Test - det er dig!/.test(VL.maaned) && /Mads Test/.test(VL.maaned) && !/Ida Test/.test(VL.maaned), VL.maaned);
 t("fodteknikken er Lis' egen (én dag)", /I går\s*1 ✓/.test(VL.fodteknik) && !/I dag\s*\d ✓/.test(VL.fodteknik));
 await a.klik("#seSomSpillerBanner", "Tilbage til admin");

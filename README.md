@@ -152,8 +152,9 @@ de tre faner. "Tilbage til admin" giver admin sine faner og sin side tilbage.
 
 - **De rigtige sider, ikke en kopi.** Tegnefunktionerne køres med barnet sat ind i stedet for
   den, der er logget ind (`somSpiller` i `index.html`): barnets login fra `users` (årgange og
-  køn), barnet selv og de ranglistelinjer, barnets login ville hente - egen årgang, og kun eget
-  køn, hvis login'et er begrænset til det. Har barnet intet login, vises det som et spillerlogin
+  køn), barnet selv og de ranglistelinjer, barnets login ville hente - egen årgang, kun eget
+  køn, hvis login'et er begrænset til det, og kun børn med login (`kanUdfordres`) plus barnets
+  egen linje (`ranglisteForSpiller`, samme funktion som lytteren - fra v15.86). Har barnet intet login, vises det som et spillerlogin
   begrænset til barnets køn, og banneret siger det. Admin har i forvejen alle data hentet, så
   der startes ingen nye lyttere, og intet hentes.
 - **Intet kan skrives.** Knapperne, der ville skrive, er slået fra, hver skrivende funktion
@@ -187,10 +188,30 @@ de tre faner. "Tilbage til admin" giver admin sine faner og sin side tilbage.
 - **Spillere læser kun deres egne logge** (`footworkLog`, `juggleLog`), hvor joker-
   begrundelser og bruger-id'er står.
 - **En spiller henter kun det om andre børn, som ranglisten viser.** Eget spillerdokument,
-  egne registreringer, årgangens linjer i `rangliste`, `klubRangliste/top`,
+  egne registreringer, årgangens linjer i `rangliste` for børn med login (se næste punkt), `klubRangliste/top`,
   `maanedensSpiller`, `maanedensTopscorer` og indsendelser og dueller, barnet selv er part i. Ikke andre børns
   spillerdokumenter, træningsdage, stige eller indsendelser. Appens forespørgsler er formet
   præcis, som reglerne kan bevise dem - en bredere forespørgsel afvises som helhed.
+- **Andre familier ser kun børn med eget login** (ejerens beslutning, v15.86). Et spillerlogin
+  (også demo) må kun læse en anden linje i `rangliste`, når `kanUdfordres == true`, dvs. barnet
+  har et aktivt spillerlogin, der ikke er demo (`players.hasActiveLogin`, som serveren kopierer
+  til linjen). Sin egen linje (dokument-id = eget `playerId`) læser spilleren altid, også med
+  `kanUdfordres` false og før den findes - den gren rører ikke `resource`. Reglen
+  (`ranglisteLaeserAktiv`):
+
+  ```
+  d.role == "admin"
+  || (d.role == "player" && playerId == egenSpillerId(d))
+  || ((d.role != "player" || resource.data.kanUdfordres == true)
+      && aar in d.get("years", []) && <køn som før>)
+  ```
+
+  Appens forespørgsel er derfor `where("year","==",aar)` (+ `where("gender","==",koen)` for et
+  begrænset login) + `where("kanUdfordres","==",true)`, og egen linje hentes som et
+  enkeltdokument. En forespørgsel uden `kanUdfordres`-klausulen afvises som helhed. Trænere og
+  admin læser som før (alle linjer i deres årgange). Klubbens top 10 regnes kun blandt børn med
+  login (se "Ranglisten regnes på serveren") - for alle, fordi den er ét fælles dokument.
+  Månedens spiller og Månedens topscorer er uændrede og kan nævne et barn uden login.
 - **Ingen klient skriver i `rangliste` eller `klubRangliste`** - heller ikke admin.
 - **Et læsetjek må ikke give `null` som standard for køn.** I en forespørgsel uden
   køns-klausul giver `.get("gender", null)` netop `null`, og så slipper en træner med kun
@@ -217,7 +238,25 @@ point. Derfor regner en Cloud Function pointene ud og skriver én linje pr. barn
   point denne uge og denne måned med den dato, perioden begynder (`uge.fra`, `maaned.fra`).
   Pointene er kun Daglig fodteknik og Jongleringsstigen - se "Talentmærket og dueller giver
   ingen point".
-- `klubRangliste/top`: klubbens top 10 med navn, årgang og point i alt.
+- `klubRangliste/top`: klubbens top 10 med navn, årgang og point i alt - kun blandt børn med
+  et aktivt spillerlogin (`kanUdfordres == true`, fra v15.86).
+
+**Kun børn med login (v15.86).** `kanUdfordres` (= `players.hasActiveLogin === true`) styrer
+både duel-vælgeren og, hvem andre familier ser: spillerens årgangsliste er børnene med
+`kanUdfordres == true` plus barnet selv, og reglerne håndhæver det (se "Adgangsreglerne i korte
+træk"). `hasActiveLogin` holdes i takt af `opretLogin`/`sletLogin`, "Aktiver"/"Deaktiver" og
+"Synkronisér spilleres login-status" - et demo-login sætter det aldrig. Triggeren på `players`
+regner så linjen om, og fordi `kanUdfordres` har ændret sig, regnes klubbens top 10 også om
+(`genberegnBarn` melder `topRoert`). Der er intet nyt felt på linjen og ingen nye point, så
+`POINTREGLER` er uændret.
+
+**Klubbens top 10 uden sammensat indeks.** `where("kanUdfordres","==",true)` +
+`orderBy("total","desc")` ville kræve et sammensat indeks, der skal oprettes og bygges før
+funktionen - og en funktion, der rulles ud før indekset, ville fejle. `opdaterTop` læser i
+stedet linjerne efter `total` (enkeltfelts-indekset, som altid findes) i sider à 25, til den har
+10 med `kanUdfordres == true`, og filtrerer i hukommelsen (`klubTop`); derefter alle med samme
+total som nummer 10, så lige point afgøres efter id. Den læser altså 10 linjer plus de børn uden
+login, der har flere point. Intet indeks at rulle ud.
 
 **Samme kode, ikke en kopi.** `functions/byg.mjs` skærer pointkoden ud af `index.html` og
 skriver `functions/genereret/pointkode.js`, som ikke ligger i repoet. Den laves forfra før
@@ -235,7 +274,26 @@ skrevet noget siden perioden skiftede. Der er ingen trigger på `rangliste` elle
 derfor tidszonen til Europe/Copenhagen, før noget andet køres (`functions/tid.js`).
 
 **Trænere og admin** regner stadig årgangens liste ud af de rå data, som de alligevel
-henter. Admin-siden sammenligner serverens linjer med appens egen beregning.
+henter - med alle børn i årgangen, også dem uden login. Admin-siden sammenligner serverens
+linjer med appens egen beregning (også `kanUdfordres` mod `hasActiveLogin`) og klubbens top 10
+med appens egen top blandt børn med login (`lokalKlubTop`, samme filter som serveren).
+
+**Udrulning af v15.86 (kun børn med login) - i denne rækkefølge:**
+
+1. Funktionerne (`node vaerktoej/udrul-funktioner.cjs`): klubbens top 10 regnes kun blandt
+   børn med login, og et skift i login regner toppen om. Den gamle app (v15.85) viser blot
+   den nye top.
+2. `node vaerktoej/genberegn-rangliste.cjs --udfoer`: skriver klubbens top 10 forfra uden børn
+   uden login med det samme (linjerne er uændrede - samme felter, samme point).
+3. Appen (v15.86). Den virker også med de gamle regler: forespørgslen med den ekstra
+   `kanUdfordres`-klausul kan de gamle regler bevise, og egen linje har barnets egen årgang og
+   køn.
+4. **Først når familierne har v15.86** (statuslinjen; giv det mindst et døgn): `firestore.rules`
+   (`npm run regler`, så `udrul-regler.cjs`). Den gamle app spørger uden `kanUdfordres` og får
+   et nej med de nye regler - dens rangliste og duel-vælger bliver tomme, til siden genindlæses.
+   Indtil reglerne er ude, er det kun appen, der skjuler børnene uden login.
+
+Ingen indeksudrulning og ingen hævning af `POINTREGLER`.
 
 ## Månedens spiller kåres af serveren
 
@@ -552,8 +610,8 @@ Kun visning - ingen regel-, server- eller pointændring. `tests/visning/streaks.
 | `challenges` | Dueller | De to parter; trænere i årgangen |
 | `juggleLadder` / `footwork` | Fremdrift og registreringer - kun tal og datoer | Barnet selv; trænere i årgangen |
 | `juggleLog` / `footworkLog` | Hvem registrerede hvad; joker-begrundelser | Barnet selv; trænere i årgangen |
-| `rangliste` | Én linje pr. barn, skrevet af serveren: navn, årgang, køn, point | Egen årgang - og kun eget køn, når login'et er begrænset til ét køn (det er spillerlogins) |
-| `klubRangliste` | `top`: klubbens top 10, skrevet af serveren | Hele klubben |
+| `rangliste` | Én linje pr. barn, skrevet af serveren: navn, årgang, køn, om barnet har login (`kanUdfordres`), point | Trænere: egen årgang (og køn). Spillere: egen linje altid; andre kun i egen årgang, kun eget køn, når login'et er begrænset til ét køn (det er spillerlogins), og kun børn med login (`kanUdfordres == true`, v15.86) |
+| `klubRangliste` | `top`: klubbens top 10 blandt børn med login, skrevet af serveren | Hele klubben |
 | `clubRanking` | Gammelt spejl af medaljepoint. Skrives stadig af trænere, læses ikke længere af appens rangliste | Trænere i årgangen og admin |
 | `clubConfig` | Hvilke årgange kører Talentmærket (`modules`); adresserne på instruktionsvideoerne (`guideVideos`) | Hele klubben |
 | `maanedensSpiller` | Månedens spiller pr. måned og årgang: vinder(e) med navn og de tal, der afgjorde det. Oprettes én gang, ændres aldrig | Hele klubben |

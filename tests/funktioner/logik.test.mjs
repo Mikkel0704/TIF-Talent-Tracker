@@ -209,7 +209,7 @@ t("ingen linje mod ingen linje er ens, ingen mod én er ikke", linjerEns(null, n
 console.log("\nKlubbens top 10");
 const linjer = [
   ["k", 50], ["c", 90], ["a", 90], ["m", 10], ["b", 5], ["z", 5], ["d", 70], ["e", 60], ["f", 40], ["g", 30], ["h", 20], ["i", 5], ["j", 1]
-].map(([id, total]) => ({ id, name: "N" + id, year: "2017", total, uge: {}, ekstra: "skal ikke med" }));
+].map(([id, total]) => ({ id, name: "N" + id, year: "2017", kanUdfordres: true, total, uge: {}, ekstra: "skal ikke med" }));
 const top = klubTop(linjer);
 // Appens egen sortering paa listen i dokument-id-orden, som Firestore leverer den.
 const appens = [...linjer].sort((x, y) => (x.id < y.id ? -1 : 1)).sort((x, y) => y.total - x.total).slice(0, CLUB_TOP_N).map(x => x.id);
@@ -220,6 +220,13 @@ t("hver plads har kun id, name, year og total", top.every(r => JSON.stringify(Ob
 t("toppen er uafhaengig af den orden, linjerne kommer i", JSON.stringify(klubTop([...linjer].reverse())) === JSON.stringify(top));
 t("topEns ser forskel paa én plads", topEns({ top, regler: "x" }, { top, regler: "x" }) && !topEns({ top, regler: "x" }, { top: [...top].reverse(), regler: "x" }));
 t("faerre end 10 boern giver en kortere liste", klubTop(linjer.slice(0, 3)).length === 3 && klubTop([]).length === 0);
+// v15.86: kun boern med et aktivt spillerlogin (kanUdfordres === true) staar i toppen.
+const udenLogin = [["u1", 999, false], ["u2", 90, undefined], ["u3", 500, "ja"], ["u4", 95, null]]
+  .map(([id, total, kanUdfordres]) => ({ id, name: "U" + id, year: "2016", kanUdfordres, total }));
+const medUden = klubTop([...linjer, ...udenLogin]);
+t("boern uden login (kanUdfordres false, mangler, 'ja', null) kommer aldrig i toppen - heller ikke med flest point",
+  JSON.stringify(medUden) === JSON.stringify(top) && !medUden.some(r => r.id.startsWith("u")), medUden.map(r => r.id));
+t("kun boern uden login giver en tom top", klubTop(udenLogin).length === 0);
 
 console.log("\nbyg.mjs fejler hoejlydt");
 const mappe = mkdtempSync(join(tmpdir(), "byg-"));

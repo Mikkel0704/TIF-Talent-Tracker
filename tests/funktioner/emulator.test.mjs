@@ -110,16 +110,59 @@ t("og roerer ikke klubbens top 10", (await top())._tid === topFoer._tid);
 
 console.log("\nCloud Functions · flere boern og klubbens top 10");
 // Pointreglerne 2026-11-25: Talentmaerkets point (players.points) flytter ingen i klubbens top 10.
-await db.collection("players").doc("b").set({ name: "Bo", year: "2014", points: 100 });
+await db.collection("players").doc("b").set({ name: "Bo", year: "2014", points: 100, hasActiveLogin: true });
 tp = await vent(async () => { const x = await top(); return x && x.top.length === 2 && x; });
 t("Bo med 100 Talentmaerke-point gaar IKKE forrest - Anna med 21 fra fodteknik og stige gaar", tp && tp.top.map(r => r.id + ":" + r.total).join() === "a:21,b:0", tp?.top);
-for(let i = 0; i < 11; i++) await db.collection("players").doc("c" + String(i).padStart(2, "0")).set({ name: "C" + i, year: "2016", points: 20 });
+for(let i = 0; i < 11; i++) await db.collection("players").doc("c" + String(i).padStart(2, "0")).set({ name: "C" + i, year: "2016", points: 20, hasActiveLogin: true });
 tp = await vent(async () => { const x = await top(); return x && x.top.length === 10 && x.top.filter(r => r.total === 0).length === 9 && x; });
 t("de 11 boern med 20 Talentmaerke-point staar med 0", tp && tp.top.slice(1).every(r => r.total === 0) && tp.top[0].id === "a", tp?.top);
 const alle = (await db.collection("rangliste").get()).docs.map(d => ({ id: d.id, ...d.data() }));
 t("hoejst 10, og ved lige point afgoeres det efter id som i appen",
   tp && JSON.stringify(tp.top.map(r => r.id)) === JSON.stringify(klubTop(alle).map(r => r.id)), { db: tp?.top.map(r => r.id), forventet: klubTop(alle).map(r => r.id) });
 t("toppen rummer kun id, navn, aargang og total", tp && tp.top.every(r => JSON.stringify(Object.keys(r).sort()) === '["id","name","total","year"]'));
+
+console.log("\nCloud Functions · kun boern med login i klubbens top 10 (v15.86)");
+// 30 boern UDEN login (hasActiveLogin mangler) med 60 point fra stigen - flere end alle
+// andre. Over én side (25) af de linjer, opdaterTop laeser efter total, saa den skal blade
+// videre for at finde de 10 med login.
+const topIder = x => (x?.top || []).map(r => r.id).join();
+const topFoerX = await top();
+const X = Array.from({ length: 30 }, (_, i) => "x" + String(i).padStart(2, "0"));
+for(const id of X){
+  await db.collection("players").doc(id).set({ name: "X" + id, year: "2015", gender: "dreng", points: 0 });
+  await db.collection("juggleLadder").doc(id).set({ year: "2015", gender: "dreng", mainStep: 8 });
+}
+t("(testdata: alle 30 har en linje med 60 point og kanUdfordres false)", !!await vent(async () => {
+  const ls = await Promise.all(X.map(linje)); return ls.every(x => x && x.total === 60 && x.kanUdfordres === false);
+}, 60000));
+await sov(3000);
+let tpX = await top();
+t("boern uden login staar ikke i klubbens top 10 - selv med flest point", tpX && !tpX.top.some(r => r.id.startsWith("x")) && topIder(tpX) === topIder(topFoerX), tpX?.top.map(r => r.id + ":" + r.total));
+let alleX = (await db.collection("rangliste").get()).docs.map(d => ({ id: d.id, ...d.data() }));
+t("og toppen er stadig klubTop af alle linjer (som kun tager boern med login)", topIder(tpX) === klubTop(alleX).map(r => r.id).join(), { db: topIder(tpX), forventet: klubTop(alleX).map(r => r.id) });
+// Barnet faar et login (opretLogin/Aktiver saetter hasActiveLogin) - linjen og toppen foelger.
+await db.collection("players").doc("x07").set({ hasActiveLogin: true }, { merge: true });
+l = await vent(async () => { const x = await linje("x07"); return x?.kanUdfordres === true && x; });
+t("faar barnet et login, faar linjen kanUdfordres true", !!l && l.total === 60, l);
+tpX = await vent(async () => { const x = await top(); return x?.top[0]?.id === "x07" && x; });
+t("og barnet kommer forrest i klubbens top 10", !!tpX && tpX.top.length === 10 && tpX.top[0].total === 60 && tpX.top.filter(r => r.id.startsWith("x")).length === 1, (await top())?.top.map(r => r.id + ":" + r.total));
+alleX = (await db.collection("rangliste").get()).docs.map(d => ({ id: d.id, ...d.data() }));
+t("(samme top som klubTop af linjerne)", topIder(tpX) === klubTop(alleX).map(r => r.id).join());
+// Og login'et lukkes igen (Deaktiver/Slet saetter hasActiveLogin false).
+await db.collection("players").doc("x07").set({ hasActiveLogin: false }, { merge: true });
+l = await vent(async () => { const x = await linje("x07"); return x?.kanUdfordres === false && x; });
+t("lukkes login'et, faar linjen kanUdfordres false", !!l, l);
+tpX = await vent(async () => { const x = await top(); return x && !x.top.some(r => r.id === "x07") && x; });
+t("og barnet forsvinder fra klubbens top 10 - toppen er som foer", !!tpX && topIder(tpX) === topIder(topFoerX), (await top())?.top.map(r => r.id));
+// Et barn med login, der mister det, forsvinder ogsaa (her Anna, som staar forrest).
+await db.collection("players").doc("a").set({ hasActiveLogin: false }, { merge: true });
+tpX = await vent(async () => { const x = await top(); return x && !x.top.some(r => r.id === "a") && x; });
+t("Anna uden login forsvinder fra toppen, og den naeste med login rykker ind", !!tpX && tpX.top.length === 10 && !tpX.top.some(r => r.id.startsWith("x")), (await top())?.top.map(r => r.id));
+await db.collection("players").doc("a").set({ hasActiveLogin: true }, { merge: true });
+tpX = await vent(async () => { const x = await top(); return x?.top[0]?.id === "a" && x; });
+t("og med login igen staar hun forrest igen", !!tpX && topIder(tpX) === topIder(topFoerX), (await top())?.top.map(r => r.id));
+for(const id of X){ await db.collection("players").doc(id).delete(); await db.collection("juggleLadder").doc(id).delete(); }
+t("(testdata ryddet: x-boernenes linjer er vaek)", !!await vent(async () => (await Promise.all(X.map(linje))).every(x => x === null), 60000));
 
 console.log("\nCloud Functions · flytning, mange skrivninger og sletning");
 await db.collection("submissions").doc("s1").update({ playerId: "b" });
